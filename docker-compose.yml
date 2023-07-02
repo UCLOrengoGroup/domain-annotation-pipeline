@@ -1,0 +1,17 @@
+
+services:
+
+  # cath-af-cli:
+  #   build: docker/cath-af-cli
+
+  pdb-tools:
+    build: docker/pdb-tools
+
+  unidoc:
+    build: docker/UniDoc
+
+  # chainsaw:
+  #   build: docker/chainsaw
+
+  merizo:
+    build: docker/Merizo
