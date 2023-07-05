@@ -45,8 +45,8 @@ def run(merizo_file, unidoc_file, chainsaw_file, output_file):
 
 
 def normalise_df(df):
-    df['index'] = df['af_chain_id'].str.replace('.pdb', '')
-
+    # index by file stem (no suffix)
+    df['index'] = df['af_chain_id'].str.replace('.pdb', '').replace('.cif', '')
     df.set_index('index', inplace=True)
     return df
 
