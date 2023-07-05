@@ -8,10 +8,10 @@ services:
     build: docker/pdb-tools
 
   unidoc:
-    build: docker/UniDoc
+    build: docker/unidoc
 
   # chainsaw:
   #   build: docker/chainsaw
 
   merizo:
-    build: docker/Merizo
+    build: docker/merizo
