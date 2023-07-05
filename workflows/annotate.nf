@@ -144,7 +144,7 @@ process collect_results {
     file 'all_results.tsv'
 
     """
-    ${params.combine_script} -m merizo_results.tsv -u unidoc_results.tsv -o all_results.tsv
+    ${params.combine_script} -m merizo_results.tsv -u unidoc_results.tsv -o all_results.sv
     """
 }
 
@@ -194,11 +194,11 @@ workflow {
     //     }
 
     def all_merizo_results = merizo_results_ch
-        .collectFile(name: 'results.merizo.tsv', 
+        .collectFile(name: 'domain_assignments.merizo.tsv', 
             storeDir: workflow.launchDir)
 
     def all_unidoc_results = unidoc_results_ch
-        .collectFile(name: 'results.unidoc.tsv', 
+        .collectFile(name: 'domain_assignments.unidoc.tsv', 
             storeDir: workflow.launchDir)
     
     def all_results = collect_results( 
@@ -206,7 +206,7 @@ workflow {
             all_merizo_results, 
             all_unidoc_results 
         )
-        .collectFile(name: 'all_results.tsv', 
+        .collectFile(name: 'domain_assignments.tsv', 
              // skip: 1,
             storeDir: workflow.launchDir)
         .subscribe {
