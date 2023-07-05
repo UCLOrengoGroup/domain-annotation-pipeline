@@ -11,6 +11,22 @@ params.af_version = 4
 params.uniprot_csv_file = "${workflow.launchDir}/data/uniprot_ids.csv"
 params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
 
+// with docker
+// params.chainsaw_script = "python3 /app/chainsaw/get_predictions.py"
+// params.merizo_script = "python3 /app/merizo/predict.py"
+// params.unidoc_script = "python3 /app/unidoc/Run_UniDoc_from_scratch_structure.py"
+
+// without docker
+params.chainsaw_dir = "${workflow.launchDir}/tools/chainsaw"
+params.merizo_dir = "${workflow.launchDir}/tools/Merizo"
+params.unidoc_dir = "${workflow.launchDir}/tools/UniDoc"
+params.pdbtools_dir = "${workflow.launchDir}/tools/pdb-tools"
+params.pdb_fromcif_script = "${params.pdbtools_dir}/venv/bin/python3 ${params.pdbtools_dir}/venv/bin/pdb_fromcif.py"
+params.chainsaw_script = "${params.chainsaw_dir}/venv/bin/python3 ${params.chainsaw_dir}/get_predictions.py"
+params.merizo_script = "${params.merizo_dir}/venv/bin/python3 ${params.merizo_dir}/predict.py"
+params.unidoc_script = "${params.unidoc_dir}/venv/bin/python3 ${params.unidoc_dir}/Run_UniDoc_from_scratch_structure.py"
+params.stride_dir = "${params.chainsaw_dir}/stride"
+
 process cif_files_from_web {
     input:
     path 'af_ids.txt'
@@ -54,6 +70,7 @@ process cif_to_pdb {
     path '*.pdb'
 
     """
+    source ${params.pdbtools_dir}/venv/bin/activate
     for cif_file in *.cif; do
         pdb_file=\${cif_file%.cif}.pdb
         pdb_fromcif \$cif_file > \$pdb_file
@@ -71,9 +88,7 @@ process run_chainsaw {
     path 'chainsaw_results.csv'
 
     """
-    python3 get_predictions.py \
-        --structure_directory . \
-        -o chainsaw_results.csv
+    ${params.chainsaw_script} --structure_directory . -o chainsaw_results.csv
     """
 }
 
@@ -88,7 +103,7 @@ process run_merizo {
     path 'merizo_results.csv'
 
     """
-    python3 /app/Merizo/predict.py -d cpu -i *.pdb > merizo_results.csv
+    ${params.merizo_script} -d cpu -i *.pdb > merizo_results.csv
     """
 }
 
@@ -102,16 +117,19 @@ process run_unidoc {
     path 'unidoc_results.csv'
 
     """
+    STRIDE_DIR=${params.stride_dir}
+
     # UniDoc expects to be run from its own directory
-    ln -s /app/UniDoc/bin bin
+    ln -s \$STRIDE_DIR/bin bin
+
     for pdb_file in *.pdb; do
         file_stem=\${pdb_file%.pdb}
 
-        python /app/UniDoc/Run_UniDoc_from_scratch_structure.py -i \$pdb_file -c A > \${file_stem}.unidoc
+        ${params.unidoc_script} -i \$pdb_file -c A -o \${file_stem}.unidoc
 
         # extract the chopping from the last line of the unidoc output (possibly blank)
         # and change chopping string to the expected format
-        chopping=\$(tail -n 1 \${file_stem}.unidoc | grep -v 'step 2' | tr '~' '-' | tr ',' '_' | tr '/' ',')
+        chopping=\$(tail -n 1 \${file_stem}.unidoc | tr '~' '-' | tr ',' '_' | tr '/' ',' | tr -d '\n')
 
         echo "\$file_stem\t\$chopping\n" >> unidoc_results.csv
     done
