@@ -24,7 +24,7 @@ params.pdbtools_dir = "${workflow.launchDir}/tools/pdb-tools"
 params.pdb_fromcif_script = "${params.pdbtools_dir}/venv/bin/python3 ${params.pdbtools_dir}/venv/bin/pdb_fromcif.py"
 params.chainsaw_script = "${params.chainsaw_dir}/venv/bin/python3 ${params.chainsaw_dir}/get_predictions.py"
 params.merizo_script = "${params.merizo_dir}/venv/bin/python3 ${params.merizo_dir}/predict.py"
-params.unidoc_script = "${params.unidoc_dir}/venv/bin/python3 ${params.unidoc_dir}/Run_UniDoc_from_scratch_structure.py"
+params.unidoc_script = "python3 ${params.unidoc_dir}/Run_UniDoc_from_scratch_structure.py"
 params.stride_dir = "${params.chainsaw_dir}/stride"
 
 process cif_files_from_web {
