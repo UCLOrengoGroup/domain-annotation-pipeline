@@ -168,3 +168,6 @@ repo-key.pub
 .nextflow/
 work/
 .nextflow.log*
+
+# local build dir
+tools/
