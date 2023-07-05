@@ -21,11 +21,11 @@ params.chainsaw_dir = "${workflow.launchDir}/tools/chainsaw"
 params.merizo_dir = "${workflow.launchDir}/tools/Merizo"
 params.unidoc_dir = "${workflow.launchDir}/tools/UniDoc"
 params.pdbtools_dir = "${workflow.launchDir}/tools/pdb-tools"
+params.stride_dir = "${workflow.launchDir}/tools/stride"
 params.pdb_fromcif_script = "${params.pdbtools_dir}/venv/bin/python3 ${params.pdbtools_dir}/venv/bin/pdb_fromcif.py"
 params.chainsaw_script = "${params.chainsaw_dir}/venv/bin/python3 ${params.chainsaw_dir}/get_predictions.py"
 params.merizo_script = "${params.merizo_dir}/venv/bin/python3 ${params.merizo_dir}/predict.py"
 params.unidoc_script = "python3 ${params.unidoc_dir}/Run_UniDoc_from_scratch_structure.py"
-params.stride_dir = "${params.chainsaw_dir}/stride"
 
 process cif_files_from_web {
     input:
@@ -120,7 +120,7 @@ process run_unidoc {
     STRIDE_DIR=${params.stride_dir}
 
     # UniDoc expects to be run from its own directory
-    ln -s \$STRIDE_DIR/bin bin
+    ln -s \$STRIDE_DIR bin
 
     for pdb_file in *.pdb; do
         file_stem=\${pdb_file%.pdb}
@@ -129,9 +129,9 @@ process run_unidoc {
 
         # extract the chopping from the last line of the unidoc output (possibly blank)
         # and change chopping string to the expected format
-        chopping=\$(tail -n 1 \${file_stem}.unidoc | tr '~' '-' | tr ',' '_' | tr '/' ',' | tr -d '\n')
+        chopping=\$(tail -n 1 \${file_stem}.unidoc | tr '~' '-' | tr ',' '_' | tr '/' ',' | tr -d '\\n')
 
-        echo "\$file_stem\t\$chopping\n" >> unidoc_results.csv
+        echo "\$file_stem\t\$chopping" >> unidoc_results.csv
     done
     """
 }
