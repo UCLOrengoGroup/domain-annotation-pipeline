@@ -11,21 +11,6 @@ params.af_version = 4
 params.uniprot_csv_file = "${workflow.launchDir}/data/uniprot_ids.csv"
 params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
 
-// with docker
-// params.chainsaw_script = "python3 /app/chainsaw/get_predictions.py"
-// params.merizo_script = "python3 /app/merizo/predict.py"
-// params.unidoc_script = "python3 /app/unidoc/Run_UniDoc_from_scratch_structure.py"
-
-// without docker
-params.chainsaw_dir = "${workflow.launchDir}/tools/chainsaw"
-params.merizo_dir = "${workflow.launchDir}/tools/Merizo"
-params.unidoc_dir = "${workflow.launchDir}/tools/UniDoc"
-params.pdbtools_dir = "${workflow.launchDir}/tools/pdb-tools"
-params.stride_dir = "${workflow.launchDir}/tools/stride"
-params.pdb_fromcif_script = "${params.pdbtools_dir}/venv/bin/python3 ${params.pdbtools_dir}/venv/bin/pdb_fromcif.py"
-params.chainsaw_script = "${params.chainsaw_dir}/venv/bin/python3 ${params.chainsaw_dir}/get_predictions.py"
-params.merizo_script = "${params.merizo_dir}/venv/bin/python3 ${params.merizo_dir}/predict.py"
-params.unidoc_script = "python3 ${params.unidoc_dir}/Run_UniDoc_from_scratch_structure.py"
 
 process cif_files_from_web {
     input:
@@ -70,7 +55,6 @@ process cif_to_pdb {
     path '*.pdb'
 
     """
-    source ${params.pdbtools_dir}/venv/bin/activate
     for cif_file in *.cif; do
         pdb_file=\${cif_file%.cif}.pdb
         pdb_fromcif \$cif_file > \$pdb_file
@@ -117,10 +101,8 @@ process run_unidoc {
     path 'unidoc_results.csv'
 
     """
-    STRIDE_DIR=${params.stride_dir}
-
     # UniDoc expects to be run from its own directory
-    ln -s \$STRIDE_DIR bin
+    ln -s ${params.unidoc_dir}/bin bin
 
     for pdb_file in *.pdb; do
         file_stem=\${pdb_file%.pdb}
@@ -162,7 +144,7 @@ process collect_results {
     file 'all_results.csv'
 
     """
-    cat chainsaw_results.csv merizo_results.csv > all_results.csv
+    ${params.combine_script} -m merizo_results.csv -u unidoc_results.csv -o all_results.csv
     """
 }
 
@@ -213,19 +195,11 @@ workflow {
 
     def all_merizo_results = merizo_results_ch
         .collectFile(name: 'results.merizo.csv', 
-            // skip: 1,
             storeDir: workflow.launchDir)
-        .subscribe {
-            println "Merizo results: $it"
-        }
 
     def all_unidoc_results = unidoc_results_ch
         .collectFile(name: 'results.unidoc.csv', 
-            // skip: 1,
             storeDir: workflow.launchDir)
-        .subscribe {
-            println "UniDoc results: $it"
-        }
     
     def all_results = collect_results( 
             // all_chainsaw_results, 
