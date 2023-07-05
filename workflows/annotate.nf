@@ -144,7 +144,10 @@ process collect_results {
     file 'all_results.tsv'
 
     """
-    ${params.combine_script} -m merizo_results.tsv -u unidoc_results.tsv -o all_results.sv
+    ${params.combine_script} \
+        -m merizo_results.tsv \
+        -u unidoc_results.tsv \
+        -o all_results.tsv
     """
 }
 
