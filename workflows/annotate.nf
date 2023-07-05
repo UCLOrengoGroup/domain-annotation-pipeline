@@ -136,15 +136,15 @@ process run_measure_globularity {
 
 process collect_results {
     input:
-    // file 'chainsaw_results.csv'
-    file 'merizo_results.csv'
-    file 'unidoc_results.csv'
+    // file 'chainsaw_results.tsv'
+    file 'merizo_results.tsv'
+    file 'unidoc_results.tsv'
 
     output:
-    file 'all_results.csv'
+    file 'all_results.tsv'
 
     """
-    ${params.combine_script} -m merizo_results.csv -u unidoc_results.csv -o all_results.csv
+    ${params.combine_script} -m merizo_results.tsv -u unidoc_results.tsv -o all_results.tsv
     """
 }
 
@@ -194,11 +194,11 @@ workflow {
     //     }
 
     def all_merizo_results = merizo_results_ch
-        .collectFile(name: 'results.merizo.csv', 
+        .collectFile(name: 'results.merizo.tsv', 
             storeDir: workflow.launchDir)
 
     def all_unidoc_results = unidoc_results_ch
-        .collectFile(name: 'results.unidoc.csv', 
+        .collectFile(name: 'results.unidoc.tsv', 
             storeDir: workflow.launchDir)
     
     def all_results = collect_results( 
@@ -206,7 +206,7 @@ workflow {
             all_merizo_results, 
             all_unidoc_results 
         )
-        .collectFile(name: 'all_results.csv', 
+        .collectFile(name: 'all_results.tsv', 
              // skip: 1,
             storeDir: workflow.launchDir)
         .subscribe {
