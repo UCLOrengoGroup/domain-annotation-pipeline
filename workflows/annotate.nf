@@ -160,7 +160,7 @@ workflow {
         // process the file as a CSV with a header line
         .splitCsv(header: true)
         // only process a few ids when debugging
-        .take( 5 )
+        // .take( 5 )
 
     // Generate files containing chunks of AlphaFold ids
     // NOTE: this will only retrieve the first fragment in the AF prediction (F1)
