@@ -64,7 +64,7 @@ process cif_to_pdb {
 
 process run_chainsaw {
     container 'domain-annotation-pipeline-chainsaw'
-
+    stageInMode 'copy'
     input:
     path '*'
 
@@ -73,6 +73,7 @@ process run_chainsaw {
 
     """
     ${params.chainsaw_script} --structure_directory . -o chainsaw_results.csv
+    sed -i '/^chain_id/d' chainsaw_results.csv
     """
 }
 
@@ -136,7 +137,7 @@ process run_measure_globularity {
 
 process collect_results {
     input:
-    // file 'chainsaw_results.tsv'
+    file 'chainsaw_results.tsv'
     file 'merizo_results.tsv'
     file 'unidoc_results.tsv'
 
@@ -147,6 +148,7 @@ process collect_results {
     ${params.combine_script} \
         -m merizo_results.tsv \
         -u unidoc_results.tsv \
+        -c chainsaw_results.tsv \
         -o all_results.tsv
     """
 }
@@ -158,7 +160,7 @@ workflow {
         // process the file as a CSV with a header line
         .splitCsv(header: true)
         // only process a few ids when debugging
-        .take( 5 )
+        // .take( 5 )
 
     // Generate files containing chunks of AlphaFold ids
     // NOTE: this will only retrieve the first fragment in the AF prediction (F1)
@@ -180,7 +182,7 @@ workflow {
     def pdb_ch = cif_to_pdb( cif_ch )
 
     // run chainsaw on the pdb files
-    // def chainsaw_results_ch = run_chainsaw( pdb_ch )
+    def chainsaw_results_ch = run_chainsaw( pdb_ch )
 
     // run merizo on the pdb files
     def merizo_results_ch = run_merizo( pdb_ch )
@@ -188,13 +190,9 @@ workflow {
     // run unidoc on the pdb files
     def unidoc_results_ch = run_unidoc( pdb_ch )
 
-    // def all_chainsaw_results = chainsaw_results_ch
-    //     .collectFile(name: 'results.chainsaw.csv', 
-    //         // skip: 1,
-    //         storeDir: workflow.launchDir)
-    //     .subscribe {
-    //         println "Chainsaw results: $it"
-    //     }
+    def all_chainsaw_results = chainsaw_results_ch
+        .collectFile(name: 'domain_assignments.chainsaw.tsv', 
+            storeDir: workflow.launchDir)
 
     def all_merizo_results = merizo_results_ch
         .collectFile(name: 'domain_assignments.merizo.tsv', 
@@ -205,7 +203,7 @@ workflow {
             storeDir: workflow.launchDir)
     
     def all_results = collect_results( 
-            // all_chainsaw_results, 
+            all_chainsaw_results, 
             all_merizo_results, 
             all_unidoc_results 
         )
