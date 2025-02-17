@@ -1,6 +1,4 @@
-
 services:
-
   # cath-af-cli:
   #   build: docker/cath-af-cli
 
@@ -10,8 +8,8 @@ services:
   unidoc:
     build: docker/unidoc
 
-  # chainsaw:
-  #   build: docker/chainsaw
+  chainsaw:
+    build: docker/chainsaw
 
   merizo:
     build: docker/merizo
