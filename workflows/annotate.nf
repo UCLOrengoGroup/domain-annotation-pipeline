@@ -102,8 +102,11 @@ process run_unidoc {
     path 'unidoc_results.csv'
 
     """
-    # UniDoc expects to be run from its own directory
-    ln -s ${params.unidoc_dir}/bin bin
+    set -e
+
+    # UniDoc expects to be run from current directory
+    ln -s ${params.unidoc_dir}/stride .
+    ln -s ${params.unidoc_dir}/UniDoc_struct .
 
     for pdb_file in *.pdb; do
         file_stem=\${pdb_file%.pdb}
