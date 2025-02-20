@@ -1,7 +1,8 @@
 # Demo: Domain Annotation Pipeline
+
 Data pipeline to provide consensus domain annotations for protein structures
 
-## Install
+## Install (with docker)
 
 Install Nextflow
 
@@ -25,5 +26,5 @@ docker compose build
 ## Run
 
 ```
-nextflow run workflows/annotate.nf
+nextflow run workflows/annotate.nf -c nextflow-with-docker.config
 ```
