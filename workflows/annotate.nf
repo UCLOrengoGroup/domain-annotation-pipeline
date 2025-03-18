@@ -11,6 +11,10 @@ params.af_version = 4
 params.uniprot_csv_file = "${workflow.launchDir}/data/uniprot_ids.csv"
 params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
 
+include { run_filter_domains_tsv as run_filter_domains_chainsaw_tsv } from './shared'
+include { run_filter_domains_tsv as run_filter_domains_merizo_tsv } from './shared'
+include { run_filter_domains_tsv as run_filter_domains_unidoc_tsv } from './shared'
+
 
 process cif_files_from_web {
     input:
@@ -156,6 +160,7 @@ process collect_results {
     """
 }
 
+
 workflow {
 
     // Create a channel from the uniprot csv file
@@ -193,15 +198,19 @@ workflow {
     // run unidoc on the pdb files
     def unidoc_results_ch = run_unidoc( pdb_ch )
 
-    def all_chainsaw_results = chainsaw_results_ch
+    def filtered_chainsaw_results = run_filter_domains_chainsaw_tsv( chainsaw_results_ch )
+    def filtered_merizo_results = run_filter_domains_merizo_tsv( merizo_results_ch )
+    def filtered_unidoc_results = run_filter_domains_unidoc_tsv( unidoc_results_ch )
+
+    def all_chainsaw_results = filtered_chainsaw_results
         .collectFile(name: 'domain_assignments.chainsaw.tsv', 
             storeDir: workflow.launchDir)
 
-    def all_merizo_results = merizo_results_ch
+    def all_merizo_results = filtered_merizo_results
         .collectFile(name: 'domain_assignments.merizo.tsv', 
             storeDir: workflow.launchDir)
 
-    def all_unidoc_results = unidoc_results_ch
+    def all_unidoc_results = filtered_unidoc_results
         .collectFile(name: 'domain_assignments.unidoc.tsv', 
             storeDir: workflow.launchDir)
     
