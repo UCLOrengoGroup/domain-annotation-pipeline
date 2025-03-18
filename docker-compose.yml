@@ -8,6 +8,9 @@ services:
   pdb-tools:
     build: docker/pdb-tools
 
+  ted-tools:
+    build: docker/ted-tools
+
   unidoc:
     build: docker/unidoc
 
