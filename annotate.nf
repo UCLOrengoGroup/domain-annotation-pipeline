@@ -10,7 +10,9 @@ include { collect_results }         from './modules/collect_results.nf'
 include { runFilterDomains }        from './modules/runFilterDomains.nf'
 include { collectChoppingNames }    from './modules/collectChoppingNames.nf'
 include { runGetConsensus }         from './modules/runGetConsensus.nf'
-include { runFilterConsensus }        from './modules/runFilterConsensus.nf'
+include { runFilterConsensus }      from './modules/runFilterConsensus.nf'
+
+params.uniprot_csv_file = "${workflow.projectDir}/assets/uniprot_ids.csv"
 
 workflow {
 
