@@ -9,6 +9,7 @@ services:
     build: docker/pdb-tools
 
   unidoc:
+    platform: linux/amd64
     build: docker/unidoc
 
   chainsaw:
