@@ -2,13 +2,13 @@
 nextflow.enable.dsl = 2
 
 // the number of uniprot ids processed in each chunk of work 
-params.chunk_size         = 3
+params.chunk_size = 3
 
-params.cath_version       = 'v4_3_0'
+params.cath_version = 'v4_3_0'
 
-params.af_version         = 4
+params.af_version = 4
 
-params.uniprot_csv_file   = "${workflow.launchDir}/data/uniprot_ids.csv"
+params.uniprot_csv_file = "${workflow.launchDir}/data/uniprot_ids.csv"
 params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
 
 workflow {
@@ -94,7 +94,6 @@ process cif_files_from_gs {
     path "AF-*.cif", optional: true
 
     script:
-
     """
     awk '{print \$1".cif"}' uniprot_ids.txt > af_ids.txt
     cat af_model_urls.txt | (gsutil -o GSUtil:parallel_process_count=1 -m cp -I . || echo "Ignoring non-zero exit code: \$?")
