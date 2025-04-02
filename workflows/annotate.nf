@@ -1,4 +1,10 @@
 #!/usr/bin/env nextflow
+params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
+params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
+params.chunk_size = 3        // the number of uniprot ids processed in each chunk of work 
+params.cath_version = 'v4_3_0'
+params.af_version = 4
+nextflow.enable.dsl=2
 
 include { cif_files_from_web }      from '../modules/cif_files_from_web.nf'
 include { cif_files_from_gs }       from '../modules/cif_files_from_gs.nf'
@@ -12,12 +18,6 @@ include { runFilterDomains }        from '../modules/runFilterDomains.nf'
 include { collectChoppingNames }    from '../modules/collectChoppingNames.nf'
 include { runGetConsensus }         from '../modules/runGetConsensus.nf'
 include { runFilterConsensus }      from '../modules/runFilterConsensus.nf'
-
-params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
-params.chunk_size = 3        // the number of uniprot ids processed in each chunk of work 
-params.cath_version = 'v4_3_0'
-params.af_version = 4
-nextflow.enable.dsl=2
 
 workflow {
 
