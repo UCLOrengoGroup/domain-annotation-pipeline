@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: python:3.10-slim-buster
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        vim wget gzip tar git \
+        && apt-get autoremove -yqq --purge \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Set working directory
+    mkdir -p /opt/app
+    cp /mnt/host/requirements.txt /opt/app/
+    cp /mnt/host/combine_results.py /opt/app/
+
+    cd /opt/app
+
+    # Install Python dependencies
+    pip install --upgrade pip wheel
+    pip install -r requirements.txt
+
+%environment
+    export PATH="/opt/app:$PATH"
+
+%runscript
+    exec /bin/bash
