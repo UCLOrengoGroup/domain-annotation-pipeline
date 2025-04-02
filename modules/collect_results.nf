@@ -7,6 +7,7 @@ process collect_results {
     output:
     file 'all_results.tsv'
 
+    script:
     """
     ${params.combine_script} \
         -m merizo_results.tsv \

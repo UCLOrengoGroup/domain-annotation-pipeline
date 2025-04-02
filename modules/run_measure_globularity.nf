@@ -6,6 +6,7 @@ process run_measure_globularity {
     output:
     path 'af_domain_globularity.csv'
 
+    script:
     """
     cath-af-cli measure-globularity \
         --af_domain_list af_domain_list.csv \

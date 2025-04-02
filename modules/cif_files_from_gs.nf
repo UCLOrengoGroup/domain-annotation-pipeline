@@ -11,7 +11,7 @@ process cif_files_from_gs {
     // gcloud auth application-default login
     //
     // see: https://www.nextflow.io/docs/latest/google.html
-
+    script:
     """
     awk '{print \$1".cif"}' uniprot_ids.txt > af_ids.txt
     cat af_model_urls.txt | (gsutil -o GSUtil:parallel_process_count=1 -m cp -I . || echo "Ignoring non-zero exit code: \$?")

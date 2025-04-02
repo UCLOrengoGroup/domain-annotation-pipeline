@@ -7,6 +7,7 @@ process run_unidoc {
     output:
     path 'unidoc_results.csv'
 
+    script:
     """
     set -e
 

@@ -7,6 +7,7 @@ process cif_to_pdb {
     output:
     path '*.pdb'
 
+    script:
     """
     for cif_file in *.cif; do
         pdb_file=\${cif_file%.cif}.pdb
