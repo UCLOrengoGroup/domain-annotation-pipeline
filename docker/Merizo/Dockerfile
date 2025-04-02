@@ -15,6 +15,4 @@ WORKDIR /app/Merizo
 
 RUN pip install --upgrade pip wheel && pip install -r requirements.txt
 
-RUN chmod +x /app/Merizo/predict.py
-
 CMD ["/bin/bash"]
