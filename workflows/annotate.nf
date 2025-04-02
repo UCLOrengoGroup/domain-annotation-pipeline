@@ -1,18 +1,18 @@
 #!/usr/bin/env nextflow
-include { cif_files_from_web }      from './modules/cif_files_from_web.nf'
-include { cif_files_from_gs }       from './modules/cif_files_from_gs.nf'
-include { cif_to_pdb }              from './modules/cif_to_pdb.nf'
-include { run_chainsaw }            from './modules/run_chainsaw.nf'
-include { run_merizo }              from './modules/run_merizo.nf'
-include { run_unidoc }              from './modules/run_unidoc.nf'
-include { run_measure_globularity } from './modules/run_measure_globularity.nf'
-include { collect_results }         from './modules/collect_results.nf'
-include { runFilterDomains }        from './modules/runFilterDomains.nf'
-include { collectChoppingNames }    from './modules/collectChoppingNames.nf'
-include { runGetConsensus }         from './modules/runGetConsensus.nf'
-include { runFilterConsensus }      from './modules/runFilterConsensus.nf'
+include { cif_files_from_web }      from '../modules/cif_files_from_web.nf'
+include { cif_files_from_gs }       from '../modules/cif_files_from_gs.nf'
+include { cif_to_pdb }              from '../modules/cif_to_pdb.nf'
+include { run_chainsaw }            from '../modules/run_chainsaw.nf'
+include { run_merizo }              from '../modules/run_merizo.nf'
+include { run_unidoc }              from '../modules/run_unidoc.nf'
+include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
+include { collect_results }         from '../modules/collect_results.nf'
+include { runFilterDomains }        from '../modules/runFilterDomains.nf'
+include { collectChoppingNames }    from '../modules/collectChoppingNames.nf'
+include { runGetConsensus }         from '../modules/runGetConsensus.nf'
+include { runFilterConsensus }      from '../modules/runFilterConsensus.nf'
 
-params.uniprot_csv_file = "${workflow.projectDir}/assets/uniprot_ids.csv"
+params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
 
 workflow {
 
