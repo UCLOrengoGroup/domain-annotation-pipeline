@@ -172,3 +172,4 @@ work/
 
 # local build dir
 tools/
+domain_assignments*.tsv

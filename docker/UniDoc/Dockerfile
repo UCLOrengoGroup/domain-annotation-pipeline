@@ -1,3 +1,4 @@
+# we need to use the linux/amd64 platform to run unidoc
 FROM --platform=linux/amd64 python:3.10
 
 RUN apt-get update \
