@@ -15,7 +15,5 @@ RUN pip install --upgrade pip wheel && pip install -r chainsaw/requirements.txt
 
 RUN cd chainsaw/stride && tar -zxvf stride.tgz && make
 
-RUN chmod +x /app/chainsaw/get_predictions.py
-
 CMD ["/bin/bash"]
 
