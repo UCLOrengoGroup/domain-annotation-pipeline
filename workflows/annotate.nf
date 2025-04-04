@@ -5,6 +5,10 @@ params.chunk_size = 3        // the number of uniprot ids processed in each chun
 params.cath_version = 'v4_3_0'
 params.af_version = 4
 nextflow.enable.dsl=2
+// params for the chopping consensus programs
+params.chopping_file = "../domain_assignments.chaninsaw.tsv"
+params.reformatted_file_meriz = "../results/merizo_results_refomatted.tsv"
+params.reformatted_file_uni =   "../results/unidoc_results_reformatted.tsv"
 
 include { cif_files_from_web }      from '../modules/cif_files_from_web.nf'
 include { cif_files_from_gs }       from '../modules/cif_files_from_gs.nf'
@@ -14,7 +18,9 @@ include { run_merizo }              from '../modules/run_merizo.nf'
 include { run_unidoc }              from '../modules/run_unidoc.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { collect_results }         from '../modules/collect_results.nf'
+include { convert_files }           from '../modules/convert_files.nf'
 include { runFilterDomains }        from '../modules/runFilterDomains.nf'
+include { runFilterDomains_reformatted } from '../modules/runFilterDomains_reformatted.nf'
 include { collectChoppingNames }    from '../modules/collectChoppingNames.nf'
 include { runGetConsensus }         from '../modules/runGetConsensus.nf'
 include { runFilterConsensus }      from '../modules/runFilterConsensus.nf'
@@ -59,6 +65,7 @@ workflow {
     def all_chainsaw_results = chainsaw_results_ch
         .collectFile(name: 'domain_assignments.chainsaw.tsv', 
             storeDir: workflow.launchDir)
+        runFilterDomains(all_chainsaw_results)
 
     def all_merizo_results = merizo_results_ch
         .collectFile(name: 'domain_assignments.merizo.tsv', 
@@ -68,11 +75,21 @@ workflow {
         .collectFile(name: 'domain_assignments.unidoc.tsv', 
             storeDir: workflow.launchDir)
     
+    def convert_results = convert_files(
+            all_chainsaw_results,
+            all_merizo_results,
+            all_unidoc_results
+    )
+            runFilterDomains_reformatted(convert_results)
+            runGetConsensus(runFilterDomains.out, runFilterDomains_reformatted.out)
+            runFilterConsensus(runGetConsensus.out)
+
     def all_results = collect_results( 
             all_chainsaw_results, 
             all_merizo_results, 
             all_unidoc_results 
         )
+
         .collectFile(name: 'domain_assignments.tsv', 
              // skip: 1,
             storeDir: workflow.launchDir)

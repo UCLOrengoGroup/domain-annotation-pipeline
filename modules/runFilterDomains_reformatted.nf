@@ -3,19 +3,22 @@
  * command format is changed from: python filter_domains.py <chopping_file> -o filtered_<chopping_file>.txt to create 3 filtered output files.
  * to: 
  */
-process runFilterDomains {
+process runFilterDomains_reformatted {
     container 'domain-annotation-pipeline-ted-tools'
     stageInMode 'copy'
     publishDir './results' , mode: 'copy'
 
     input:
-        path chopping_file
+        path reformatted_file_meriz
+        path reformatted_file_uni
 
     output:
-        path "filtered_${chopping_file.name}"
+        path "filtered_${reformatted_file_meriz.name}"
+        path "filtered_${reformatted_file_uni.name}"
 
     script:
     """
-    ${params.prefilter_script} ${chopping_file} -o filtered_${chopping_file.name}
+    ${params.prefilter_script} ${reformatted_file_meriz} -o filtered_${reformatted_file_meriz.name}
+    ${params.prefilter_script} ${reformatted_file_uni} -o filtered_${reformatted_file_uni.name}
     """
 }

@@ -16,3 +16,6 @@ services:
 
   merizo:
     build: docker/merizo
+
+  ted-tools:
+    build: docker/ted-tools
