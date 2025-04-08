@@ -17,6 +17,6 @@ process runGetConsensus {
 
     script:
     """
-    ${params.getconsensus_script} -c ${file_name1} ${file_name1} ${file_name1} -o consensus.tsv
+    ${params.getconsensus_script} -c ${file_name1} ${file_name2} ${file_name3} -o consensus.tsv
     """
  }

@@ -62,10 +62,11 @@ workflow {
     // run unidoc on the pdb files
     def unidoc_results_ch = run_unidoc( pdb_ch )
 
+    // Adding the filter and consensus processe to run in parallel with the collect results process
     def all_chainsaw_results = chainsaw_results_ch
         .collectFile(name: 'domain_assignments.chainsaw.tsv', 
             storeDir: workflow.launchDir)
-        runFilterDomains(all_chainsaw_results)
+    def chain_filter = runFilterDomains(all_chainsaw_results) // filter chainsaw results for inclusion in consensus
 
     def all_merizo_results = merizo_results_ch
         .collectFile(name: 'domain_assignments.merizo.tsv', 
@@ -74,16 +75,16 @@ workflow {
     def all_unidoc_results = unidoc_results_ch
         .collectFile(name: 'domain_assignments.unidoc.tsv', 
             storeDir: workflow.launchDir)
-    
-    def convert_results = convert_files(
+    // convert the merizo and unidocs to include all 6 columns using the chainsaw results as a template
+    def all_convert_results = convert_files(
             all_chainsaw_results,
             all_merizo_results,
             all_unidoc_results
     )
-            runFilterDomains_reformatted(convert_results)
-            runGetConsensus(runFilterDomains.out, runFilterDomains_reformatted.out)
-            runFilterConsensus(runGetConsensus.out)
-
+     def meriz_uni_filter = runFilterDomains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
+            runGetConsensus(chain_filter, meriz_uni_filter) // create consensus results
+            runFilterConsensus(runGetConsensus.out) // run the post-consensus filtering process
+    // continue with the collect results process
     def all_results = collect_results( 
             all_chainsaw_results, 
             all_merizo_results, 
