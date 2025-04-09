@@ -15,6 +15,6 @@ process convert_files {
     script:
     """
     ${params.convert_script} -m merizo_results.tsv -c chainsaw_results.tsv -o merizo_results_reformatted.tsv
-    ${params.convert_script} -m unidoc_results.tsv -c chainsaw_results.tsv -o unidoc_results_reformatted.tsv
+    ${params.convert_script} -u unidoc_results.tsv -c chainsaw_results.tsv -o unidoc_results_reformatted.tsv
     """
 }
