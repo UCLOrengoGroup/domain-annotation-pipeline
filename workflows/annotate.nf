@@ -19,11 +19,11 @@ include { run_unidoc }              from '../modules/run_unidoc.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { collect_results }         from '../modules/collect_results.nf'
 include { convert_files }           from '../modules/convert_files.nf'
-include { runFilterDomains }        from '../modules/runFilterDomains.nf'
-include { runFilterDomains_reformatted } from '../modules/runFilterDomains_reformatted.nf'
-include { collectChoppingNames }    from '../modules/collectChoppingNames.nf'
-include { runGetConsensus }         from '../modules/runGetConsensus.nf'
-include { runFilterConsensus }      from '../modules/runFilterConsensus.nf'
+include { run_filter_domains }        from '../modules/run_filter_domains.nf'
+include { run_filter_domains_reformatted } from '../modules/run_filter_domains_reformatted.nf'
+include { collect_chopping_names }  from '../modules/collect_chopping_names.nf'
+include { run_get_consensus }       from '../modules/run_get_consensus.nf'
+include { run_filter_consensus }    from '../modules/run_filter_consensus.nf'
 
 workflow {
 
@@ -66,7 +66,7 @@ workflow {
     def all_chainsaw_results = chainsaw_results_ch
         .collectFile(name: 'domain_assignments.chainsaw.tsv', 
             storeDir: workflow.launchDir)
-    def chain_filter = runFilterDomains(all_chainsaw_results) // filter chainsaw results for inclusion in consensus
+    def chain_filter = run_filter_domains(all_chainsaw_results) // filter chainsaw results for inclusion in consensus
 
     def all_merizo_results = merizo_results_ch
         .collectFile(name: 'domain_assignments.merizo.tsv', 
@@ -81,9 +81,9 @@ workflow {
             all_merizo_results,
             all_unidoc_results
     )
-     def meriz_uni_filter = runFilterDomains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
-            runGetConsensus(chain_filter, meriz_uni_filter) // create consensus results
-            runFilterConsensus(runGetConsensus.out) // run the post-consensus filtering process
+     def meriz_uni_filter = run_filter_domains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
+            run_get_consensus(chain_filter, meriz_uni_filter) // create consensus results
+            run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
     // continue with the collect results process
     def all_results = collect_results( 
             all_chainsaw_results, 

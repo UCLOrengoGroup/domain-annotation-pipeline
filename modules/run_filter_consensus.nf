@@ -2,7 +2,7 @@
  * Run filter_domains_consensus.py on the filtered consensus file consensus.tsv output from renGetConsensus.
  * Command format: python filter_domains_consensus.py consensus.tsv -o filtered_consensus_1.tsv.
  */
-process runFilterConsensus {
+process run_filter_consensus {
     container 'domain-annotation-pipeline-ted-tools'
     stageInMode 'copy'
     publishDir './results' , mode: 'copy'
