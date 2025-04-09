@@ -122,6 +122,8 @@ def run():
     args = parser.parse_args()
     if args.merizo and args.unidoc:
         raise ValueError("Please provide either merizo or unidoc file, not both.")
+    if not args.merizo and not args.unidoc:
+        raise ValueError("Please provide either merizo or unidoc file.")
     if args.merizo:
         process_merizo(args.chainsaw, args.merizo, args.output)
     if args.unidoc:
