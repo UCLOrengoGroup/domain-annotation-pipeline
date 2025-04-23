@@ -1,6 +1,6 @@
 # Demo: Domain Annotation Pipeline
 
-Data pipeline to provide consensus domain annotations for protein structures
+Data pipeline to provide individual, combined and consensus filtered domain annotations for protein structures using Chainsaw, Merizo and UniDoc.
 
 ## Install (with docker)
 Clone the repo.
@@ -76,7 +76,7 @@ domain-annotation-pipeline-chainsaw		latest	6f920fa32fc5	13GB
 domain-annotation-pipeline-merizo		latest	1862bc2eed37	13.2GB
 domain-annotation-pipeline-unidoc		latest	3676db5e232e	1.61GB
 domain-annotation-pipeline-script		latest	b6af2bdac564	613MB
-domain-annotation-pipeline-pdb-tools		latest	b1e301cc0fb9	369MB
+domain-annotation-pipeline-pdb-tools	latest	b1e301cc0fb9	369MB
 
 If the images are not tagged with your Docker username, tag each manually, check they are amd64 compatible and push each to DockerHub.
 ```
