@@ -11,8 +11,8 @@ process run_filter_consensus {
       path consensus_file
 
     output:
-        path "filtered_consensus.tsv"
-        path "*.changed.txt"
+        path "filtered_consensus.tsv", emit: filtered
+        path "*.changed.txt", emit: changed
 
     script:
     """

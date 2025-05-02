@@ -16,7 +16,6 @@ include { cif_to_pdb }              from '../modules/cif_to_pdb.nf'
 include { run_chainsaw }            from '../modules/run_chainsaw.nf'
 include { run_merizo }              from '../modules/run_merizo.nf'
 include { run_unidoc }              from '../modules/run_unidoc.nf'
-include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { collect_results }         from '../modules/collect_results.nf'
 include { convert_files }           from '../modules/convert_files.nf'
 include { run_filter_domains }        from '../modules/run_filter_domains.nf'
@@ -24,6 +23,11 @@ include { run_filter_domains_reformatted } from '../modules/run_filter_domains_r
 include { collect_chopping_names }  from '../modules/collect_chopping_names.nf'
 include { run_get_consensus }       from '../modules/run_get_consensus.nf'
 include { run_filter_consensus }    from '../modules/run_filter_consensus.nf'
+include { chop_pdb }                from '../modules/chop_pdb.nf'
+include { transform_consensus }     from '../modules/transform.nf'
+include { run_stride }              from '../modules/run_stride.nf'
+include { summarise_stride }        from '../modules/summarise_stride.nf'
+include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 
 workflow {
 
@@ -81,9 +85,14 @@ workflow {
             all_merizo_results,
             all_unidoc_results
     )
-     def meriz_uni_filter = run_filter_domains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
+    def meriz_uni_filter = run_filter_domains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
             run_get_consensus(chain_filter, meriz_uni_filter) // create consensus results
-            run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
+    def consensus = run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
+    def chop = chop_pdb(consensus.filtered, pdb_ch.collect())  //Use filtered_consensus.tsv to chop the pdb files accordingly
+    def stride = run_stride(chop)                       // Run STRIDE on each chopped pdb domain file
+    def summaries = summarise_stride(stride.flatten())         // Summarise the STRIDE output
+            transform_consensus(consensus.filtered, summaries.collect())    // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
+            //run_measure_globularity(consensus.filtered, chop.collect())
     // continue with the collect results process
     def all_results = collect_results( 
             all_chainsaw_results, 
