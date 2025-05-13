@@ -9,6 +9,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
+COPY chop_pdbs.py chop_pdbs.py
+
 RUN pip install --upgrade pip wheel pdb-tools
 
 CMD ["/bin/bash"]

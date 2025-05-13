@@ -1,16 +1,18 @@
 process run_measure_globularity {
+    container 'domain-annotation-pipeline-cath-af-cli'
+    stageInMode 'copy'
+    publishDir 'results' , mode: 'copy'
+
     input:
-    path 'af_domain_list.csv'
-    path '*.cif'
+    path pdb_files
 
     output:
-    path 'af_domain_globularity.csv'
+    path "domain_globularity.tsv"
 
     script:
     """
-    cath-af-cli measure-globularity \
-        --af_domain_list af_domain_list.csv \
-        --af_chain_mmcif_dir . \
-        --af_domain_globularity af_domain_globularity.csv \
+    mkdir -p chopped_pdbs
+    cp ${pdb_files} chopped_pdbs/
+    ${params.globularity_script} --pdb_dir chopped_pdbs --domain_globularity domain_globularity.tsv
     """
 }
