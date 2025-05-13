@@ -28,6 +28,9 @@ include { transform_consensus }     from '../modules/transform.nf'
 include { run_stride }              from '../modules/run_stride.nf'
 include { summarise_stride }        from '../modules/summarise_stride.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
+include { run_AF_Domain_id }        from '../modules/run_create_AF_Domain_id.nf'
+include { run_plddt }               from '../modules/run_plddt.nf'
+include { collect_results_final }   from '../modules/collect_results_final.nf'
 
 workflow {
 
@@ -86,24 +89,30 @@ workflow {
             all_unidoc_results
     )
     def meriz_uni_filter = run_filter_domains_reformatted(all_convert_results)  // filter the newly formatted merizo and unidoc results
-            run_get_consensus(chain_filter, meriz_uni_filter) // create consensus results
+            run_get_consensus(chain_filter, meriz_uni_filter)   // create consensus results
     def consensus = run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
-    def chop = chop_pdb(consensus.filtered, pdb_ch.collect())  //Use filtered_consensus.tsv to chop the pdb files accordingly
-    def stride = run_stride(chop)                       // Run STRIDE on each chopped pdb domain file
-    def summaries = summarise_stride(stride.flatten())         // Summarise the STRIDE output
-            transform_consensus(consensus.filtered, summaries.collect())    // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
-            //run_measure_globularity(consensus.filtered, chop.collect())
+    def chop = chop_pdb(consensus.filtered, pdb_ch.collect())   //Use filtered_consensus.tsv to chop the pdb files accordingly
+    def stride = run_stride(chop)                               // Run STRIDE on each chopped pdb domain file
+    def globularity = run_measure_globularity(chop.collect())   // Run globularity in the chopped pdb files
+    def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
+    def transform = transform_consensus(consensus.filtered, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
+    def AF_Dom_id = run_AF_Domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
+    def plddt = run_plddt(cif_ch.collect(), AF_Dom_id)          // Run convert-cif-to-plddt-summary on the original cif files with the choppings defined in transformed_consensus
     // continue with the collect results process
     def all_results = collect_results( 
             all_chainsaw_results, 
             all_merizo_results, 
             all_unidoc_results 
         )
-
-        .collectFile(name: 'domain_assignments.tsv', 
+    def final_results = collect_results_final( 
+            transform, 
+            globularity, 
+            plddt 
+        )
+        //.collectFile(name: 'domain_assignments.tsv',  This looks unnecessary - changed to write directly to ./results/domain_sssignments.tsv in the collect_results process
              // skip: 1,
-            storeDir: workflow.launchDir)
-        .subscribe {
-            println "All results: $it"
-        }
+        //    storeDir: workflow.launchDir)
+        //.subscribe {
+        //    println "All results: $it"
+        //}
 }

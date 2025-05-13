@@ -6,7 +6,7 @@ process transform_consensus {
     input:
     path 'consensus_file'
     path stride_summaries
-
+    
     output:
     path "transformed_consensus.tsv"
         

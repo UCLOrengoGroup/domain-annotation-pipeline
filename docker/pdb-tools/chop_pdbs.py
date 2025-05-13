@@ -47,19 +47,25 @@ def main(consensus_file):
                     print(f"⚠️  PDB not found: {pdb_path}")
                     continue
 
-                for i, domain_ranges in enumerate(high_domains, 1):
-                    out_file = os.path.join(output_dir, f"{pdb_id}_high_{i}.pdb")
+                domain_counter = 1
+
+                # Process high domains
+                for domain_ranges in high_domains:
+                    out_file = os.path.join(output_dir, f"{pdb_id}_high_{domain_counter}.pdb")
                     for j, (start, end) in enumerate(domain_ranges):
                         run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
                     with open(out_file, 'a') as out_h:
                         out_h.write('END\n')
+                    domain_counter += 1
 
-                for i, domain_ranges in enumerate(med_domains, 1):
-                    out_file = os.path.join(output_dir, f"{pdb_id}_med_{i}.pdb")
+                # Process med domains, continuing numbering
+                for domain_ranges in med_domains:
+                    out_file = os.path.join(output_dir, f"{pdb_id}_med_{domain_counter}.pdb")
                     for j, (start, end) in enumerate(domain_ranges):
                         run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
                     with open(out_file, 'a') as out_m:
                         out_m.write('END\n')
+                    domain_counter += 1
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

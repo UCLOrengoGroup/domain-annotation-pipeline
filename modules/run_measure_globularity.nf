@@ -4,17 +4,15 @@ process run_measure_globularity {
     publishDir 'results' , mode: 'copy'
 
     input:
-    path consensus_dom_file
-    path '*.pdb'
+    path pdb_files
 
     output:
     path "domain_globularity.tsv"
 
     script:
     """
-    ${params.globularity_script} \
-        --consensus_domain_list ${consensus_dom_file} \
-        --pdb_dir results/chopped_pdbs \
-        --domain_globularity domain_globularity.tsv \
+    mkdir -p chopped_pdbs
+    cp ${pdb_files} chopped_pdbs/
+    ${params.globularity_script} --pdb_dir chopped_pdbs --domain_globularity domain_globularity.tsv
     """
 }
