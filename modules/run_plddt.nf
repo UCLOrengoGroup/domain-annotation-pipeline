@@ -8,7 +8,7 @@ process run_plddt {
     path af_ids
 
     output:
-    path "domain_plddt_and_lur.tsv"
+    path "domain_plddt_and_lur.tsv" 
 
     script:
     """

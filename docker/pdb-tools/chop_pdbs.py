@@ -30,9 +30,13 @@ def run_pdb_selres(pdb_file, start, end, output_file, append=False):
         lines = [line for line in result.stdout.splitlines() if line.strip() != 'END']
         out.write('\n'.join(lines) + '\n')
 
-def main(consensus_file):
+def main(consensus_file, output_dir):
+    import os
+    os.makedirs(output_dir, exist_ok=True)
     pdb_dir = os.getcwd()
-    output_dir = os.getcwd()
+#def main(consensus_file):
+#    pdb_dir = os.getcwd()
+#    output_dir = os.getcwd()
 
     with open(consensus_file, 'r') as f:
         for line in f:
@@ -61,7 +65,7 @@ def main(consensus_file):
                         domain_counter += 1
                 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python chop_pdbs.py <filtered_consensus.tsv>")
+    if len(sys.argv) != 3:
+        print("Usage: python chop_pdbs.py <filtered_consensus.tsv> <output_dir>")
         sys.exit(1)
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])  # main(sys.argv[1])

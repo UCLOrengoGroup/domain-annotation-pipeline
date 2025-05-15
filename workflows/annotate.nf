@@ -92,8 +92,8 @@ workflow {
             run_get_consensus(chain_filter, meriz_uni_filter)   // create consensus results
     def consensus = run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
     def chop = chop_pdb(consensus.filtered, pdb_ch.collect())   //Use filtered_consensus.tsv to chop the pdb files accordingly
-    def stride = run_stride(chop)                               // Run STRIDE on each chopped pdb domain file
-    def globularity = run_measure_globularity(chop.collect())   // Run globularity in the chopped pdb files
+    def stride = run_stride(chop.chop_files)                    // Run STRIDE on each chopped pdb domain file
+    def globularity = run_measure_globularity(chop.chop_dir)    // Run globularity in the chopped pdb files
     def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
     def transform = transform_consensus(consensus.filtered, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
     def AF_Dom_id = run_AF_domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv

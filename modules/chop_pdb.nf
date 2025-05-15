@@ -8,10 +8,11 @@ process chop_pdb {
     path '*'
 
     output:
-    path '*.pdb'
-
+    path 'chopped_pdbs/*.pdb', emit: chop_files
+    path 'chopped_pdbs', emit: chop_dir
     script:
     """
-    ${params.chop_pdb_script} ${consensus_file}
+    mkdir chopped_pdbs
+    ${params.chop_pdb_script} ${consensus_file} chopped_pdbs
     """
 }
