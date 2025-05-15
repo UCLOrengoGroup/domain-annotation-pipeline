@@ -5,7 +5,7 @@ process run_plddt {
 
     input:
     path cif_files
-    path 'af_ids.txt'
+    path af_ids
 
     output:
     path "domain_plddt_and_lur.tsv"
@@ -14,6 +14,6 @@ process run_plddt {
     """
     mkdir -p cifs
     cp ${cif_files} cifs/
-    ${params.plddt_script} --cif_in_dir cifs --id_file af_ids.txt --plddt_stats_file domain_plddt_and_lur.tsv
+    ${params.plddt_script} --cif_in_dir cifs --id_file ${af_ids} --plddt_stats_file domain_plddt_and_lur.tsv
     """
 }

@@ -8,7 +8,7 @@ process run_measure_globularity {
 
     output:
     path "domain_globularity.tsv"
-
+    
     script:
     """
     mkdir -p chopped_pdbs

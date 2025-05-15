@@ -19,5 +19,4 @@ __pycache__/
 .vscode/
 
 # Specifics
-test_combine_final.py
 *.tsv

@@ -16,7 +16,7 @@ include { cif_to_pdb }              from '../modules/cif_to_pdb.nf'
 include { run_chainsaw }            from '../modules/run_chainsaw.nf'
 include { run_merizo }              from '../modules/run_merizo.nf'
 include { run_unidoc }              from '../modules/run_unidoc.nf'
-include { collect_results }         from '../modules/collect_results.nf'
+include { collect_results }         from '../modules/collect_results_combine_chopping.nf'
 include { convert_files }           from '../modules/convert_files.nf'
 include { run_filter_domains }        from '../modules/run_filter_domains.nf'
 include { run_filter_domains_reformatted } from '../modules/run_filter_domains_reformatted.nf'
@@ -28,9 +28,9 @@ include { transform_consensus }     from '../modules/transform.nf'
 include { run_stride }              from '../modules/run_stride.nf'
 include { summarise_stride }        from '../modules/summarise_stride.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
-include { run_AF_Domain_id }        from '../modules/run_create_AF_Domain_id.nf'
+include { run_AF_domain_id }        from '../modules/run_create_AF_domain_id.nf'
 include { run_plddt }               from '../modules/run_plddt.nf'
-include { collect_results_final }   from '../modules/collect_results_final.nf'
+include { collect_results_final }   from '../modules/collect_results_add_metadata.nf'
 
 workflow {
 
@@ -96,7 +96,7 @@ workflow {
     def globularity = run_measure_globularity(chop.collect())   // Run globularity in the chopped pdb files
     def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
     def transform = transform_consensus(consensus.filtered, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
-    def AF_Dom_id = run_AF_Domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
+    def AF_Dom_id = run_AF_domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
     def plddt = run_plddt(cif_ch.collect(), AF_Dom_id)          // Run convert-cif-to-plddt-summary on the original cif files with the choppings defined in transformed_consensus
     // continue with the collect results process
     def all_results = collect_results( 

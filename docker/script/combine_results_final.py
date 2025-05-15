@@ -58,15 +58,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run(args.transform, args.globularity, args.plddt, args.output)
-    # Interactive test mode
-# if __name__ == "__main__":
-#    import sys
-#    if "--test" in sys.argv:
-#        run(
-#            "results/transformed_consensus.tsv",
-#            "results/domain_globularity.tsv",
-#            "results/domain_plddt_and_lur.tsv",
-#            "results/combined_results.tsv"
-#        )
-#    else:
-#        print("Run with '--test' or modify the script to provide file paths manually.")

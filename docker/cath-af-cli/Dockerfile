@@ -22,7 +22,6 @@ RUN mkdir -p /opt/stride && \
 # Set up app directory
 WORKDIR /app
 COPY get_stride_SSE.sh get_stride_SSE.sh
-COPY measure_globularity_custom.py measure_globularity_custom.py
 
 # Clone cath-alphaflow repository
 RUN git clone https://github.com/UCLOrengoGroup/cath-alphaflow.git

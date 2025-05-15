@@ -48,25 +48,18 @@ def main(consensus_file):
                     continue
 
                 domain_counter = 1
+                # Process all domains (new code block)
+                all_domain_ranges = { 'high': high_domains, 'med': med_domains }
 
-                # Process high domains
-                for domain_ranges in high_domains:
-                    out_file = os.path.join(output_dir, f"{pdb_id}_high_{domain_counter}.pdb")
-                    for j, (start, end) in enumerate(domain_ranges):
-                        run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
-                    with open(out_file, 'a') as out_h:
-                        out_h.write('END\n')
-                    domain_counter += 1
-
-                # Process med domains, continuing numbering
-                for domain_ranges in med_domains:
-                    out_file = os.path.join(output_dir, f"{pdb_id}_med_{domain_counter}.pdb")
-                    for j, (start, end) in enumerate(domain_ranges):
-                        run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
-                    with open(out_file, 'a') as out_m:
-                        out_m.write('END\n')
-                    domain_counter += 1
-
+                for domain_type, domain_list in all_domain_ranges.items():
+                    for domain_ranges in domain_list:
+                        out_file = os.path.join(output_dir, f"{pdb_id}_{domain_type}_{domain_counter}.pdb")
+                        for j, (start, end) in enumerate(domain_ranges):
+                            run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
+                        with open(out_file, 'a') as out_h:
+                            out_h.write('END\n')
+                        domain_counter += 1
+                
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python chop_pdbs.py <filtered_consensus.tsv>")
