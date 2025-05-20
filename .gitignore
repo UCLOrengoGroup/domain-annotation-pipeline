@@ -112,3 +112,12 @@ cython_debug/
 # private ssh key for github access
 repo-key
 repo-key.pub
+
+# nextflow
+.nextflow/
+work/
+.nextflow.log*
+
+# local build dir
+tools/
+domain_assignments*.tsv
