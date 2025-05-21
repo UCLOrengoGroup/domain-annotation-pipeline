@@ -11,6 +11,6 @@ process run_AF_domain_id {
 
     script:
     """
-    awk '{ id = substr(\$1, 1, length(\$1) - 6); print id "/" \$4 }' ${transformed_file} > AF_Domain_ids.tsv
+    awk ' NR==1 { print "chopping" } \$1 ~ /_TED[0-9][0-9]/ { id = substr(\$1, 1, length(\$1) - 6); print id "/" \$4 }' ${transformed_file} > AF_Domain_ids.tsv
     """
 }
