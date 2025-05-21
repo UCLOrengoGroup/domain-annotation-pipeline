@@ -4,6 +4,7 @@ process cif_files_from_web {
 
     output:
     path 'AF-*.cif'
+    publishDir './results/cifs' , mode: 'copy'
 
     script:
     """

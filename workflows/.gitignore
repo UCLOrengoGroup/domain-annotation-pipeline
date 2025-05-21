@@ -1,0 +1,22 @@
+# Ignore temporary/output folders
+work/
+results/
+pdbs/
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Ignore Nextflow hidden files
+.nextflow*
+.nf.cache/
+
+# Ignore log or scratch files
+*.log
+*.tmp
+
+# VS Code settings (optional)
+.vscode/
+
+# Specifics
+*.tsv

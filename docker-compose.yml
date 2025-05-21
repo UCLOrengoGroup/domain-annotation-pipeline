@@ -1,6 +1,7 @@
 services:
-  # cath-af-cli:
-  #   build: docker/cath-af-cli
+
+  cath-af-cli:
+    build: docker/cath-af-cli
 
   script:
     build: docker/script

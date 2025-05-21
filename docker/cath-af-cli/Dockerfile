@@ -1,16 +1,34 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-         vim wget gzip tar git\
-  && apt-get autoremove -yqq --purge \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        wget \
+        zlib1g-dev \
+        make && \
+    rm -rf /var/lib/apt/lists/*
 
+# Install STRIDE
+RUN mkdir -p /opt/stride && \
+    cd /opt/stride && \
+    wget --no-check-certificate https://webclu.bio.wzw.tum.de/stride/stride.tar.gz && \
+    tar -zxf stride.tar.gz && \
+    make && \
+    cp stride /usr/local/bin/stride
+
+# Set up app directory
 WORKDIR /app
+COPY get_stride_SSE.sh get_stride_SSE.sh
 
-RUN git clone https://github.com/UCLOrengoGroup/cath-alphaflow
+# Clone cath-alphaflow repository
+RUN git clone https://github.com/UCLOrengoGroup/cath-alphaflow.git
 
-RUN pip install --upgrade pip wheel && pip install -e /app/cath-alphaflow
+# Install Python dependencies and cath-alphaflow
+RUN pip install --upgrade pip wheel && \
+    pip install -e /app/cath-alphaflow
 
+# Default command
 CMD ["cath-af-cli"]
