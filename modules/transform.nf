@@ -5,6 +5,7 @@ process transform_consensus {
 
     input:
     path 'consensus_file'
+    path all_md5_file
     path stride_summaries
     
     output:
@@ -12,6 +13,6 @@ process transform_consensus {
         
     script:
     """
-    ${params.transform_script} ${consensus_file} transformed_consensus.tsv ${stride_summaries}
+    ${params.transform_script} ${consensus_file} transformed_consensus.tsv ${all_md5_file} ${stride_summaries}
     """
 }

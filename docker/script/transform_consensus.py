@@ -1,10 +1,22 @@
 # Takes the information in filtered_consensus.tsv and transforms it from model-level to doamin level.
 # Input cols: AFDB_target_id', 'MD5', 'nres', 'high', 'med', 'low', 'high_dom', 'med_dom', 'low_dom'
-# Output cols: AFDB_target_id', 'MD5', 'consensus_level', 'chopping', 'nres', 'num_segments'
+# Output cols: ted_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain', 'num_segments'
 # Also parses STRIDE summary files (./results/stride), extracts the SSE fields and appends them to each row
+# 23/5/25 - set MD5/md5_domain col to domain-level from md5_file to agree with globularity an plddt_and_lur programs.
 
 import pandas as pd
 import os
+
+def read_md5_file(md5_file):
+    md5_lookup = {}
+    with open(md5_file) as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            if len(parts) >= 3:
+                filename = parts[0]
+                md5 = parts[2]
+                md5_lookup[filename] = md5
+    return md5_lookup
 
 def calculate_nres(domain):
     fragments = domain.split('_')
@@ -23,9 +35,11 @@ def read_stride_summary(file_path):
         stride_data = dict(item.split(':') for item in line.split())
     return stride_data
 
-def transform_consensus(input_file, output_file, stride_files):
+def transform_consensus(input_file, output_file, md5_file, stride_files):
     headers = ['AFDB_target_id', 'MD5', 'nres', 'high', 'med', 'low', 'high_dom', 'med_dom', 'low_dom']
     df = pd.read_csv(input_file, sep='\t', names=headers)
+    
+    md5_lookup = read_md5_file(md5_file)
 
 # Build a lookup of stride summary files by their filename
     stride_lookup = {os.path.basename(f): f for f in stride_files}
@@ -35,7 +49,7 @@ def transform_consensus(input_file, output_file, stride_files):
 
     for idx, row in df.iterrows():
         pdb_id = row['AFDB_target_id']
-        md5 = row['MD5']
+        # md5 = row['MD5']
         domain_count = 1  # global TED number across both high and med domains
 
         for level in ['high', 'med']:
@@ -51,6 +65,14 @@ def transform_consensus(input_file, output_file, stride_files):
                     stride_filename = f"{pdb_id}_{level}_{domain_count}.stride.summary"
                     stride_file = stride_lookup.get(stride_filename, None)
                     stride_data = read_stride_summary(stride_file)
+
+                #   row_data = [new_id, md5, level, domain, nres, num_segments]
+                #    for key in stride_keys:
+                #        md5_filename = f"{pdb_id}_{level}_{domain_count}.pdb"
+                #        md5 = md5_lookup.get(md5_filename, 'NA')
+                #        row_data.append(stride_data.get(key, 'NA'))
+                    md5_filename = f"{pdb_id}_{level}_{domain_count}.pdb"
+                    md5 = md5_lookup.get(md5_filename, 'NA')
 
                     row_data = [new_id, md5, level, domain, nres, num_segments]
                     for key in stride_keys:
@@ -68,5 +90,7 @@ if __name__ == '__main__':
     import sys
     input_file = sys.argv[1]
     output_file = sys.argv[2]
-    stride_files = sys.argv[3:]
-    transform_consensus(input_file, output_file, stride_files)
+    md5_file = sys.argv[3]
+    stride_files = sys.argv[4:]
+    transform_consensus(input_file, output_file, md5_file, stride_files)
+
