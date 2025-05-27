@@ -3,19 +3,15 @@
 # Output cols: ted_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain', 'num_segments'
 # Also parses STRIDE summary files (./results/stride), extracts the SSE fields and appends them to each row
 # 23/5/25 - set MD5/md5_domain col to domain-level from md5_file to agree with globularity an plddt_and_lur programs.
+# 27/5/25 - added error for non-existant md5 (line 72).
+# Amended to read md5_file by named arguments rather than positional
 
 import pandas as pd
 import os
 
 def read_md5_file(md5_file):
-    md5_lookup = {}
-    with open(md5_file) as f:
-        for line in f:
-            parts = line.strip().split('\t')
-            if len(parts) >= 3:
-                filename = parts[0]
-                md5 = parts[2]
-                md5_lookup[filename] = md5
+    df = pd.read_csv(md5_file, sep='\t')
+    md5_lookup = dict(zip(df['pdb_file'], df['md5']))
     return md5_lookup
 
 def calculate_nres(domain):
@@ -66,14 +62,11 @@ def transform_consensus(input_file, output_file, md5_file, stride_files):
                     stride_file = stride_lookup.get(stride_filename, None)
                     stride_data = read_stride_summary(stride_file)
 
-                #   row_data = [new_id, md5, level, domain, nres, num_segments]
-                #    for key in stride_keys:
-                #        md5_filename = f"{pdb_id}_{level}_{domain_count}.pdb"
-                #        md5 = md5_lookup.get(md5_filename, 'NA')
-                #        row_data.append(stride_data.get(key, 'NA'))
                     md5_filename = f"{pdb_id}_{level}_{domain_count}.pdb"
-                    md5 = md5_lookup.get(md5_filename, 'NA')
-
+                    if md5_filename not in md5_lookup:
+                        raise KeyError(f"MD5 not found for domain '{md5_filename}'")
+                    md5 = md5_lookup.get(md5_filename)
+                    
                     row_data = [new_id, md5, level, domain, nres, num_segments]
                     for key in stride_keys:
                         row_data.append(stride_data.get(key, 'NA'))

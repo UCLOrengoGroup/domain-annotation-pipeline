@@ -93,7 +93,7 @@ workflow {
             run_get_consensus(chain_filter, meriz_uni_filter)   // create consensus results
     def consensus = run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
     def chop = chop_pdb(consensus.filtered, pdb_ch.collect())   //Use filtered_consensus.tsv to chop the pdb files accordingly
-    def md5 = create_md5(chop.chop_files.flatten())                       // creates an domain-level md5 has from the seq in the chopped pdb files
+    def md5 = create_md5(chop.chop_files.flatten())             // creates an domain-level md5 has from the seq in the chopped pdb files
     def combined_md5 = md5.collectFile(name: "all_md5.tsv", sort: true)
     def stride = run_stride(chop.chop_files)                    // Run STRIDE on each chopped pdb domain file
     def globularity = run_measure_globularity(chop.chop_dir)    // Run globularity in the chopped pdb files
@@ -112,9 +112,11 @@ workflow {
             globularity, 
             plddt 
         )
+        
         combined_md5
             .map {file -> file.copyTo("${params.results_dir}/all_md5.tsv")}
             .subscribe {}
+        
         //.collectFile(name: 'domain_assignments.tsv',  This looks unnecessary - changed to write directly to ./results/domain_sssignments.tsv in the collect_results process
              // skip: 1,
         //    storeDir: workflow.launchDir)

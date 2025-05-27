@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# modified to output header line which can be referred to by transform_consensus.py
 import sys
 import os
 import hashlib
@@ -35,10 +35,9 @@ if __name__ == "__main__":
     seq = get_sequence_from_pdb(pdb_file, chain_id=chain)
 
     with open(output_file, "w") as out:
+        out.write("pdb_file\tchain\tmd5\tsequence\n")
         if seq:
             md5 = md5_of_sequence(seq)
-            #out.write("pdb_file\tchain\tmd5\tsequence\n")
             out.write(f"{os.path.basename(pdb_file)}\t{chain}\t{md5}\t{seq}\n")
         else:
-            #out.write("pdb_file\tchain\tmd5\tsequence\n")
             out.write(f"{os.path.basename(pdb_file)}\t{chain}\tNA\tNo sequence found\n")
