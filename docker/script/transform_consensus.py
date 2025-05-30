@@ -37,9 +37,10 @@ parser.add_argument(
     help="Path to the MD5 file for PDB files",
 )
 parser.add_argument(
-    "--stride_dir",
+    "--stride_files",
     "-s",
     type=str,
+    nargs='+',
     required=True,
     help="Path to STRIDE summary file directory",
 )
@@ -149,15 +150,19 @@ if __name__ == "__main__":
     input_file = args.input_file
     output_file = args.output_file
     md5_file = args.md5_file
-    stride_dir = args.stride_dir
+    stride_files = args.stride_files
 
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file '{input_file}' does not exist.")
 
     if not os.path.exists(md5_file):
         raise FileNotFoundError(f"MD5 file '{md5_file}' does not exist.")
+    
+    for path in stride_files:
+        if not os.path.exists(path):
+            raise ValueError(f"Stride file does not exist: {path}")
 
-    if not os.path.exists(stride_dir):
-        raise ValueError("Stride directory does not exist or is invalid.")
+ #   if not os.path.exists(stride_files):
+ #       raise ValueError("Stride directory does not exist or is invalid.")
 
-    transform_consensus(input_file, output_file, md5_file, stride_dir)
+    transform_consensus(input_file, output_file, md5_file, stride_files)

@@ -8,6 +8,7 @@ process summarise_stride {
 
     output:
     path "*.summary" //"summary_${stride_file.name}"
+    // path 'summary_files', emit: stride_dir
 
     script:
     """
