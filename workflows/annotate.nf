@@ -98,8 +98,7 @@ workflow {
     def stride = run_stride(chop.chop_files)                    // Run STRIDE on each chopped pdb domain file
     def globularity = run_measure_globularity(chop.chop_dir)    // Run globularity in the chopped pdb files
     def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
-    def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect())
-    //def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
+    def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
     def AF_Dom_id = run_AF_domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
     def plddt = run_plddt(cif_ch.collect(), AF_Dom_id)          // Run convert-cif-to-plddt-summary on the original cif files with the choppings defined in transformed_consensus
     // continue with the collect results process

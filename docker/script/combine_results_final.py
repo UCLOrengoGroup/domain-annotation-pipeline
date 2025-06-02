@@ -1,3 +1,6 @@
+# Merges the transformed consensus with plDDT and globularity outputs
+# 2/6/25 Added a clause to merge on modified AF id and md5 columns and an worning if this is not done.
+
 import pandas as pd
 import argparse
 
@@ -27,19 +30,32 @@ def run(transform_path, globularity_path, plddt_path, output_path):
     print(transform_df[['ted_id', 'chopping', 'af_domain_id']])
     # Read domain_globularity.tsv
     globularity_df = pd.read_csv(globularity_path, sep='\t', dtype=str)
-    globularity_df = globularity_df[['model_id', 'packing_density', 'normed_radius_gyration']]
+    globularity_df = globularity_df[['model_id', 'md5', 'packing_density', 'normed_radius_gyration']]
 
     # Read domain_plddt_and_lur.tsv
     plddt_df = pd.read_csv(plddt_path, sep='\t', dtype=str)
-    plddt_df = plddt_df[['af_domain_id', 'avg_plddt']]
+    plddt_df = plddt_df[['af_domain_id', 'md5', 'avg_plddt']]
 
     # Merge using custom keys
     merged_df = (
         transform_df
-        .merge(globularity_df, on='model_id', how='left')
-        .merge(plddt_df, on='af_domain_id', how='left')
+        .merge(globularity_df, left_on=['model_id', 'md5_domain'], right_on=['model_id', 'md5'], how='left')
+        .merge(plddt_df, left_on=['af_domain_id', 'md5_domain'], right_on=['af_domain_id', 'md5'], how='left')
     )
+    # Add merge warnings for unmatched md5 columns
+    import warnings
+    if merged_df['packing_density'].isna().any():
+        warnings.warn(
+            f"{merged_df['packing_density'].isna().sum()} rows could not be matched with globularity data "
+            f"(model_id + md5_domain)."
+        )
 
+    if merged_df['avg_plddt'].isna().any():
+        warnings.warn(
+            f"{merged_df['avg_plddt'].isna().sum()} rows could not be matched with plDDT data "
+            f"(af_domain_id + md5_domain)."
+        )
+    
     # Final output column order
     output_cols = [
         'ted_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain', 'num_segments',
