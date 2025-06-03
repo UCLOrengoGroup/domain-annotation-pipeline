@@ -1,12 +1,13 @@
 process collect_results {
+    publishDir './results', mode: 'copy'
+
     input:
     file 'chainsaw_results.tsv'
     file 'merizo_results.tsv'
     file 'unidoc_results.tsv'
 
     output:
-    file 'domain_assignments.tsv'   // was all_results.tsv but seemed unnecessary to go through an intermediate file
-    publishDir './results' , mode: 'copy'  
+    file 'domain_assignments.tsv'
 
     script:
     """

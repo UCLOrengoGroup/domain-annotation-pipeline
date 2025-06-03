@@ -1,7 +1,8 @@
 process collect_results_final {
     container 'domain-annotation-pipeline-script'
     stageInMode 'copy'
-    
+    publishDir './results', mode: 'copy'
+
     input:
     file 'transformed_consensus.tsv'
     file 'domain_globularity.tsv'
@@ -9,7 +10,6 @@ process collect_results_final {
 
     output:
     file 'final_results.tsv'
-    publishDir './results' , mode: 'copy'
 
     script:
     """
