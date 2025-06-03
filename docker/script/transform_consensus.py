@@ -10,6 +10,7 @@ import argparse
 import pandas as pd
 import os
 
+DEFAULT_STRIDE_SUFFIX = ".stride"
 
 parser = argparse.ArgumentParser(
     description="Transforms the consensus data.",
@@ -37,12 +38,18 @@ parser.add_argument(
     help="Path to the MD5 file for PDB files",
 )
 parser.add_argument(
-    "--stride_files",
+    "--stride_dir",
     "-s",
     type=str,
-    nargs='+',
     required=True,
     help="Path to STRIDE summary file directory",
+)
+
+parser.add_argument(
+    "--stride_suffix",
+    type=str,
+    default=DEFAULT_STRIDE_SUFFIX,
+    help="Suffix for STRIDE summary files (default: .stride)",
 )
 
 
@@ -71,7 +78,9 @@ def read_stride_summary(file_path):
     return stride_data
 
 
-def transform_consensus(input_file, output_file, md5_file, stride_files):
+def transform_consensus(
+    input_file, output_file, md5_file, stride_dir, stride_suffix=DEFAULT_STRIDE_SUFFIX
+):
     headers = [
         "AFDB_target_id",
         "MD5",
@@ -88,6 +97,11 @@ def transform_consensus(input_file, output_file, md5_file, stride_files):
     md5_lookup = read_md5_file(md5_file)
 
     # Build a lookup of stride summary files by their filename
+    stride_files = [
+        os.path.join(stride_dir, f)
+        for f in os.listdir(stride_dir)
+        if f.endswith(stride_suffix)
+    ]
     stride_lookup = {os.path.basename(f): f for f in stride_files}
 
     output_rows = []
@@ -150,19 +164,15 @@ if __name__ == "__main__":
     input_file = args.input_file
     output_file = args.output_file
     md5_file = args.md5_file
-    stride_files = args.stride_files
+    stride_dir = args.stride_dir
 
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file '{input_file}' does not exist.")
 
     if not os.path.exists(md5_file):
         raise FileNotFoundError(f"MD5 file '{md5_file}' does not exist.")
-    
-    for path in stride_files:
-        if not os.path.exists(path):
-            raise ValueError(f"Stride file does not exist: {path}")
 
- #   if not os.path.exists(stride_files):
- #       raise ValueError("Stride directory does not exist or is invalid.")
+    #   if not os.path.exists(stride_files):
+    #       raise ValueError("Stride directory does not exist or is invalid.")
 
-    transform_consensus(input_file, output_file, md5_file, stride_files)
+    transform_consensus(input_file, output_file, md5_file, stride_dir)
