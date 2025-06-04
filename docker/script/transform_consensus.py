@@ -10,7 +10,7 @@ import argparse
 import pandas as pd
 import os
 
-DEFAULT_STRIDE_SUFFIX = ".stride"
+DEFAULT_STRIDE_SUMMARY_SUFFIX = ".stride.summary"
 
 parser = argparse.ArgumentParser(
     description="Transforms the consensus data.",
@@ -46,10 +46,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--stride_suffix",
+    "--stride_summary_suffix",
     type=str,
-    default=DEFAULT_STRIDE_SUFFIX,
-    help="Suffix for STRIDE summary files (default: .stride)",
+    default=DEFAULT_STRIDE_SUMMARY_SUFFIX,
+    help="Suffix for STRIDE summary files (default: .stride.summary)",
 )
 
 
@@ -69,17 +69,59 @@ def calculate_nres(domain):
 
 
 def read_stride_summary(file_path):
-    stride_data = {}
+    """
+    Reads a STRIDE summary file (TSV) and returns a dictionary of dictionaries indexed by 'id'.
+
+    Example of expected format:
+
+        id      chain_id        num_helix_strand_turn   num_helix       num_strand      num_helix_strand        num_turn
+        AF-Q6P9F5-F1-model_v4_med_1.pdb A       11      3       2       5       6
+
+    """
+    stride_data_by_id = dict()
     if not file_path or not os.path.exists(file_path):
-        return {}
-    with open(file_path) as f:
-        line = f.readline().strip()
-        stride_data = dict(item.split(":") for item in line.split())
-    return stride_data
+        raise FileNotFoundError(f"Stride file '{file_path}' does not exist.")
+
+    # Ensure all expected keys are present, even if they are not in the file
+    expected_keys = [
+        "id",
+        "chain_id",
+        "num_helix_strand_turn",
+        "num_helix",
+        "num_strand",
+        "num_helix_strand",
+        "num_turn",
+    ]
+
+    with open(file_path, "r") as f:
+        header = f.readline().strip().split("\t")
+        for line in f:
+            parts = line.strip().split("\t")
+            if len(parts) != len(header):
+                raise ValueError(f"Invalid format in stride file: {file_path}")
+            stride_data = {}
+            for key, value in zip(header, parts):
+                if key not in expected_keys:
+                    raise ValueError(
+                        f"Unexpected key '{key}' in stride file: {file_path}"
+                    )
+                stride_data[key] = value
+
+            stride_id = stride_data.get("id")
+            stride_data_by_id[stride_id] = stride_data
+
+    if not stride_data_by_id:
+        raise ValueError(f"No data found in stride file: {file_path}")
+
+    return stride_data_by_id
 
 
 def transform_consensus(
-    input_file, output_file, md5_file, stride_dir, stride_suffix=DEFAULT_STRIDE_SUFFIX
+    input_file,
+    output_file,
+    md5_file,
+    stride_dir,
+    stride_summary_suffix=DEFAULT_STRIDE_SUMMARY_SUFFIX,
 ):
     headers = [
         "AFDB_target_id",
@@ -96,13 +138,17 @@ def transform_consensus(
 
     md5_lookup = read_md5_file(md5_file)
 
-    # Build a lookup of stride summary files by their filename
+    # Read all stride summary files and combine their data
+    all_stride_data_by_id = {}
     stride_files = [
         os.path.join(stride_dir, f)
         for f in os.listdir(stride_dir)
-        if f.endswith(stride_suffix)
+        if f.endswith(stride_summary_suffix)
     ]
-    stride_lookup = {os.path.basename(f): f for f in stride_files}
+    for stride_file in stride_files:
+        _stride_data = read_stride_summary(stride_file)
+        for stride_id, data in _stride_data.items():
+            all_stride_data_by_id[stride_id] = data
 
     output_rows = []
     stride_keys = [
@@ -127,15 +173,17 @@ def transform_consensus(
                     nres = calculate_nres(domain)
                     num_segments = domain.count("_") + 1
 
-                    # Construct stride filename using the same global domain_count
-                    stride_filename = f"{pdb_id}_{level}_{domain_count}.stride.summary"
-                    stride_file = stride_lookup.get(stride_filename, None)
-                    stride_data = read_stride_summary(stride_file)
+                    if new_id not in all_stride_data_by_id:
+                        raise KeyError(
+                            f"Stride summary data not found for ID '{new_id}'"
+                        )
 
-                    md5_filename = f"{pdb_id}_{level}_{domain_count}.pdb"
-                    if md5_filename not in md5_lookup:
-                        raise KeyError(f"MD5 not found for domain '{md5_filename}'")
-                    md5 = md5_lookup.get(md5_filename)
+                    stride_data = all_stride_data_by_id.get(new_id)
+
+                    md5_id = f"{pdb_id}_{level}_{domain_count}.pdb"
+                    if md5_id not in md5_lookup:
+                        raise KeyError(f"MD5 not found for domain '{md5_id}'")
+                    md5 = md5_lookup.get(md5_id)
 
                     row_data = [new_id, md5, level, domain, nres, num_segments]
                     for key in stride_keys:
@@ -172,7 +220,7 @@ if __name__ == "__main__":
     if not os.path.exists(md5_file):
         raise FileNotFoundError(f"MD5 file '{md5_file}' does not exist.")
 
-    #   if not os.path.exists(stride_files):
-    #       raise ValueError("Stride directory does not exist or is invalid.")
+    if not os.path.exists(stride_dir):
+        raise ValueError("Stride directory does not exist or is invalid.")
 
     transform_consensus(input_file, output_file, md5_file, stride_dir)
