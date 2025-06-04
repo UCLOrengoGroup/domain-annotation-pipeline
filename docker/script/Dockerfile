@@ -10,11 +10,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
-COPY convert_merizo_unidoc_files.py convert_merizo_unidoc_files.py
-COPY combine_results.py combine_results.py
-COPY pdb_to_md5.py pdb_to_md5.py
-COPY transform_consensus.py transform_consensus.py
-COPY combine_results_final.py combine_results_final.py
+COPY ./*.py .
 
 RUN pip install --upgrade pip wheel && pip install -r requirements.txt
 
