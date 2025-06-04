@@ -170,17 +170,18 @@ def transform_consensus(
                 domains = dom_str.split(",")
                 for domain in domains:
                     new_id = f"{pdb_id}_TED{domain_count:02d}"
+                    md5_id = f"{pdb_id}_{level}_{domain_count}.pdb"
+
                     nres = calculate_nres(domain)
                     num_segments = domain.count("_") + 1
 
-                    if new_id not in all_stride_data_by_id:
+                    if md5_id not in all_stride_data_by_id:
                         raise KeyError(
-                            f"Stride summary data not found for ID '{new_id}'"
+                            f"Stride summary data not found for ID '{md5_id}'"
                         )
 
-                    stride_data = all_stride_data_by_id.get(new_id)
+                    stride_data = all_stride_data_by_id.get(md5_id)
 
-                    md5_id = f"{pdb_id}_{level}_{domain_count}.pdb"
                     if md5_id not in md5_lookup:
                         raise KeyError(f"MD5 not found for domain '{md5_id}'")
                     md5 = md5_lookup.get(md5_id)
