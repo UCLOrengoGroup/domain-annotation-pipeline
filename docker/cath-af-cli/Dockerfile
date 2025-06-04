@@ -3,12 +3,12 @@ FROM python:3.10-slim
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        build-essential \
-        cmake \
-        git \
-        wget \
-        zlib1g-dev \
-        make && \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    zlib1g-dev \
+    make && \
     rm -rf /var/lib/apt/lists/*
 
 # Install STRIDE
@@ -21,7 +21,6 @@ RUN mkdir -p /opt/stride && \
 
 # Set up app directory
 WORKDIR /app
-COPY get_stride_SSE.sh get_stride_SSE.sh
 
 # Clone cath-alphaflow repository
 RUN git clone https://github.com/UCLOrengoGroup/cath-alphaflow.git
