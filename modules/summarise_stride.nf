@@ -1,17 +1,16 @@
 process summarise_stride {
-    container 'domain-annotation-pipeline-cath-af-cli'
+    container 'domain-annotation-pipeline-script'
     stageInMode 'copy'
-    publishDir './results/stride' , mode: 'copy'
-    
+    publishDir './results/stride', mode: 'copy'
+
     input:
-    path stride_file
+    path '*.stride'
 
     output:
-    path "*.summary" //"summary_${stride_file.name}"
-    // path 'summary_files', emit: stride_dir
+    path "stride.summary"
 
     script:
     """
-    bash /app/get_stride_SSE.sh ${stride_file}
+    ${params.stride_summary_script} -o stride.summary -d . --suffix .stride
     """
 }
