@@ -1,17 +1,23 @@
 process transform_consensus {
     container 'domain-annotation-pipeline-script'
     stageInMode 'copy'
-    publishDir 'results', mode: 'copy'   // Save PDB file to a directory for later use
+    publishDir 'results', mode: 'copy'
 
     input:
     path 'consensus_file'
-    path stride_summaries
-    
+    path 'all_md5_file'
+    path 'stride_files/*.stride.summary'
+
     output:
     path "transformed_consensus.tsv"
-        
+
     script:
     """
-    ${params.transform_script} ${consensus_file} transformed_consensus.tsv ${stride_summaries}
+    ${params.transform_script} \
+        -i 'consensus_file' \
+        -o transformed_consensus.tsv \
+        -m 'all_md5_file' \
+        -s 'stride_files/' \
+        --stride_summary_suffix .stride.summary
     """
 }

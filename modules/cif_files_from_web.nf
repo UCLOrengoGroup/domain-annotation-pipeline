@@ -1,10 +1,11 @@
 process cif_files_from_web {
+    publishDir './results/cifs', mode: 'copy'
+
     input:
     path 'af_ids.txt'
 
     output:
     path 'AF-*.cif'
-    publishDir './results/cifs' , mode: 'copy'
 
     script:
     """

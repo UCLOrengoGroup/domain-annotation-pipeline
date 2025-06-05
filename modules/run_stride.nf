@@ -1,14 +1,14 @@
 process run_stride {
     container 'domain-annotation-pipeline-cath-af-cli'
     stageInMode 'copy'
+    publishDir './results/stride', mode: 'copy'
 
     input:
     path '*'
 
     output:
     path '*.stride'
-    publishDir './results/stride' , mode: 'copy'
-    
+
     script:
     """
     for f in *.pdb; do

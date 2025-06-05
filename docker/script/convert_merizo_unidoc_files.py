@@ -70,6 +70,8 @@ def process_merizo(chainsaw_file, merizo_file, output_file):
     merizo_df["AF_chain_id"] = merizo_df["AF_chain_id"].str.replace(
         ".pdb", "", regex=False
     )
+    # Fill empty result values with a placeholder
+    merizo_df["result"] = merizo_df["result"].fillna("0")
 
     # Merge with chainsaw data
     merged_df = merizo_df.merge(chainsaw_df, on="AF_chain_id", how="left")
@@ -97,7 +99,9 @@ def process_unidoc(chainsaw_file, unidoc_file, output_file):
     unidoc_df = pd.read_csv(
         unidoc_file, sep="\t", header=None, names=["AF_chain_id", "result"]
     )
-
+    # Fill empty result values with a placeholder
+    unidoc_df["result"] = unidoc_df["result"].fillna("0")
+    
     # Count unique domains
     unidoc_df["ndom"] = unidoc_df["result"].apply(
         lambda x: (

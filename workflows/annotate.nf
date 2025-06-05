@@ -26,6 +26,7 @@ include { run_filter_consensus }    from '../modules/run_filter_consensus.nf'
 include { chop_pdb }                from '../modules/chop_pdb.nf'
 include { transform_consensus }     from '../modules/transform.nf'
 include { run_stride }              from '../modules/run_stride.nf'
+include { create_md5 }              from '../modules/create_domain_md5.nf'
 include { summarise_stride }        from '../modules/summarise_stride.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { run_AF_domain_id }        from '../modules/run_create_AF_domain_id.nf'
@@ -92,10 +93,12 @@ workflow {
             run_get_consensus(chain_filter, meriz_uni_filter)   // create consensus results
     def consensus = run_filter_consensus(run_get_consensus.out) // run the post-consensus filtering process
     def chop = chop_pdb(consensus.filtered, pdb_ch.collect())   //Use filtered_consensus.tsv to chop the pdb files accordingly
+    def md5 = create_md5(chop.chop_files.flatten())             // creates an domain-level md5 has from the seq in the chopped pdb files
+    def combined_md5 = md5.collectFile(name: "all_md5.tsv", sort: true)
     def stride = run_stride(chop.chop_files)                    // Run STRIDE on each chopped pdb domain file
     def globularity = run_measure_globularity(chop.chop_dir)    // Run globularity in the chopped pdb files
     def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
-    def transform = transform_consensus(consensus.filtered, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
+    def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
     def AF_Dom_id = run_AF_domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
     def plddt = run_plddt(cif_ch.collect(), AF_Dom_id)          // Run convert-cif-to-plddt-summary on the original cif files with the choppings defined in transformed_consensus
     // continue with the collect results process
@@ -109,6 +112,11 @@ workflow {
             globularity, 
             plddt 
         )
+        
+        combined_md5
+            .map {file -> file.copyTo("${params.results_dir}/all_md5.tsv")}
+            .subscribe {}
+        
         //.collectFile(name: 'domain_assignments.tsv',  This looks unnecessary - changed to write directly to ./results/domain_sssignments.tsv in the collect_results process
              // skip: 1,
         //    storeDir: workflow.launchDir)
