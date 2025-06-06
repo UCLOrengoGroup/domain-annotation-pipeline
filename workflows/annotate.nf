@@ -10,6 +10,8 @@ params.chopping_file = "../domain_assignments.chaninsaw.tsv"
 params.reformatted_file_meriz = "../results/merizo_results_refomatted.tsv"
 params.reformatted_file_uni =   "../results/unidoc_results_reformatted.tsv"
 
+include { get_uniprot_data }        from '../modules/get_uniprot.nf'
+include { collect_taxonomy }        from '../modules/collect_taxonomy.nf'
 include { cif_files_from_web }      from '../modules/cif_files_from_web.nf'
 include { cif_files_from_gs }       from '../modules/cif_files_from_gs.nf'
 include { cif_to_pdb }              from '../modules/cif_to_pdb.nf'
@@ -37,22 +39,19 @@ workflow {
 
     // Create a channel from the uniprot csv file
     def uniprot_ids_ch = Channel.fromPath( params.uniprot_csv_file )
-        // process the file as a CSV with a header line
+        .splitCsv(header: true)  // process the file as a CSV with a header line
+        // .take( 5 ) //only process a few ids when debugging
+    def uniprot_rows_ch = Channel.fromPath( params.uniprot_csv_file )
         .splitCsv(header: true)
-        // only process a few ids when debugging
-        // .take( 5 )
-
-    // Generate files containing chunks of AlphaFold ids
-    // NOTE: this will only retrieve the first fragment in the AF prediction (F1)
+        .map { row -> row.uniprot_id }
+        get_uniprot_data(uniprot_rows_ch)  // Get taxonomic data from uniprot
+    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect()) // Collect into a single output file
+    // Generate files containing chunks of AlphaFold ids. NOTE: this will only retrieve the first fragment in the AF prediction (F1)
     def af_ids = uniprot_ids_ch
-        // make sure we don't have duplicate uniprot ids
-        .unique()
-        // map uniprot id (CSV row) to AlphaFold id
-        .map { up_row -> "AF-${up_row.uniprot_id}-F1-model_v${params.af_version}" }
-        // collect all ids into a single file
-        .collectFile(name: 'all_af_ids.txt', newLine: true)
-        // split into chunks and save to files
-        .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
+        .unique()  // make sure we don't have duplicate uniprot ids
+        .map { up_row -> "AF-${up_row.uniprot_id}-F1-model_v${params.af_version}" }  // map uniprot id (CSV row) to AlphaFold id
+        .collectFile(name: 'all_af_ids.txt', newLine: true)  // collect all ids into a single file
+        .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)  // split into chunks and save to files
 
     // download cif files
     // def cif_ch = cif_files_from_gs( af_ids )
@@ -110,7 +109,8 @@ workflow {
     def final_results = collect_results_final( 
             transform, 
             globularity, 
-            plddt 
+            plddt,
+            taxonomy 
         )
         
         combined_md5
