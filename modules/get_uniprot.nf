@@ -10,6 +10,6 @@ process get_uniprot_data {
 
     script:
     """
-    ${params.fetch_uniprot_script} ${uniprot_id} uniprot_${uniprot_id}.tsv
+    ${params.fetch_uniprot_script} -a ${uniprot_id} -o uniprot_${uniprot_id}.tsv
     """
 }
