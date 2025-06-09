@@ -78,7 +78,7 @@ domain-annotation-pipeline-unidoc		latest	3676db5e232e	1.61GB
 domain-annotation-pipeline-script		latest	b6af2bdac564	613MB
 domain-annotation-pipeline-pdb-tools	latest	b1e301cc0fb9	369MB
 
-If the images are not tagged with your Docker username, tag each manually, check they are amd64 compatible and push each to DockerHub.
+If the images are not tagged with your Docker Docker username, tag each manually, check they are amd64 compatible and push each to DockerHub.
 ```
 docker tag domain-annotation-pipeline-<image_name>:latest <username>/domain-annotation-pipeline-<image_name>:latest
 docker inspect <username>/domain-annotation-pipeline-<image_name>:latest | grep Architecture
