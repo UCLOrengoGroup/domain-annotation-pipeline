@@ -1,5 +1,6 @@
 # Merges the transformed consensus with plDDT and globularity outputs
-# 2/6/25 Added a clause to merge on modified AF id and md5 columns and an worning if this is not done.
+# 2/6/25 Added a clause to merge on modified AF id and md5 columns and a warning if this fails.
+# 5/6/25 Added clauses to merge taxonomic data
 
 import pandas as pd
 import argparse
@@ -14,7 +15,7 @@ def construct_af_domain_id(ted_id, chopping):
     base = ted_id.rsplit('_TED', 1)[0]  # strip "_TED01"
     return f"{base}/{chopping}"
 
-def run(transform_path, globularity_path, plddt_path, output_path):
+def run(transform_path, globularity_path, plddt_path, taxonomy_path, output_path):
     # Read transformed_consensus.tsv
     transform_df = pd.read_csv(transform_path, sep='\t', dtype=str)
     transform_df['model_id'] = transform_df.apply(
@@ -56,11 +57,20 @@ def run(transform_path, globularity_path, plddt_path, output_path):
             f"(af_domain_id + md5_domain)."
         )
     
+    # Merge taxonomy if provided
+    if taxonomy_path:
+        taxonomy_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
+        taxonomy_df = taxonomy_df.rename(columns={'accession': 'uniprot_id'})
+        #merged_df['uniprot_id'] = merged_df['ted_id'].str.extract(r'(Q[A-Z0-9]{5,6})')
+        merged_df['uniprot_id'] = merged_df['ted_id'].str.extract(r'([A-Z0-9]{6,})')
+        merged_df = merged_df.merge(taxonomy_df, on='uniprot_id', how='left')
+
     # Final output column order
     output_cols = [
         'ted_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain', 'num_segments',
         'num_helix_strand_turn', 'num_helix', 'num_strand', 'num_helix_strand', 'num_turn',
-        'packing_density', 'normed_radius_gyration', 'avg_plddt'
+        'packing_density', 'normed_radius_gyration', 'avg_plddt', 'proteome_id', 'tax_common_name',
+        'tax_scientific_name', 'tax_lineage'
     ]
 
     merged_df.to_csv(output_path, sep='\t', index=False, columns=output_cols)
@@ -70,7 +80,9 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--transform', required=True)
     parser.add_argument('-g', '--globularity', required=True)
     parser.add_argument('-p', '--plddt', required=True)
+    parser.add_argument('-x', '--taxonomy', required=False)
     parser.add_argument('-o', '--output', required=True)
     args = parser.parse_args()
 
-    run(args.transform, args.globularity, args.plddt, args.output)
+    run(args.transform, args.globularity, args.plddt, args.taxonomy, args.output)
+
