@@ -7,7 +7,7 @@ process collect_results_final {
     file 'transformed_consensus.tsv'
     file 'domain_globularity.tsv'
     file 'domain_plddt_and_lur.tsv'
-    file 'All_taxonomy.tsv'
+    file 'all_taxonomy.tsv'
 
     output:
     file 'final_results.tsv'
@@ -18,7 +18,7 @@ process collect_results_final {
         -t transformed_consensus.tsv \
         -g domain_globularity.tsv \
         -p domain_plddt_and_lur.tsv \
-        -x All_taxonomy.tsv \
+        -x all_taxonomy.tsv \
         -o final_results.tsv
     """
 }

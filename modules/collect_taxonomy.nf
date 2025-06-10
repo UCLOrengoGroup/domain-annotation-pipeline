@@ -6,10 +6,10 @@ process collect_taxonomy {
         path input_files
 
     output:
-        path "All_taxonomy.tsv", emit: output_file
+        path "all_taxonomy.tsv", emit: output_file
 
     script:
     """
-    cat ${input_files} > 'All_taxonomy.tsv'
+    cat ${input_files} > 'all_taxonomy.tsv'
     """
 }

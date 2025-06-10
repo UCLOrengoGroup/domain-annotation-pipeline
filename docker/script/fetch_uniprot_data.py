@@ -1,6 +1,9 @@
 import requests
 import csv
+import pandas as pd
 import argparse
+
+MISSING_VALUE = pd.NA
 
 def fetch_uniprot_info(accession):
     """Fetch UniProt taxonomy and proteome metadata for a given accession."""
@@ -28,10 +31,10 @@ def fetch_uniprot_info(accession):
         print(f"Failed to parse data for {accession}: {e}")
         return {
             "accession": accession,
-            "proteome_id": '',
-            "tax_common_name": '',
-            "tax_scientific_name": '',
-            "tax_lineage": ''
+            "proteome_id": MISSING_VALUE,
+            "tax_common_name": MISSING_VALUE,
+            "tax_scientific_name": MISSING_VALUE,
+            "tax_lineage": MISSING_VALUE
         }
 
 def run(accession, output_file):
