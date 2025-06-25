@@ -1,9 +1,8 @@
 #!/usr/bin/env nextflow
-params.alphafold_url_stem = "https://alphafold.ebi.ac.uk/files"
 params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
+params.pdb_tar_file = "${workflow.projectDir}/../assets/bfvd.tar.gz"
 params.chunk_size = 3        // the number of uniprot ids processed in each chunk of work 
 params.cath_version = 'v4_3_0'
-params.af_version = 4
 nextflow.enable.dsl=2
 // params for the chopping consensus programs
 params.chopping_file = "../domain_assignments.chaninsaw.tsv"
@@ -12,9 +11,7 @@ params.reformatted_file_uni =   "../results/unidoc_results_reformatted.tsv"
 
 include { get_uniprot_data }        from '../modules/get_uniprot.nf'
 include { collect_taxonomy }        from '../modules/collect_taxonomy.nf'
-include { cif_files_from_web }      from '../modules/cif_files_from_web.nf'
-include { cif_files_from_gs }       from '../modules/cif_files_from_gs.nf'
-include { cif_to_pdb }              from '../modules/cif_to_pdb.nf'
+include { extract_pdb }             from '../modules/extract_pdb.nf'
 include { run_chainsaw }            from '../modules/run_chainsaw.nf'
 include { run_merizo }              from '../modules/run_merizo.nf'
 include { run_unidoc }              from '../modules/run_unidoc.nf'
@@ -33,6 +30,7 @@ include { summarise_stride }        from '../modules/summarise_stride.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { run_AF_domain_id }        from '../modules/run_create_AF_domain_id.nf'
 include { run_plddt }               from '../modules/run_plddt.nf'
+include { join_plddt_md5 }          from '../modules/join_plddt_md5.nf'
 include { collect_results_final }   from '../modules/collect_results_add_metadata.nf'
 
 workflow {
@@ -46,19 +44,15 @@ workflow {
         .map { row -> row.uniprot_id }
         get_uniprot_data(uniprot_rows_ch)  // Get taxonomic data from uniprot
     def taxonomy = collect_taxonomy(get_uniprot_data.out.collect()) // Collect into a single output file
-    // Generate files containing chunks of AlphaFold ids. NOTE: this will only retrieve the first fragment in the AF prediction (F1)
+    // Generate files containing chunks of ids.
     def af_ids = uniprot_ids_ch
-        .unique()  // make sure we don't have duplicate uniprot ids
-        .map { up_row -> "AF-${up_row.uniprot_id}-F1-model_v${params.af_version}" }  // map uniprot id (CSV row) to AlphaFold id
-        .collectFile(name: 'all_af_ids.txt', newLine: true)  // collect all ids into a single file
-        .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)  // split into chunks and save to files
+        .map { row -> row.uniprot_id }   // get just the uniprot ID string
+        .unique()
+        .collectFile(name: 'all_af_ids.txt', newLine: true)
+        .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
-    // download cif files
-    // def cif_ch = cif_files_from_gs( af_ids )
-    def cif_ch = cif_files_from_web( af_ids )
-
-    // convert cif to pdb files
-    def pdb_ch = cif_to_pdb( cif_ch )
+    // extract pdbs from the databse tar.gz file
+    def pdb_ch = extract_pdb( af_ids, file( params.pdb_tar_file ))
 
     // run chainsaw on the pdb files
     def chainsaw_results_ch = run_chainsaw( pdb_ch )
@@ -99,7 +93,8 @@ workflow {
     def summaries = summarise_stride(stride.flatten())          // Summarise the STRIDE output
     def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect()) // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
     def AF_Dom_id = run_AF_domain_id(transform)                 // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
-    def plddt = run_plddt(cif_ch.collect(), AF_Dom_id)          // Run convert-cif-to-plddt-summary on the original cif files with the choppings defined in transformed_consensus
+    def plddt = run_plddt(chop.chop_dir)                     // Run fetch_avg_plddt.py on the chopped pdb files
+    def merged_plddt = join_plddt_md5(plddt, combined_md5)
     // continue with the collect results process
     def all_results = collect_results( 
             all_chainsaw_results, 
@@ -109,18 +104,11 @@ workflow {
     def final_results = collect_results_final( 
             transform, 
             globularity, 
-            plddt,
+            merged_plddt,
             taxonomy 
         )
         
         combined_md5
             .map {file -> file.copyTo("${params.results_dir}/all_md5.tsv")}
             .subscribe {}
-        
-        //.collectFile(name: 'domain_assignments.tsv',  This looks unnecessary - changed to write directly to ./results/domain_sssignments.tsv in the collect_results process
-             // skip: 1,
-        //    storeDir: workflow.launchDir)
-        //.subscribe {
-        //    println "All results: $it"
-        //}
 }

@@ -6,7 +6,7 @@ process collect_results_final {
     input:
     file 'transformed_consensus.tsv'
     file 'domain_globularity.tsv'
-    file 'domain_plddt_and_lur.tsv'
+    file 'plddt_with_md5.tsv'
     file 'all_taxonomy.tsv'
 
     output:
@@ -17,7 +17,7 @@ process collect_results_final {
     ${params.combine_final_script} \
         -t transformed_consensus.tsv \
         -g domain_globularity.tsv \
-        -p domain_plddt_and_lur.tsv \
+        -p plddt_with_md5.tsv \
         -x all_taxonomy.tsv \
         -o final_results.tsv
     """

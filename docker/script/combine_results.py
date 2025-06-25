@@ -5,7 +5,7 @@ MERIZO_COLS = 'af_chain_id nres nres_dom nres_ndr ndom pIoU runtime result'.spli
 UNIDOC_COLS = 'af_chain_id result'.split()
 CHAINSAW_COLS = 'af_chain_id sequence_md5	nres ndom	result uncertainty time_sec'.split()
 OUTPUT_COLS = {
-    'af_chain_id': 'AlphaFold_ID',
+    'af_chain_id': 'Model_ID',
     'result_chainsaw': 'Chainsaw',
     'result_merizo': 'Merizo',
     'result_unidoc': 'UniDoc',
@@ -49,10 +49,10 @@ def run(merizo_file, unidoc_file, chainsaw_file, output_file):
 def normalise_df(df):
     # index by file stem (no suffix)
     df['af_chain_id'] = df['af_chain_id'].str.replace('.pdb', '').str.replace('.cif', '')
-    bad_matches_idx = df['af_chain_id'].str.match(r'(?!AF-)')
-    if bad_matches_idx.any():
-        bad_matches = df.loc[bad_matches_idx, 'af_chain_id'].unique()
-        raise RuntimeError(f"Invalid AlphaFold ID: {bad_matches}")
+    #bad_matches_idx = df['af_chain_id'].str.match(r'(?!AF-)')
+    #if bad_matches_idx.any():
+    #    bad_matches = df.loc[bad_matches_idx, 'af_chain_id'].unique()
+    #    raise RuntimeError(f"Invalid AlphaFold ID: {bad_matches}")
     return df
 
 

@@ -8,7 +8,6 @@ process run_measure_globularity {
 
     output:
     path "domain_globularity.tsv"
-    //mkdir -p chopped_pdbs  then   cp ${pdb_files} chopped_pdbs/
     
     script:
     """

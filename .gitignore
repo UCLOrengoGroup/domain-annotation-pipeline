@@ -121,3 +121,7 @@ work/
 # local build dir
 tools/
 domain_assignments*.tsv
+assets/bfvd.tar.gz
+assets/af_ids_1000.txt
+assets/uniprot_ids_100.csv
+assets/uniprot_1000.txt

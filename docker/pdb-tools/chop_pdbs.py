@@ -2,7 +2,8 @@ import os
 import sys
 import subprocess
 
-def parse_domain_boundaries(boundary_str):
+def parse_domain_boundaries(boundary_str, level):
+    """Parses a boundary string into a list of (level, [(start, end), ...]) tuples."""
     if boundary_str.lower() == 'na':
         return []
     domains = []
@@ -15,7 +16,7 @@ def parse_domain_boundaries(boundary_str):
             except ValueError:
                 continue
         if ranges:
-            domains.append(ranges)
+            domains.append((level, ranges))
     return domains
 
 def run_pdb_selres(pdb_file, start, end, output_file, append=False):
@@ -31,41 +32,34 @@ def run_pdb_selres(pdb_file, start, end, output_file, append=False):
         out.write('\n'.join(lines) + '\n')
 
 def main(consensus_file, output_dir):
-    import os
     os.makedirs(output_dir, exist_ok=True)
     pdb_dir = os.getcwd()
-#def main(consensus_file):
-#    pdb_dir = os.getcwd()
-#    output_dir = os.getcwd()
 
     with open(consensus_file, 'r') as f:
         for line in f:
-            if line.startswith("AF-"):
-                fields = line.strip().split('\t')
-                pdb_id = fields[0]
-                high_domains = parse_domain_boundaries(fields[6])
-                med_domains = parse_domain_boundaries(fields[7])
+            fields = line.strip().split('\t')
+            pdb_id = fields[0]
+            high_domains = parse_domain_boundaries(fields[6], 'high')
+            med_domains = parse_domain_boundaries(fields[7], 'med')
 
-                pdb_path = os.path.join(pdb_dir, f"{pdb_id}.pdb")
-                if not os.path.exists(pdb_path):
-                    print(f"⚠️  PDB not found: {pdb_path}")
-                    continue
+            pdb_path = os.path.join(pdb_dir, f"{pdb_id}.pdb")
+            if not os.path.exists(pdb_path):
+                print(f"⚠️  PDB not found: {pdb_path}")
+                continue
 
-                domain_counter = 1
-                # Process all domains (new code block)
-                all_domain_ranges = { 'high': high_domains, 'med': med_domains }
+            # Combine and sort all domains by first segment's start
+            all_domains = high_domains + med_domains
+            all_domains.sort(key=lambda x: x[1][0][0])  # sort by first segment start
 
-                for domain_type, domain_list in all_domain_ranges.items():
-                    for domain_ranges in domain_list:
-                        out_file = os.path.join(output_dir, f"{pdb_id}_{domain_type}_{domain_counter}.pdb")
-                        for j, (start, end) in enumerate(domain_ranges):
-                            run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
-                        with open(out_file, 'a') as out_h:
-                            out_h.write('END\n')
-                        domain_counter += 1
-                
+            for i, (level, domain_ranges) in enumerate(all_domains, start=1):
+                out_file = os.path.join(output_dir, f"{pdb_id}_{i:02}.pdb")
+                for j, (start, end) in enumerate(domain_ranges):
+                    run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
+                with open(out_file, 'a') as out_h:
+                    out_h.write('END\n')
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python chop_pdbs.py <filtered_consensus.tsv> <output_dir>")
         sys.exit(1)
-    main(sys.argv[1], sys.argv[2])  # main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])
