@@ -27,7 +27,7 @@ jobs:
             docker compose -f docker-compose.yml build $service
             docker compose -f docker-compose.yml push $service
             # clean up local images to save space
-            docker rmi -f $(docker images -q $service)
+            docker rmi -f $(docker images -q)
           done
 
       - name: Logout from Docker Hub
