@@ -22,10 +22,13 @@ jobs:
 
       - name: Build and push Docker Compose images
         run: |
-          pwd
-          ls -ld *
-          docker compose -f docker-compose.yml build
-          docker compose -f docker-compose.yml push
+          for (service in $(docker compose -f docker-compose.yml config --services); do
+            echo "Building and pushing $service individually (to avoid space issues)..."
+            docker compose -f docker-compose.yml build $service
+            docker compose -f docker-compose.yml push $service
+            # clean up local images to save space
+            docker rmi -f $(docker images -q $service)
+          done
 
       - name: Logout from Docker Hub
         run: docker logout
