@@ -1,0 +1,29 @@
+# build docker images from docker compose and push to docker hub
+
+name: Build, Test, and Push Docker Compose Images
+on:
+  push:
+    branches:
+      - main
+      - add-docker-action
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker Compose images
+        run: |
+          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml push
+
+      - name: Logout from Docker Hub
+        run: docker logout
