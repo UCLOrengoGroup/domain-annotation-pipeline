@@ -22,7 +22,7 @@ jobs:
 
       - name: Build and push Docker Compose images
         run: |
-          for (service in $(docker compose -f docker-compose.yml config --services); do
+          for service in $(docker compose -f docker-compose.yml config --services; do
             echo "Building and pushing $service individually (to avoid space issues)..."
             docker compose -f docker-compose.yml build $service
             docker compose -f docker-compose.yml push $service
