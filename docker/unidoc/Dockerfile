@@ -10,7 +10,10 @@ RUN apt-get update \
 
 WORKDIR /app
 
-RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
+# RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
+# [2025/07/01] This is here because the above link is not currently working
+RUN wget https://github.com/sillitoe/unidoc/raw/refs/heads/main/UniDoc.tgz && tar xvf UniDoc.tgz
+RUN cp UniDoc/bin/UniDoc_structure /app/UniDoc/UniDoc_struct
 
 WORKDIR /app/UniDoc
 
