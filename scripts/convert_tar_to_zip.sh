@@ -1,10 +1,11 @@
 #!/bin/bash
+#$ -S /bin/bash
 #$ -N convert_tar_to_zip
 #$ -cwd
 #$ -l h_rt=02:00:00
-#$ -l h_vmem=15G
-#$ -pe smp 1
+#$ -l h_vmem=15G,tmem=15G
 #$ -V
+
 
 set -euo pipefail
 
