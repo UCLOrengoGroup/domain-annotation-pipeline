@@ -37,7 +37,7 @@ tar -xzf "$BASENAME.tar.gz" --wildcards --directory=extracted '*.pdb'
 echo "Zipping PDB files from stdin..."
 ZIP_NAME="${BASENAME}.zip"
 cd extracted
-find . -type f -name "*.pdb" -print0 | zip -0 -q -@ --names-stdin -0 "../$ZIP_NAME"
+find . -type f -name "*.pdb" -print0 | zip -q --names-stdin -0 "../$ZIP_NAME"
 
 cd ..
 
