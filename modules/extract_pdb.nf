@@ -1,6 +1,5 @@
 process extract_pdb {
     container 'domain-annotation-pipeline-pdb-tools'
-    //stageInMode 'copy'
     publishDir './results/pdbs', mode: 'copy'
 
     input:

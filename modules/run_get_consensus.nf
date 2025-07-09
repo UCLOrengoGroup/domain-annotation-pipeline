@@ -4,7 +4,6 @@
  */
 process run_get_consensus {
     container 'domain-annotation-pipeline-ted-tools'
-    stageInMode 'copy'
     publishDir './results' , mode: 'copy'
 
     input:

@@ -5,7 +5,6 @@
  */
 process run_filter_domains_reformatted {
     container 'domain-annotation-pipeline-ted-tools'
-    stageInMode 'copy'
     publishDir './results' , mode: 'copy'
 
     input:

@@ -1,6 +1,5 @@
 process get_uniprot_data {
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
 
     input:
     val uniprot_id

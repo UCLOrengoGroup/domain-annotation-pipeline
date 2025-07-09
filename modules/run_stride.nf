@@ -1,6 +1,5 @@
 process run_stride {
     container 'domain-annotation-pipeline-cath-af-cli'
-    stageInMode 'copy'
     publishDir './results/stride', mode: 'copy'
 
     input:
