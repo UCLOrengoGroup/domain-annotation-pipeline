@@ -1,6 +1,5 @@
 process run_AF_domain_id {
     container 'domain-annotation-pipeline-cath-af-cli'
-    stageInMode 'copy'
     publishDir 'results' , mode: 'copy'
 
     input:

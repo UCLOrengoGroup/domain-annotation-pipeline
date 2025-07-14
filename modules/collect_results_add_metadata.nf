@@ -1,6 +1,5 @@
 process collect_results_final {
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
     publishDir './results', mode: 'copy'
 
     input:

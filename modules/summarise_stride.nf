@@ -1,6 +1,5 @@
 process summarise_stride {
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
     publishDir './results/stride', mode: 'copy'
 
     input:

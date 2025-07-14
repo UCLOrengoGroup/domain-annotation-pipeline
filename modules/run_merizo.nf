@@ -1,6 +1,5 @@
 process run_merizo {
     container 'domain-annotation-pipeline-merizo'
-    stageInMode 'copy'
 
     input:
     path '*'

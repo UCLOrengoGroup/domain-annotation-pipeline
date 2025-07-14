@@ -1,6 +1,5 @@
 process chop_pdb {
     container 'domain-annotation-pipeline-pdb-tools'
-    stageInMode 'copy'
     publishDir './results/chopped_pdbs', mode: 'copy'   // Save PDB file to a directory for later use
 
     input:

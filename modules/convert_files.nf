@@ -1,6 +1,5 @@
 process convert_files {
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
     publishDir './results', mode: 'copy'
 
     input:
