@@ -1,5 +1,5 @@
 process run_merizo {
-    container 'domain-annotation-pipeline-merizo'
+    label 'gpu_job'
 
     input:
     path '*'

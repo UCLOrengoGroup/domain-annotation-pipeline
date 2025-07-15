@@ -1,5 +1,5 @@
 process run_unidoc {
-    container 'domain-annotation-pipeline-unidoc'
+    label 'hpc_job'
 
     input:
     path '*'
