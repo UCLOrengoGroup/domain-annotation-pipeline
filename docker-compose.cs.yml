@@ -1,0 +1,29 @@
+services:
+
+  cath-af-cli:
+    platform: linux/amd64
+    build: docker/cath-af-cli
+
+  script:
+    platform: linux/amd64
+    build: docker/script
+
+  pdb-tools:
+    platform: linux/amd64
+    build: docker/pdb-tools
+
+  unidoc:
+    platform: linux/amd64
+    build: docker/unidoc
+
+  chainsaw:
+    platform: linux/amd64
+    build: docker/chainsaw
+
+  merizo:
+    platform: linux/amd64
+    build: docker/merizo
+
+  ted-tools:
+    platform: linux/amd64
+    build: docker/ted-tools
