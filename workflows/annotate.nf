@@ -3,7 +3,9 @@ params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
 // params.pdb_tar_file = "${workflow.projectDir}/../assets/bfvd.tar.gz"
 // see: script/convert_tar_to_zip.sh
 params.pdb_zip_file = "${workflow.projectDir}/../assets/bfvd.zip"
-params.chunk_size = 3
+params.chunk_size = 10
+params.chain_pdb_min_residues = 25
+
 // the number of uniprot ids processed in each chunk of work 
 params.cath_version = 'v4_3_0'
 nextflow.enable.dsl = 2
@@ -16,6 +18,7 @@ include { get_uniprot_data } from '../modules/get_uniprot.nf'
 include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 include { extract_pdb_from_tar } from '../modules/extract_pdb_from_tar.nf'
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
+include { filter_pdb } from '../modules/filter_pdb.nf'
 include { run_chainsaw } from '../modules/run_chainsaw.nf'
 include { run_merizo } from '../modules/run_merizo.nf'
 include { run_unidoc } from '../modules/run_unidoc.nf'
@@ -42,24 +45,24 @@ workflow {
     // Create a channel from the uniprot csv file
     def uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file)
         .splitCsv(header: true)
-    // process the file as a CSV with a header line
-    // .take( 5 ) //only process a few ids when debugging
-    def uniprot_rows_ch = Channel.fromPath(params.uniprot_csv_file)
-        .splitCsv(header: true)
-        .map { row -> row.uniprot_id }
-    get_uniprot_data(uniprot_rows_ch)
-    // Get taxonomic data from uniprot
-    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect())
-    // Collect into a single output file
-    // Generate files containing chunks of ids.
+
     def af_ids = uniprot_ids_ch
         .map { row -> row.uniprot_id }
         .unique()
         .collectFile(name: 'all_af_ids.txt', newLine: true)
         .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
+    get_uniprot_data(af_ids)
+
+    // Get taxonomic data from uniprot
+    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect())
+    // Collect into a single output file
+    // Generate files containing chunks of ids.
+
     // extract pdbs from the databse zip file
-    def pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
+    def unfiltered_pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
+
+    def pdb_ch = filter_pdb(unfiltered_pdb_ch, params.chain_pdb_min_residues)
 
     // run chainsaw on the pdb files
     def chainsaw_results_ch = run_chainsaw(pdb_ch)
@@ -93,9 +96,13 @@ workflow {
         all_merizo_results,
         all_unidoc_results,
     )
+    // TODO: this requires two arguments??
     def meriz_uni_filter = run_filter_domains_reformatted(all_convert_results)
+
     // filter the newly formatted merizo and unidoc results
+    // TODO: this requires three arguments??
     run_get_consensus(chain_filter, meriz_uni_filter)
+
     // create consensus results
     def consensus = run_filter_consensus(run_get_consensus.out)
     // run the post-consensus filtering process
@@ -112,7 +119,10 @@ workflow {
     // Summarise the STRIDE output
     def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect())
     // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
+
+    // TODO: AF_Dom_id isn't used anywhere else - is this step needed?
     def AF_Dom_id = run_AF_domain_id(transform)
+
     // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
     def plddt = run_plddt(chop.chop_dir)
     // Run fetch_avg_plddt.py on the chopped pdb files
