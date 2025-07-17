@@ -1,4 +1,5 @@
 process collect_taxonomy {
+    label 'local_job'
 
     publishDir 'results', mode: 'copy'
 

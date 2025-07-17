@@ -1,4 +1,5 @@
 process run_unidoc {
+    label 'sge_job'
     container 'domain-annotation-pipeline-unidoc'
 
     input:

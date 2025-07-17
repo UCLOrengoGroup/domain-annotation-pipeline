@@ -1,4 +1,5 @@
 process chop_pdb {
+    label 'local_job'
     container 'domain-annotation-pipeline-pdb-tools'
     publishDir './results/chopped_pdbs', mode: 'copy'   // Save PDB file to a directory for later use
 

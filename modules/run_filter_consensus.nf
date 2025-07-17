@@ -3,6 +3,7 @@
  * Command format: python filter_domains_consensus.py consensus.tsv -o filtered_consensus_1.tsv.
  */
 process run_filter_consensus {
+    label 'local_job'
     container 'domain-annotation-pipeline-ted-tools'
     publishDir './results' , mode: 'copy'
 

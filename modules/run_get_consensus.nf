@@ -3,6 +3,7 @@
  * Command format: python get_consensus.py -c filtered_merizo.txt filtered_unidoc.txt filtered_chainsaw.txt -o consensus.tsv
  */
 process run_get_consensus {
+    label 'local_job'
     container 'domain-annotation-pipeline-ted-tools'
     publishDir './results' , mode: 'copy'
 

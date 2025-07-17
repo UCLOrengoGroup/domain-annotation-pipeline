@@ -1,4 +1,5 @@
 process collect_results {
+    label 'local_job'
     publishDir './results', mode: 'copy'
 
     input:

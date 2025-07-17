@@ -1,4 +1,5 @@
 process extract_pdb_from_zip {
+    label 'local_job'
     container 'domain-annotation-pipeline-pdb-tools'
 
     input:

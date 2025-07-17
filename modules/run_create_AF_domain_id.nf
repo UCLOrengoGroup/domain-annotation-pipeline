@@ -1,4 +1,5 @@
 process run_AF_domain_id {
+    label 'local_job'
     container 'domain-annotation-pipeline-cath-af-cli'
     publishDir 'results' , mode: 'copy'
 

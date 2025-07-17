@@ -1,4 +1,5 @@
 process convert_files {
+    label 'local_job'
     container 'domain-annotation-pipeline-script'
     publishDir './results', mode: 'copy'
 

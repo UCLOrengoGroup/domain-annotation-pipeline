@@ -1,4 +1,5 @@
 process run_stride {
+    label 'local_job'
     container 'domain-annotation-pipeline-cath-af-cli'
     publishDir './results/stride', mode: 'copy'
 

@@ -1,4 +1,5 @@
 process create_md5 {
+    label 'local_job'
     container 'domain-annotation-pipeline-script'
 
     input:

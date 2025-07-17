@@ -1,4 +1,5 @@
 process get_uniprot_data {
+    label 'local_job'
     container 'domain-annotation-pipeline-script'
 
     input:

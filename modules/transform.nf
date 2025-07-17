@@ -1,4 +1,5 @@
 process transform_consensus {
+    label 'local_job'
     container 'domain-annotation-pipeline-script'
     publishDir 'results', mode: 'copy'
 

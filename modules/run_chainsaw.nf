@@ -1,6 +1,7 @@
 process run_chainsaw {
+    label 'sge_job'
     container 'domain-annotation-pipeline-chainsaw'
-    
+
     input:
     path '*'
 

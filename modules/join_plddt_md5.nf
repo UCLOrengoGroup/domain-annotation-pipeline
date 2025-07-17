@@ -1,4 +1,5 @@
 process join_plddt_md5 {
+    label 'local_job'
     publishDir 'results', mode: 'copy'
 
     input:

@@ -1,4 +1,5 @@
 process summarise_stride {
+    label 'local_job'
     container 'domain-annotation-pipeline-script'
     publishDir './results/stride', mode: 'copy'
 
