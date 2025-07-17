@@ -1,5 +1,5 @@
 process collect_results_final {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
     publishDir './results', mode: 'copy'
 

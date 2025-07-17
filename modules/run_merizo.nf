@@ -1,5 +1,5 @@
 process run_merizo {
-    label 'sge_job'
+    label 'sge_high'
     container 'domain-annotation-pipeline-merizo'
     
     input:

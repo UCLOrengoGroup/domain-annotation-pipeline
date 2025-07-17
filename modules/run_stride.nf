@@ -1,5 +1,5 @@
 process run_stride {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
     publishDir './results/stride', mode: 'copy'
 

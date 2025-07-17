@@ -1,5 +1,5 @@
 process extract_pdb_from_zip {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-pdb-tools'
 
     input:

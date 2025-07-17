@@ -1,5 +1,5 @@
 process join_plddt_md5 {
-    label 'local_job'
+    label 'sge_low'
     publishDir 'results', mode: 'copy'
 
     input:

@@ -1,5 +1,5 @@
 process run_chainsaw {
-    label 'sge_job'
+    label 'sge_high'
     container 'domain-annotation-pipeline-chainsaw'
 
     input:

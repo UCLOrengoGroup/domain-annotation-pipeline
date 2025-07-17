@@ -1,5 +1,5 @@
 process run_measure_globularity {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
     publishDir 'results' , mode: 'copy'
 

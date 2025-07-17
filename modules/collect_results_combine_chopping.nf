@@ -1,5 +1,5 @@
 process collect_results {
-    label 'local_job'
+    label 'sge_low'
     publishDir './results', mode: 'copy'
 
     input:

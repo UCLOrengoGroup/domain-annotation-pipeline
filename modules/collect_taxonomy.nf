@@ -1,5 +1,5 @@
 process collect_taxonomy {
-    label 'local_job'
+    label 'sge_low'
 
     publishDir 'results', mode: 'copy'
 

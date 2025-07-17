@@ -1,5 +1,5 @@
 process create_md5 {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
 
     input:

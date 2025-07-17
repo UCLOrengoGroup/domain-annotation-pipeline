@@ -1,5 +1,5 @@
 process run_plddt {
-    label 'local_job'
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
     publishDir 'results' , mode: 'copy'
 
