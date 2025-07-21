@@ -155,32 +155,42 @@ def transform_consensus(
         uniprot_id = row["target_id"]
         domain_count = 1
 
+        all_domains = []
+
         for level in ["high", "med"]:
             dom_str = row[f"{level}_dom"]
             if isinstance(dom_str, str) and dom_str.lower() != "na":
                 domains = dom_str.split(",")
                 for domain in domains:
-                    domain_id = f"{uniprot_id}_{domain_count:02d}"
-                    pdb_filename = f"{domain_id}.pdb"
+                    all_domains.append((domain, level))  # Store as tuple: (domain, level)
+            
+        # Sort all domains by their lowest start residue
+        all_domains = sorted(
+            all_domains,
+            key=lambda d: min(int(frag.split("-")[0]) for frag in d[0].split("_"))
+        )
+        for domain, level in all_domains:
+            domain_id = f"{uniprot_id}_{domain_count:02d}"
+            pdb_filename = f"{domain_id}.pdb"
 
-                    nres = calculate_nres(domain)
-                    num_segments = domain.count("_") + 1
+            nres = calculate_nres(domain)
+            num_segments = domain.count("_") + 1
 
-                    if pdb_filename not in all_stride_data_by_id:
-                        raise KeyError(f"Stride summary data not found for ID '{pdb_filename}'")
+            if pdb_filename not in all_stride_data_by_id:
+                raise KeyError(f"Stride summary data not found for ID '{pdb_filename}'")
 
-                    if pdb_filename not in md5_lookup:
-                        raise KeyError(f"MD5 not found for domain '{pdb_filename}'")
+            if pdb_filename not in md5_lookup:
+                raise KeyError(f"MD5 not found for domain '{pdb_filename}'")
 
-                    stride_data = all_stride_data_by_id[pdb_filename]
-                    md5 = md5_lookup[pdb_filename]
+            stride_data = all_stride_data_by_id[pdb_filename]
+            md5 = md5_lookup[pdb_filename]
 
-                    row_data = [domain_id, md5, level, domain, nres, num_segments]
-                    for key in stride_keys:
-                        row_data.append(stride_data.get(key, "NA"))
+            row_data = [domain_id, md5, level, domain, nres, num_segments]
+            for key in stride_keys:
+                row_data.append(stride_data.get(key, "NA"))
 
-                    output_rows.append(row_data)
-                    domain_count += 1
+            output_rows.append(row_data)
+            domain_count += 1
 
     column_names = [
         "uniprot_id",

@@ -60,7 +60,7 @@ workflow {
 
     // extract pdbs from the databse zip file
     def pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
-    //def pdb_ch = extract_pdb_from_tar(af_ids, file(params.pdb_tar_file))
+    
     // run chainsaw on the pdb files
     def chainsaw_results_ch = run_chainsaw(pdb_ch)
 

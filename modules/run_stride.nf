@@ -12,7 +12,8 @@ process run_stride {
     script:
     """
     for f in *.pdb; do
-        stride "\$f" > "\${f%.pdb}.stride"
+        awk '!/^MODEL/ && !/^ENDMDL/' \$f > temp && mv temp \$f
+        stride \$f > \${f%.pdb}.stride
     done
     """
 }
