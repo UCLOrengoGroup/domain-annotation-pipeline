@@ -1,6 +1,6 @@
 process run_chainsaw {
-    label 'gpu_job'
-
+    container 'domain-annotation-pipeline-chainsaw'
+    
     input:
     path '*'
 
