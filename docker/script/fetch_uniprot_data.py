@@ -37,8 +37,8 @@ def fetch_uniprot_info(accession):
             "tax_lineage": MISSING_VALUE
         }
 
-def run(accession, output_file):
-    """Fetch metadata for UniProt ID and write a one-row TSV file."""
+def run(accessions, output_file):
+    """Fetch metadata for one or more UniProt IDs and write TSV file."""
     header = [
         "accession",
         "proteome_id",
@@ -47,16 +47,24 @@ def run(accession, output_file):
         "tax_lineage"
     ]
     
-    data = fetch_uniprot_info(accession)
     with open(output_file, "w", newline="") as tsvfile:
         writer = csv.DictWriter(tsvfile, fieldnames=header, delimiter="\t")
         writer.writeheader()
-        writer.writerow(data)
+        for accession in accessions:
+            data = fetch_uniprot_info(accession)
+            writer.writerow(data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fetch taxonomy and proteome info from UniProt")
-    parser.add_argument('-a', '--accession', required=True, help='UniProt accession (e.g. Q9Y2T1)')
+    parser.add_argument('-a', '--accession', required=True, help='UniProt accession or text file of accessions')
     parser.add_argument('-o', '--output', required=True, help='Output TSV file path')
     args = parser.parse_args()
 
-    run(args.accession, args.output)
+    # Check if it's a file of accessions or a single accession
+    if args.accession.endswith('.txt'):
+        with open(args.accession) as f:
+            accessions = [line.strip() for line in f if line.strip()]
+    else:
+        accessions = [args.accession]
+
+    run(accessions, args.output)

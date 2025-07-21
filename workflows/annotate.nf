@@ -1,5 +1,5 @@
 #!/usr/bin/env nextflow
-params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
+params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids2.csv"
 //params.pdb_tar_file = "${workflow.projectDir}/../assets/bfvd.tar.gz"
 // see: script/convert_tar_to_zip.sh
 params.pdb_zip_file = "${workflow.projectDir}/../assets/bfvd.zip"
@@ -42,15 +42,8 @@ workflow {
     // Create a channel from the uniprot csv file
     def uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file)
         .splitCsv(header: true)
-    // process the file as a CSV with a header line
     // .take( 5 ) //only process a few ids when debugging
-    def uniprot_rows_ch = Channel.fromPath(params.uniprot_csv_file)
-        .splitCsv(header: true)
-        .map { row -> row.uniprot_id }
-    get_uniprot_data(uniprot_rows_ch)
-    // Get taxonomic data from uniprot
-    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect())
-    // Collect into a single output file
+    
     // Generate files containing chunks of ids.
     def af_ids = uniprot_ids_ch
         .map { row -> row.uniprot_id }
@@ -58,6 +51,10 @@ workflow {
         .collectFile(name: 'all_af_ids.txt', newLine: true)
         .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
+    // Get taxonomic data from uniprot - run get uniprot and collect taxonomy on the chunked output
+    get_uniprot_data(af_ids)  // changed from uniprot_rows_ch to af_ids
+    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect()) // moved here 
+    
     // extract pdbs from the databse zip file
     def pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
     
