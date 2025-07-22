@@ -4,6 +4,8 @@ params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids2.csv"
 // see: script/convert_tar_to_zip.sh
 params.pdb_zip_file = "${workflow.projectDir}/../assets/bfvd.zip"
 params.chunk_size = 3
+params.min_chain_residues = 25
+
 // the number of uniprot ids processed in each chunk of work 
 params.cath_version = 'v4_3_0'
 nextflow.enable.dsl = 2
@@ -36,6 +38,7 @@ include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
 include { run_plddt } from '../modules/run_plddt.nf'
 include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
+include { filter_pdb } from '../modules/filter_pdb.nf'
 
 workflow {
 
@@ -43,7 +46,7 @@ workflow {
     def uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file)
         .splitCsv(header: true)
     // .take( 5 ) //only process a few ids when debugging
-    
+
     // Generate files containing chunks of ids.
     def af_ids = uniprot_ids_ch
         .map { row -> row.uniprot_id }
@@ -51,13 +54,22 @@ workflow {
         .collectFile(name: 'all_af_ids.txt', newLine: true)
         .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
+    // af_ids.map { id -> println("af_ids: ${id}") }
+
     // Get taxonomic data from uniprot - run get uniprot and collect taxonomy on the chunked output
-    get_uniprot_data(af_ids)  // changed from uniprot_rows_ch to af_ids
-    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect()) // moved here 
-    
+    def uniprot_data = get_uniprot_data(af_ids)
+
+    // uniprot_data.map { id -> println("uniprot_data: ${id}") }
+
+    // changed from uniprot_rows_ch to af_ids
+    def taxonomy = collect_taxonomy(uniprot_data)
+    // moved here 
+
     // extract pdbs from the databse zip file
-    def pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
-    
+    def unfiltered_pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
+
+    def pdb_ch = filter_pdb(unfiltered_pdb_ch, params.min_chain_residues)
+
     // run chainsaw on the pdb files
     def chainsaw_results_ch = run_chainsaw(pdb_ch)
 
