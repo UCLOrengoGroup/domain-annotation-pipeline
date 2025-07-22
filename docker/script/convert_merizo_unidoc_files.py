@@ -57,7 +57,7 @@ def process_merizo(chainsaw_file, merizo_file, output_file):
         usecols=[0, 1],
         names=["AF_chain_id", "sequence_md5"],
     )
-    chainsaw_df["AF_chain_id"] = chainsaw_df["AF_chain_id"].astype(str)
+    chainsaw_df["AF_chain_id"] = chainsaw_df["AF_chain_id"].astype("string")
 
     # Load merizo file
     merizo_df = pd.read_csv(
@@ -67,8 +67,8 @@ def process_merizo(chainsaw_file, merizo_file, output_file):
         usecols=[0, 1, 4, 5, 7],
         names=["AF_chain_id", "nres", "ndom", "PIoU", "result"],
     )
-    merizo_df["AF_chain_id"] = merizo_df["AF_chain_id"].str.replace(
-        ".pdb", "", regex=False
+    merizo_df["AF_chain_id"] = (
+        merizo_df["AF_chain_id"].astype("string").str.replace(".pdb", "", regex=False)
     )
     # Fill empty result values with a placeholder
     merizo_df["result"] = merizo_df["result"].fillna("0")
@@ -93,15 +93,17 @@ def process_unidoc(chainsaw_file, unidoc_file, output_file):
         usecols=[0, 1, 2],
         names=["AF_chain_id", "sequence_md5", "nres"],
     )
-    chainsaw_df["AF_chain_id"] = chainsaw_df["AF_chain_id"].astype(str)
+    chainsaw_df["AF_chain_id"] = chainsaw_df["AF_chain_id"].astype("string")
 
     # Load unidoc file
     unidoc_df = pd.read_csv(
         unidoc_file, sep="\t", header=None, names=["AF_chain_id", "result"]
     )
+    unidoc_df["AF_chain_id"] = unidoc_df["AF_chain_id"].astype("string")
+
     # Fill empty result values with a placeholder
     unidoc_df["result"] = unidoc_df["result"].fillna("0")
-    
+
     # Count unique domains
     unidoc_df["ndom"] = unidoc_df["result"].apply(
         lambda x: (
