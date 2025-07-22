@@ -57,9 +57,7 @@ workflow {
     // Get taxonomic data from uniprot - run get uniprot and collect taxonomy on the chunked output
     def uniprot_data = get_uniprot_data(af_ids)
 
-    // changed from uniprot_rows_ch to af_ids
-    def taxonomy = collect_taxonomy(uniprot_data)
-    // moved here 
+    def taxonomy_file = uniprot_data.collectFile(name: 'all_taxonomy.tsv', keepHeader: true, newLine: true)
 
     // extract pdbs from the databse zip file
     def unfiltered_pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
@@ -132,7 +130,7 @@ workflow {
         transform,
         globularity,
         merged_plddt,
-        taxonomy,
+        taxonomy_file,
     )
 
     combined_md5
