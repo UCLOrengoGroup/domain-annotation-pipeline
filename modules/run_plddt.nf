@@ -1,4 +1,5 @@
 process run_plddt {
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
     publishDir 'results' , mode: 'copy'
 

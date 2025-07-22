@@ -1,4 +1,5 @@
 process collect_taxonomy {
+    label 'sge_low'
 
     publishDir 'results', mode: 'copy'
 

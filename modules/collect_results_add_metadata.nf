@@ -1,4 +1,5 @@
 process collect_results_final {
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
     publishDir './results', mode: 'copy'
 

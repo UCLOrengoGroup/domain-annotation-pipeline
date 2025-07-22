@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
-params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
-// params.pdb_tar_file = "${workflow.projectDir}/../assets/bfvd.tar.gz"
+params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids2.csv"
+//params.pdb_tar_file = "${workflow.projectDir}/../assets/bfvd.tar.gz"
 // see: script/convert_tar_to_zip.sh
 params.pdb_zip_file = "${workflow.projectDir}/../assets/bfvd.zip"
 params.chunk_size = 3
@@ -42,15 +42,8 @@ workflow {
     // Create a channel from the uniprot csv file
     def uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file)
         .splitCsv(header: true)
-    // process the file as a CSV with a header line
     // .take( 5 ) //only process a few ids when debugging
-    def uniprot_rows_ch = Channel.fromPath(params.uniprot_csv_file)
-        .splitCsv(header: true)
-        .map { row -> row.uniprot_id }
-    get_uniprot_data(uniprot_rows_ch)
-    // Get taxonomic data from uniprot
-    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect())
-    // Collect into a single output file
+    
     // Generate files containing chunks of ids.
     def af_ids = uniprot_ids_ch
         .map { row -> row.uniprot_id }
@@ -58,9 +51,13 @@ workflow {
         .collectFile(name: 'all_af_ids.txt', newLine: true)
         .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
+    // Get taxonomic data from uniprot - run get uniprot and collect taxonomy on the chunked output
+    get_uniprot_data(af_ids)  // changed from uniprot_rows_ch to af_ids
+    def taxonomy = collect_taxonomy(get_uniprot_data.out.collect()) // moved here 
+    
     // extract pdbs from the databse zip file
     def pdb_ch = extract_pdb_from_zip(af_ids, file(params.pdb_zip_file))
-
+    
     // run chainsaw on the pdb files
     def chainsaw_results_ch = run_chainsaw(pdb_ch)
 
@@ -112,7 +109,7 @@ workflow {
     // Summarise the STRIDE output
     def transform = transform_consensus(consensus.filtered, combined_md5, summaries.collect())
     // Transformm filtered_consensus.tvs to transformed_consensus.tsv and add stride SSE
-    def AF_Dom_id = run_AF_domain_id(transform)
+    //def AF_Dom_id = run_AF_domain_id(transform)
     // Run the awk script to create eg. AF-ABC000-F1-model_v4/1-100 from the ted_id and chopping in transformed_consensus.tsv
     def plddt = run_plddt(chop.chop_dir)
     // Run fetch_avg_plddt.py on the chopped pdb files

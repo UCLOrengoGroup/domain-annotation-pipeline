@@ -1,4 +1,5 @@
 process extract_pdb_from_tar {
+    label 'sge_high'
     container 'domain-annotation-pipeline-pdb-tools'
     publishDir './results/pdbs', mode: 'copy'
 
@@ -11,7 +12,7 @@ process extract_pdb_from_tar {
 
     script:
     """
-    awk '{print \$0 ".pdb"}' ${id_file} > pdb_list.txt
+    awk '{print "./" \$0 ".pdb"}' ${id_file} > pdb_list.txt
     tar -xzf ${pdb_tar} -T pdb_list.txt
     """
 }

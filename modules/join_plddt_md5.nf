@@ -1,4 +1,5 @@
 process join_plddt_md5 {
+    label 'sge_low'
     publishDir 'results', mode: 'copy'
 
     input:

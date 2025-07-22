@@ -1,4 +1,5 @@
 process collect_results {
+    label 'sge_low'
     publishDir './results', mode: 'copy'
 
     input:

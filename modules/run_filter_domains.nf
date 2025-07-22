@@ -4,6 +4,7 @@
  * to: 
  */
 process run_filter_domains {
+    label 'sge_low'
     container 'domain-annotation-pipeline-ted-tools'
     publishDir './results' , mode: 'copy'
 

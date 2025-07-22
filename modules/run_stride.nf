@@ -1,4 +1,5 @@
 process run_stride {
+    label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
     publishDir './results/stride', mode: 'copy'
 
@@ -11,7 +12,8 @@ process run_stride {
     script:
     """
     for f in *.pdb; do
-        stride "\$f" > "\${f%.pdb}.stride"
+        awk '!/^MODEL/ && !/^ENDMDL/' \$f > temp && mv temp \$f
+        stride \$f > \${f%.pdb}.stride
     done
     """
 }
