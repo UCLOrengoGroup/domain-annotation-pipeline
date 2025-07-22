@@ -6,11 +6,10 @@ process get_uniprot_data {
     path uniprot_id_file
 
     output:
-    path "uniprot_*.tsv"
+    path "uniprot_data.tsv"
 
     script:
     """
-    base=\$(basename ${uniprot_id_file} .txt)
-    ${params.fetch_uniprot_script} -a ${uniprot_id_file} -o uniprot_\${base}.tsv
+    ${params.fetch_uniprot_script} -a ${uniprot_id_file} -o uniprot_data.tsv
     """
 }
