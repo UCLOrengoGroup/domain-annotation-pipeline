@@ -4,7 +4,7 @@ process filter_pdb {
     container 'domain-annotation-pipeline-pdb-tools'
 
     input:
-    path "*.pdb"
+    path "*"
     val min_residues
 
     output:
