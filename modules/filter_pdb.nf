@@ -8,7 +8,7 @@ process filter_pdb {
     val min_residues
 
     output:
-    path 'filtered_pdbs/*.pdb'
+    path 'filtered_pdbs/*.pdb', optional: true
 
     script:
     """
