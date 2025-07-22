@@ -54,12 +54,8 @@ workflow {
         .collectFile(name: 'all_af_ids.txt', newLine: true)
         .splitText(file: 'chunked_af_ids.txt', by: params.chunk_size)
 
-    // af_ids.map { id -> println("af_ids: ${id}") }
-
     // Get taxonomic data from uniprot - run get uniprot and collect taxonomy on the chunked output
     def uniprot_data = get_uniprot_data(af_ids)
-
-    // uniprot_data.map { id -> println("uniprot_data: ${id}") }
 
     // changed from uniprot_rows_ch to af_ids
     def taxonomy = collect_taxonomy(uniprot_data)
