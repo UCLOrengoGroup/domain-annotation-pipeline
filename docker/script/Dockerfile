@@ -10,8 +10,9 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
-COPY ./*.py .
 
 RUN pip install --upgrade pip wheel && pip install -r requirements.txt
+
+COPY ./*.py .
 
 CMD ["/bin/bash"]
