@@ -1,5 +1,5 @@
 process convert_merizo_results {
-    label 'local'
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
 
     input:
