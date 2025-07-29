@@ -1,5 +1,5 @@
 process run_chainsaw {
-    label 'sge_high'
+    label 'sge_gpu_high'
     container 'domain-annotation-pipeline-chainsaw'
 
     input:
