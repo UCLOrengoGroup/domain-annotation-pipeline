@@ -1,5 +1,5 @@
 process extract_pdb_from_tar {
-    label 'sge_high'
+    label 'sge_gpu_high'
     container 'domain-annotation-pipeline-pdb-tools'
     publishDir './results/pdbs', mode: 'copy'
 

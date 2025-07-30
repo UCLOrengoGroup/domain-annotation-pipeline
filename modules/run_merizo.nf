@@ -1,7 +1,7 @@
 process run_merizo {
-    label 'sge_high'
+    label 'sge_gpu_high'
     container 'domain-annotation-pipeline-merizo'
-    
+
     input:
     path '*'
 
