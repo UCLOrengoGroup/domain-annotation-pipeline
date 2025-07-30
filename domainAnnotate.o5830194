@@ -1,0 +1,205 @@
+GPU Prolog Script v1.14
+This is a GPU node.
+Enough GPUs available.
+Allocating card 0
+N E X T F L O W  ~  version 23.04.2
+Launching `workflows/annotate.nf` [maniac_boyd] DSL2 - revision: 2f4a92f3a3
+
+==============================================
+Domain Annotation Pipeline
+==============================================
+UniProt CSV file : /home/nedmunds/domain-annotation-pipeline/workflows/../assets/uniprot_ids.csv
+PDB ZIP file     : /SAN/orengolab/bfvd/data/bfvd.zip
+Chunk size       : 3
+Min residues     : 25
+Results dir      : ./results
+Debug mode       : false
+==============================================
+
+[-        ] process > get_uniprot_data               -
+[-        ] process > extract_pdb_from_zip           -
+[-        ] process > filter_pdb                     -
+[-        ] process > run_chainsaw                   -
+[-        ] process > run_merizo                     -
+[-        ] process > run_unidoc                     -
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[-        ] process > run_chainsaw                   -
+[-        ] process > run_merizo                     -
+[-        ] process > run_unidoc                     -
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+executor >  sge (1)
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[-        ] process > run_chainsaw                   [  0%] 0 of 3
+[52/1ec52b] process > run_merizo (1)                 [  0%] 0 of 5
+[-        ] process > run_unidoc                     [  0%] 0 of 5
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+executor >  sge (8)
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[a9/5a7c94] process > run_chainsaw (2)               [  0%] 0 of 8
+[a9/1ab220] process > run_merizo (6)                 [  0%] 0 of 8
+[a2/7f5bef] process > run_unidoc (5)                 [  0%] 0 of 7
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+executor >  sge (15)
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[67/36f96a] process > run_chainsaw (4)               [  0%] 0 of 8
+[bf/801a73] process > run_merizo (3)                 [  0%] 0 of 8
+[23/bc4d4a] process > run_unidoc (3)                 [  0%] 0 of 8
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+executor >  sge (20)
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[21/22a1a8] process > run_chainsaw (8)               [  0%] 0 of 8
+[73/cf2c3d] process > run_merizo (5)                 [  0%] 0 of 8
+[95/30b591] process > run_unidoc (4)                 [  0%] 0 of 8
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+
+executor >  sge (24)
+[27/eca614] process > get_uniprot_data (8)           [100%] 8 of 8, cached: 8 ✔
+[81/9e18ec] process > extract_pdb_from_zip (2)       [100%] 8 of 8, cached: 8 ✔
+[07/be0c10] process > filter_pdb (8)                 [100%] 8 of 8, cached: 8 ✔
+[9a/6edf64] process > run_chainsaw (7)               [  0%] 0 of 8
+[32/c9f75c] process > run_merizo (7)                 [  0%] 0 of 8
+[08/b8d692] process > run_unidoc (8)                 [  0%] 0 of 8
+[-        ] process > run_filter_domains             -
+[-        ] process > convert_merizo_results         -
+[-        ] process > convert_unidoc_results         -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_filter_domains_reformat... -
+[-        ] process > run_get_consensus              -
+[-        ] process > run_filter_consensus           -
+[-        ] process > chop_pdb                       -
+[-        ] process > create_md5                     -
+[-        ] process > run_stride                     -
+[-        ] process > summarise_stride               -
+[-        ] process > run_measure_globularity        -
+[-        ] process > run_plddt                      -
+[-        ] process > join_plddt_md5                 -
+[-        ] process > transform_consensus            -
+[-        ] process > run_AF_domain_id               -
+[-        ] process > collect_results                -
+[-        ] process > collect_results_final          -
+WARN: There's no process matching config selector: extract_pdb_from_tar -- Did you mean: extract_pdb_from_zip?
+GPU Epilog Script v0.30
