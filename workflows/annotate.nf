@@ -110,6 +110,11 @@ def validateParameters() {
 
 workflow {
 
+    // Make sure the results directory is unique based on input file
+    def input_file = file(params.uniprot_csv_file)
+    def input_file_md5 = input_file.md5()
+    params.results_dir = "results_${input_file_md5}"
+
     // Validate parameters and setup
     validateParameters()
 
