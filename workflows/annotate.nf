@@ -24,7 +24,7 @@ params.min_chain_residues = 25
 params.cath_version = 'v4_3_0'
 
 // Output directory
-params.results_dir = "${workflow.launchDir}/results"
+params.results_base_dir = "${workflow.launchDir}/results"
 params.publish_mode = 'copy'
 
 // Debug mode
@@ -76,7 +76,10 @@ include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
 // HELPER FUNCTIONS
 // ===============================================
 
-def validateParameters() {
+def validateParameters(results_dir) {
+
+    results_dir.mkdirs()
+
     // Validate required parameters
     if (!params.uniprot_csv_file || !file(params.uniprot_csv_file).exists()) {
         error("UniProt CSV file not found: ${params.uniprot_csv_file}")
@@ -84,9 +87,6 @@ def validateParameters() {
     if (!params.pdb_zip_file || !file(params.pdb_zip_file).exists()) {
         error("PDB ZIP file not found: ${params.pdb_zip_file}")
     }
-
-    // Create results directory
-    file(params.results_dir).mkdirs()
 
     log.info(
         """
@@ -97,7 +97,7 @@ def validateParameters() {
     PDB ZIP file     : ${params.pdb_zip_file}
     Chunk size       : ${params.chunk_size}
     Min residues     : ${params.min_chain_residues}
-    Results dir      : ${params.results_dir}
+    Results dir      : ${results_dir}
     Debug mode       : ${params.debug}
     ==============================================
     """.stripIndent()
@@ -111,12 +111,17 @@ def validateParameters() {
 workflow {
 
     // Make sure the results directory is unique based on input file
-    def input_file = file(params.uniprot_csv_file)
-    def input_file_md5 = input_file.md5()
-    params.results_dir = "results_${input_file_md5}"
+    Channel.fromPath(params.uniprot_csv_file, checkIfExists: true)
+        .map { f ->
+            def md5 = f.md5().take(8)
+            def name = f.baseName.replaceAll(/\.csv$/, "").replaceAll(/\W+/, "_")
+            return "${name}_${md5}"
+        }
+        .set { result_dirname_ch }
 
-    // Validate parameters and setup
-    validateParameters()
+    def results_dir = result_dirname_ch.map { "${params.results_base_dir}/${it}" }.first().get()
+
+    validateParameters(results_dir)
 
     // =========================================
     // PHASE 1: Data Preparation
@@ -138,7 +143,7 @@ workflow {
         .collectFile(
             name: 'all_af_ids.txt',
             newLine: true,
-            storeDir: "${params.results_dir}/intermediate",
+            storeDir: "${results_dir}/intermediate",
         )
         .splitText(by: params.chunk_size, file: true)
 
@@ -148,7 +153,7 @@ workflow {
         name: 'uniprot_data.tsv',
         keepHeader: true,
         newLine: true,
-        storeDir: params.results_dir,
+        storeDir: results_dir,
     )
 
     // Extract and filter PDB files
@@ -171,17 +176,17 @@ workflow {
     // Collect all domain prediction results
     collected_chainsaw_ch = chainsaw_results_ch.collectFile(
         name: 'domain_assignments.chainsaw.tsv',
-        storeDir: params.results_dir,
+        storeDir: results_dir,
     )
 
     collected_merizo_ch = merizo_results_ch.collectFile(
         name: 'domain_assignments.merizo.tsv',
-        storeDir: params.results_dir,
+        storeDir: results_dir,
     )
 
     collected_unidoc_ch = unidoc_results_ch.collectFile(
         name: 'domain_assignments.unidoc.tsv',
-        storeDir: params.results_dir,
+        storeDir: results_dir,
     )
 
     // Filter chainsaw results
@@ -233,7 +238,7 @@ workflow {
     md5_combined_ch = md5_individual_ch.collectFile(
         name: "all_md5.tsv",
         sort: true,
-        storeDir: params.results_dir,
+        storeDir: results_dir,
     )
 
     // =========================================
