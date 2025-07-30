@@ -13,24 +13,9 @@ nextflow.enable.dsl = 2
 // ===============================================
 // PARAMETERS
 // ===============================================
-
-// Input data
-params.uniprot_csv_file = "${workflow.projectDir}/../assets/uniprot_ids.csv"
-params.pdb_zip_file = "${workflow.projectDir}/../assets/bfvd.zip"
-
-// Processing parameters
-params.chunk_size = 3
-params.min_chain_residues = 25
-params.cath_version = 'v4_3_0'
-params.project_name = 'bfvd'
-
 // Output directory
-params.results_dir = "${workflow.launchDir}/results/${params.project_name}/"
+params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
-
-// Debug mode
-params.debug = false
-params.max_entries = params.debug ? 10 : null
 
 // ===============================================
 // MODULE IMPORTS
@@ -79,7 +64,26 @@ include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
 
 def validateParameters() {
 
-    params.results_dir.mkdirs()
+    if (!params.project_name) {
+        error("Project name must be specified in the parameters.")
+    }
+
+    if (!params.chunk_size || params.chunk_size <= 0) {
+        error("Chunk size must be a positive integer.")
+    }
+
+    if (params.debug && !params.max_entries) {
+        params.max_entries = 10
+    }
+
+    if (!params.uniprot_csv_file || !params.pdb_zip_file) {
+        error("Both UniProt CSV file and PDB ZIP file must be specified.")
+    }
+
+    // Ensure results directory exists
+    if (!file(params.results_dir).exists()) {
+        file(params.results_dir).mkdirs()
+    }
 
     // Validate required parameters
     if (!params.uniprot_csv_file || !file(params.uniprot_csv_file).exists()) {
@@ -94,12 +98,14 @@ def validateParameters() {
     ==============================================
     Domain Annotation Pipeline
     ==============================================
-    UniProt CSV file : ${params.uniprot_csv_file}
-    PDB ZIP file     : ${params.pdb_zip_file}
-    Chunk size       : ${params.chunk_size}
-    Min residues     : ${params.min_chain_residues}
-    Results dir      : ${params.results_dir}
-    Debug mode       : ${params.debug}
+    Project name        : ${params.project_name}
+    UniProt CSV file    : ${params.uniprot_csv_file}
+    PDB ZIP file        : ${params.pdb_zip_file}
+    Chunk size          : ${params.chunk_size}
+    Min chain residues  : ${params.min_chain_residues}
+    Max entries (debug) : ${params.max_entries ?: 'N/A'}
+    Results dir         : ${params.results_dir}
+    Debug mode          : ${params.debug}
     ==============================================
     """.stripIndent()
     )
