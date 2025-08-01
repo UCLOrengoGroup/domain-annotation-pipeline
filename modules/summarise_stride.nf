@@ -4,13 +4,14 @@ process summarise_stride {
     publishDir './results/stride', mode: 'copy'
 
     input:
-    path '*.stride'
+    path stride_files
 
     output:
-    path "stride.summary"
+    path "stride_batch_*.summary"
 
     script:
     """
-    ${params.stride_summary_script} -o stride.summary -d . --suffix .stride
+    batch_id=\$(date +%s%N | cut -b1-13)
+    ${params.stride_summary_script} -o stride_batch_\${batch_id}.summary -d . --suffix .stride
     """
 }

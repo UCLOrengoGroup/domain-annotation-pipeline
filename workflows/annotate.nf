@@ -224,12 +224,17 @@ workflow {
     )
 
     // Generate MD5 hashes for domains
-    md5_individual_ch = create_md5(chopped_pdb_ch.chop_files.flatten())
-    md5_combined_ch = md5_individual_ch.collectFile(
+    md5_individual_ch = create_md5(chopped_pdb_ch.chop_files
+        .flatten()
+        .collate(params.chunk_size)
+    )
+    md5_combined_ch = md5_individual_ch
+        .flatten()
+        .collectFile(
         name: "all_md5.tsv",
         sort: true,
         storeDir: params.results_dir,
-    )
+        )
 
     // =========================================
     // PHASE 6: Structure Analysis
@@ -237,7 +242,9 @@ workflow {
 
     // Run STRIDE analysis
     stride_results_ch = run_stride(chopped_pdb_ch.chop_files)
-    stride_summaries_ch = summarise_stride(stride_results_ch.flatten())
+    stride_summaries_ch = summarise_stride(stride_results_ch
+        .flatten()
+        .collate(params.chunk_size))
 
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch.chop_dir)
