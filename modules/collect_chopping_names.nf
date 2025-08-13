@@ -3,8 +3,8 @@
  */
 process collect_chopping_names {
     label 'sge_low'
-
-    publishDir './results' , mode: 'copy'
+    publishDir "${params.results_dir}"
+    
     input:
         path filtered_file
 

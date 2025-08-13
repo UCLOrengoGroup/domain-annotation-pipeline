@@ -1,7 +1,6 @@
 process collect_taxonomy {
     label 'sge_low'
-
-    publishDir 'results', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
         path input_files

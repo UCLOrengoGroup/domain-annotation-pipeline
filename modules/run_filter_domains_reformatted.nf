@@ -6,7 +6,7 @@
 process run_filter_domains_reformatted {
     label 'sge_low'
     container 'domain-annotation-pipeline-ted-tools'
-    publishDir './results', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
     path reformatted_file

@@ -1,7 +1,7 @@
 process collect_results_final {
     label 'sge_low'
     container 'domain-annotation-pipeline-script'
-    publishDir './results', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
     file 'transformed_consensus.tsv'

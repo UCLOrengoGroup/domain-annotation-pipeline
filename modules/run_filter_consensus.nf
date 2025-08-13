@@ -5,7 +5,7 @@
 process run_filter_consensus {
     label 'sge_low'
     container 'domain-annotation-pipeline-ted-tools'
-    publishDir './results' , mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
       path consensus_file

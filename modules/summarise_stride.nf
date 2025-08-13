@@ -1,7 +1,7 @@
 process summarise_stride {
     label 'sge_low'
     container 'domain-annotation-pipeline-script'
-    publishDir './results/stride', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug // only publish if run in debug mode
 
     input:
     path stride_files
