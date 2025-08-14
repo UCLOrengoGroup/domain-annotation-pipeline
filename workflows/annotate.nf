@@ -101,7 +101,9 @@ def validateParameters() {
     Project name        : ${params.project_name}
     UniProt CSV file    : ${params.uniprot_csv_file}
     PDB ZIP file        : ${params.pdb_zip_file}
-    Chunk size          : ${params.chunk_size}
+    Main chunk size     : ${params.chunk_size}
+    Light chunk size    : ${params.light_chunk_size}
+    Heavy chunk size    : ${params.heavy_chunk_size}
     Min chain residues  : ${params.min_chain_residues}
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
@@ -161,8 +163,11 @@ workflow {
     // =========================================
 
     // Run domain prediction tools in parallel
-    chainsaw_results_ch = run_chainsaw(filtered_pdb_ch)
-    merizo_results_ch = run_merizo(filtered_pdb_ch)
+    heavy_chunk_ch = filtered_pdb_ch
+        .flatten()
+        .collate(params.heavy_chunk_size)
+    chainsaw_results_ch = run_chainsaw(heavy_chunk_ch)
+    merizo_results_ch = run_merizo(heavy_chunk_ch)
     unidoc_results_ch = run_unidoc(filtered_pdb_ch)
 
     // =========================================
@@ -232,7 +237,7 @@ workflow {
     // Generate MD5 hashes for domains
     md5_individual_ch = create_md5(chopped_pdb_ch.chop_files
         .flatten()
-        .collate(params.chunk_size)
+        .collate(params.light_chunk_size)   // Changed to light chunk size
     )
     md5_combined_ch = md5_individual_ch
         .flatten()
@@ -250,7 +255,7 @@ workflow {
     stride_results_ch = run_stride(chopped_pdb_ch.chop_files)
     stride_summaries_ch = summarise_stride(stride_results_ch
         .flatten()
-        .collate(params.chunk_size))
+        .collate(params.light_chunk_size))  // Changed to light chunksize
 
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch.chop_dir)
