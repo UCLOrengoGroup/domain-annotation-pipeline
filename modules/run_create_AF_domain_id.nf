@@ -1,7 +1,7 @@
 process run_AF_domain_id {
     label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
-    publishDir "${params.results_dir}"
+    publishDir "${params.results_dir}", mode: 'copy'
 
     input:
     path transformed_file
