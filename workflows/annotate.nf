@@ -228,14 +228,14 @@ workflow {
     // PHASE 5: Post-Consensus Processing
     // =========================================
 
-    // Chop PDB files according to consensus
+    // Chop pdbs using pdb files:
     chopped_pdb_ch = chop_pdb(
         consensus_filtered_ch.filtered,
         filtered_pdb_ch.collect(),
     )
 
     // Generate MD5 hashes for domains
-    md5_individual_ch = create_md5(chopped_pdb_ch.chop_files
+    md5_individual_ch = create_md5(chopped_pdb_ch
         .flatten()
         .collate(params.light_chunk_size)   // Changed to light chunk size
     )
@@ -252,16 +252,16 @@ workflow {
     // =========================================
 
     // Run STRIDE analysis
-    stride_results_ch = run_stride(chopped_pdb_ch.chop_files)
+    stride_results_ch = run_stride(chopped_pdb_ch)
     stride_summaries_ch = summarise_stride(stride_results_ch
         .flatten()
         .collate(params.light_chunk_size))  // Changed to light chunksize
 
     // Run globularity analysis
-    globularity_ch = run_measure_globularity(chopped_pdb_ch.chop_dir)
+    globularity_ch = run_measure_globularity(chopped_pdb_ch)
 
     // Run pLDDT analysis
-    plddt_ch = run_plddt(chopped_pdb_ch.chop_dir)
+    plddt_ch = run_plddt(chopped_pdb_ch)
     plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
 
     // =========================================
