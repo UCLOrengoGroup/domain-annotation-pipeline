@@ -6,7 +6,7 @@ process run_stride {
     input:
     path '*'
 
-    output:  //stride \$f > \${f%.pdb}.stride
+    output:
     path '*.stride'
 
     script:
