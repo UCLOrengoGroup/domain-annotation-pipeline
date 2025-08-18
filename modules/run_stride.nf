@@ -6,14 +6,17 @@ process run_stride {
     input:
     path '*'
 
-    output:
+    output:  //stride \$f > \${f%.pdb}.stride
     path '*.stride'
 
     script:
     """
     for f in *.pdb; do
         awk '!/^MODEL/ && !/^ENDMDL/' \$f > temp && mv temp \$f
-        stride \$f > \${f%.pdb}.stride
+        stride \$f > \${f%.pdb}.stride 2> \${f%.pdb}.stride.err || { 
+        echo "STRIDE failed on \$f, see \${f%.pdb}.stride.err" 
+        continue 
+        }
     done
     """
 }
