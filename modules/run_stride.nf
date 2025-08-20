@@ -13,7 +13,10 @@ process run_stride {
     """
     for f in *.pdb; do
         awk '!/^MODEL/ && !/^ENDMDL/' \$f > temp && mv temp \$f
-        stride \$f > \${f%.pdb}.stride
+        stride \$f > \${f%.pdb}.stride 2> \${f%.pdb}.stride.err || { 
+        echo "STRIDE failed on \$f, see \${f%.pdb}.stride.err" 
+        continue 
+        }
     done
     """
 }

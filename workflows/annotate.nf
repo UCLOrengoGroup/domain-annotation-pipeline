@@ -23,7 +23,7 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
+include { collect_taxonomy } from '../modules/collect_taxonomy.nf' //can delete line - unused process.
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
@@ -101,7 +101,9 @@ def validateParameters() {
     Project name        : ${params.project_name}
     UniProt CSV file    : ${params.uniprot_csv_file}
     PDB ZIP file        : ${params.pdb_zip_file}
-    Chunk size          : ${params.chunk_size}
+    Main chunk size     : ${params.chunk_size}
+    Light chunk size    : ${params.light_chunk_size}
+    Heavy chunk size    : ${params.heavy_chunk_size}
     Min chain residues  : ${params.min_chain_residues}
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
@@ -146,7 +148,7 @@ workflow {
     // Get taxonomic data
     uniprot_data_ch = get_uniprot_data(af_ids_ch)
     taxonomy_ch = uniprot_data_ch.collectFile(
-        name: 'uniprot_data.tsv',
+        name: 'all_taxonomy.tsv',  // replaces uniprot_data.tsv to agree with collect_results_add_metadata
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
@@ -161,8 +163,11 @@ workflow {
     // =========================================
 
     // Run domain prediction tools in parallel
-    chainsaw_results_ch = run_chainsaw(filtered_pdb_ch)
-    merizo_results_ch = run_merizo(filtered_pdb_ch)
+    heavy_chunk_ch = filtered_pdb_ch
+        .flatten()
+        .collate(params.heavy_chunk_size)
+    chainsaw_results_ch = run_chainsaw(heavy_chunk_ch)
+    merizo_results_ch = run_merizo(heavy_chunk_ch)
     unidoc_results_ch = run_unidoc(filtered_pdb_ch)
 
     // =========================================
@@ -223,16 +228,16 @@ workflow {
     // PHASE 5: Post-Consensus Processing
     // =========================================
 
-    // Chop PDB files according to consensus
+    // Chop pdbs using pdb files:
     chopped_pdb_ch = chop_pdb(
         consensus_filtered_ch.filtered,
         filtered_pdb_ch.collect(),
     )
 
     // Generate MD5 hashes for domains
-    md5_individual_ch = create_md5(chopped_pdb_ch.chop_files
+    md5_individual_ch = create_md5(chopped_pdb_ch
         .flatten()
-        .collate(params.chunk_size)
+        .collate(params.light_chunk_size)   // Changed to light chunk size
     )
     md5_combined_ch = md5_individual_ch
         .flatten()
@@ -247,16 +252,16 @@ workflow {
     // =========================================
 
     // Run STRIDE analysis
-    stride_results_ch = run_stride(chopped_pdb_ch.chop_files)
+    stride_results_ch = run_stride(chopped_pdb_ch)
     stride_summaries_ch = summarise_stride(stride_results_ch
         .flatten()
-        .collate(params.chunk_size))
+        .collate(params.light_chunk_size))  // Changed to light chunksize
 
     // Run globularity analysis
-    globularity_ch = run_measure_globularity(chopped_pdb_ch.chop_dir)
+    globularity_ch = run_measure_globularity(chopped_pdb_ch)
 
     // Run pLDDT analysis
-    plddt_ch = run_plddt(chopped_pdb_ch.chop_dir)
+    plddt_ch = run_plddt(chopped_pdb_ch)
     plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
 
     // =========================================

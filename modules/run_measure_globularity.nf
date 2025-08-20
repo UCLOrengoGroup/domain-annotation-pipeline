@@ -4,13 +4,13 @@ process run_measure_globularity {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path pdb_dir
+    path "pdb/*" //pdb_dir
 
     output:
     path "domain_globularity.tsv"
     
     script:
     """
-    ${params.globularity_script} --pdb_dir ${pdb_dir} --domain_globularity domain_globularity.tsv
+    ${params.globularity_script} --pdb_dir ./pdb --domain_globularity domain_globularity.tsv
     """
 }
