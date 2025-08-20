@@ -23,7 +23,7 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
+include { collect_taxonomy } from '../modules/collect_taxonomy.nf' //can delete line - unused process.
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
@@ -148,7 +148,7 @@ workflow {
     // Get taxonomic data
     uniprot_data_ch = get_uniprot_data(af_ids_ch)
     taxonomy_ch = uniprot_data_ch.collectFile(
-        name: 'uniprot_data.tsv',
+        name: 'all_taxonomy.tsv',  // replaces uniprot_data.tsv to agree with collect_results_add_metadata
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
