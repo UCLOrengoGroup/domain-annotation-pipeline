@@ -1,0 +1,11 @@
+version: '3.9'
+services:
+
+  foldseek:
+    platform: linux/arm64
+    build:
+      context: docker/foldseek
+      dockerfile: Dockerfile
+      args:
+        TARGETARCH: arm64
+
