@@ -1,12 +1,12 @@
-process run_foldseek {
+process foldseek_run_foldseek {
     publishDir "results", mode: 'copy'
     
     input:
-    path query_db_dir
+    path query_db
     path target_db
 
     output:
-    path "result_db_dir", emit: result_db_dir
+    path "result_db_dir/foldseek_output_db", emit: result_db
     path "versions.yml", emit: versions
 
     script:
@@ -14,8 +14,8 @@ process run_foldseek {
     mkdir -p tmp_foldseek
     mkdir -p result_db_dir
     foldseek search \\
-        ${query_db_dir}/query_db \\
-        ${target_db}/cath_ssg5_fs_db \\
+        ${query_db} \\
+        ${target_db} \\
         result_db_dir/foldseek_output_db \\
         tmp_foldseek \\
         --cov-mode 5 \\

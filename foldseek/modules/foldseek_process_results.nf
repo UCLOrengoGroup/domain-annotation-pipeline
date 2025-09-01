@@ -1,4 +1,4 @@
-process parse_foldseek {
+process foldseek_process_results {
     publishDir "results/processed", mode: 'copy'
 
     input:
