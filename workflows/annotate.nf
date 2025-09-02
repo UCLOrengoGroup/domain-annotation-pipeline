@@ -23,7 +23,8 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { collect_taxonomy } from '../modules/collect_taxonomy.nf' //can delete line - unused process.
+include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
+//can delete line - unused process.
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
@@ -57,6 +58,13 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
 include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+
+// Foldseek modules
+include { foldseek_create_db } from '../foldseek/modules/foldseek_create_db.nf'
+include { foldseek_run_foldseek } from '../foldseek/modules/foldseek_run_foldseek.nf'
+include { foldseek_run_convertalis } from '../foldseek/modules/foldseek_run_convertalis.nf'
+include { foldseek_process_results } from '../foldseek/modules/foldseek_process_results.nf'
+
 
 // ===============================================
 // HELPER FUNCTIONS
@@ -148,7 +156,7 @@ workflow {
     // Get taxonomic data
     uniprot_data_ch = get_uniprot_data(af_ids_ch)
     taxonomy_ch = uniprot_data_ch.collectFile(
-        name: 'all_taxonomy.tsv',  // replaces uniprot_data.tsv to agree with collect_results_add_metadata
+        name: 'all_taxonomy.tsv',
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
@@ -235,16 +243,15 @@ workflow {
     )
 
     // Generate MD5 hashes for domains
-    md5_individual_ch = create_md5(chopped_pdb_ch
-        .flatten()
-        .collate(params.light_chunk_size)   // Changed to light chunk size
+    md5_individual_ch = create_md5(
+        chopped_pdb_ch.flatten().collate(params.light_chunk_size)
     )
     md5_combined_ch = md5_individual_ch
         .flatten()
         .collectFile(
-        name: "all_md5.tsv",
-        sort: true,
-        storeDir: params.results_dir,
+            name: "all_md5.tsv",
+            sort: true,
+            storeDir: params.results_dir,
         )
 
     // =========================================
@@ -253,9 +260,10 @@ workflow {
 
     // Run STRIDE analysis
     stride_results_ch = run_stride(chopped_pdb_ch)
-    stride_summaries_ch = summarise_stride(stride_results_ch
-        .flatten()
-        .collate(params.light_chunk_size))  // Changed to light chunksize
+    stride_summaries_ch = summarise_stride(
+        stride_results_ch.flatten().collate(params.light_chunk_size)
+    )
+    // Changed to light chunksize
 
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch)
@@ -265,7 +273,28 @@ workflow {
     plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
 
     // =========================================
-    // PHASE 7: Final Assembly
+    // PHASE 7: Run foldseek
+    // =========================================
+
+    foldseek_create_db(chopped_pdb_ch)
+
+    // Define the target (CATH) database using config: params.target_db
+    ch_target_db = Channel.fromPath(params.target_db)
+
+    // Run foldseek search on the output of process create_foldseek_db and the CATH database
+    foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
+
+    // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
+    foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
+
+    // Parse output - first create a channel from the location of the python script
+    ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
+
+    // Now pass the convertalis .m8 and the python script as intput to the parsing process
+    foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
+
+    // =========================================
+    // PHASE 8: Final Assembly
     // =========================================
 
     // Transform consensus with structure data
@@ -293,8 +322,9 @@ workflow {
         taxonomy_ch,
     )
 
+
     // =========================================
-    // PHASE 8: Output Generation
+    // PHASE 9: Output Generation
     // =========================================
 
     // Ensure final outputs are saved
