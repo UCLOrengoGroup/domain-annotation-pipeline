@@ -109,12 +109,12 @@ def run_dom_analysis(pdb_file: str, dom_path: str) -> int:
         return 0
 
 
-def run_domqual_analysis(pdb_file: str, domqual_script: str) -> Dict[str, float]:
+def run_domqual_analysis(pdb_dir: str, domqual_script: str) -> Dict[str, float]:
     """
     Run domqual analysis on directory and extract quality scores.
     
     Args:
-        pdb_file (str): PDB file
+        pdb_dir (str): PDB directory
         domqual_script (str): Path to domqual Python script
         
     Returns:
@@ -125,7 +125,7 @@ def run_domqual_analysis(pdb_file: str, domqual_script: str) -> Dict[str, float]
     try:
         # Run domqual script on entire directory
         result = subprocess.run(
-            ['python3', domqual_script, pdb_file],
+            ['python3', domqual_script, pdb_dir],
             capture_output=True,
             text=True,
             timeout=300
@@ -185,6 +185,9 @@ def process_pdb_directory(
         
     print(f"Found {len(pdb_files)} PDB files")
     
+    # Run domqual analysis on entire directory first
+    print("Running DomQual analysis...")
+    quality_scores = run_domqual_analysis(str(pdb_directory), domqual_script)
     
     # Process each PDB file
     results = []
@@ -201,10 +204,6 @@ def process_pdb_directory(
             
         # Run dom analysis
         domain_count = run_dom_analysis(str(pdb_file), dom_path)
-
-        # Run domqual analysis on entire directory first
-        print("Running DomQual analysis...")
-        quality_scores = run_domqual_analysis(str(pdb_file), domqual_script)
 
         # Get quality score
         quality_score = quality_scores.get(pdb_file.name, 0.0)
@@ -239,7 +238,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s -d example_pdbs/ -o results.csv --dom-path ./dom --domqual-path ../domqual/pytorch_foldclass_pred.py
+  %(prog)s -d example_pdbs/ -o results.csv --dom-path ./dom --domqual-path ../domqual/pytorch_foldclass_pred_dir.py
   %(prog)s -d /data/structures/ -o domain_analysis.csv --dom-path /usr/local/bin/dom --domqual-path ./domqual.py
         """
     )
