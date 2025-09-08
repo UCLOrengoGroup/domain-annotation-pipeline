@@ -23,6 +23,32 @@ params.dom_path = "${params.base_code_dir}/dom/dom"
 params.dom_qual_path = "${params.base_code_dir}/domqual/pytorch_foldclass_pred_dir.py"
 params.chunk_size = 100
 
+def validateParameters() {
+    if (!file(params.chopped_pdb_dir).exists()) {
+        error "Chopped PDB directory does not exist: ${params.chopped_pdb_dir}"
+    }
+    if (!file(params.dom_path).exists()) {
+        error "Domain path does not exist: ${params.dom_path}"
+    }
+    if (!file(params.dom_qual_path).exists()) {
+        error "Domain quality path does not exist: ${params.dom_qual_path}"
+    }
+    log.info(
+        """
+    ==============================================
+    Postprocess Pipeline
+    ==============================================
+    Project name        : ${params.project_name}
+    PDB dir             : ${params.chopped_pdb_dir}
+    Main chunk size     : ${params.chunk_size}
+    Work dir            : ${params.work_dir}
+    Results dir         : ${params.results_dir}
+    Debug mode          : ${params.debug}
+    ==============================================
+    """.stripIndent()
+    )
+}
+
 process run_quality_checks {
 
     input:
@@ -33,7 +59,7 @@ process run_quality_checks {
 
     script:
     """
-    ${params.run_quality_checks_script} -d pdb/ -o quality.csv --dom-path ${params.dom_path} --dom-qual-path ${params.dom_qual_path}
+    python3 ${params.run_quality_checks_script} -d pdb/ -o quality.csv --dom-path ${params.dom_path} --dom-qual-path ${params.dom_qual_path}
     """
 }
 
@@ -42,6 +68,8 @@ process run_quality_checks {
 // ===============================================
 
 workflow {
+
+    validateParameters()
 
     // get PDBs from chopped PDB directory
     // chunk into chunk_size
