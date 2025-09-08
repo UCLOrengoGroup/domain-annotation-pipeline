@@ -158,7 +158,7 @@ def run_domqual_analysis(pdb_dir: str, domqual_script: str) -> Dict[str, float]:
             ['python3', domqual_script, pdb_dir],
             capture_output=True,
             text=True,
-            timeout=600  # Increased timeout for large directories
+            timeout=60 * 60 * 2  # Increased timeout for large directories
         )
         
         if result.returncode != 0:
@@ -264,17 +264,7 @@ def process_pdb_directory(
             # Flush periodically for large datasets
             if processed_count % batch_size == 0:
                 csvfile.flush()
-    
-    # Report missing files if we had a target list
-    if target_filenames:
-        missing_files = target_filenames - found_files
-        if missing_files:
-            print(f"\nWarning: {len(missing_files)} specified files not found:")
-            for filename in sorted(list(missing_files)[:10]):  # Show first 10
-                print(f"  - {filename}")
-            if len(missing_files) > 10:
-                print(f"  ... and {len(missing_files) - 10} more")
-    
+        
     print("\nProcessing complete!")
     print(f"Files processed: {processed_count}")
     print(f"Total entries written: {len(results)}")
