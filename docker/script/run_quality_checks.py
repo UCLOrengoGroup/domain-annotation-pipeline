@@ -20,33 +20,28 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Set, Iterator, Optional
+from typing import Dict, List, Tuple, Iterator
 from Bio.SeqUtils import seq1
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import Polypeptide
 
 
 def get_pdb_files_efficiently(
-    pdb_directory: str, 
-    target_filenames: Optional[Set[str]] = None
+    pdb_directory: str
 ) -> Iterator[Path]:
     """
     Efficiently iterate through PDB files in a large directory.
     
     Args:
         pdb_directory (str): Directory containing PDB files
-        target_filenames (Set[str], optional): Set of specific filenames to look for
         
     Yields:
         Path: PDB file paths
         
     Note:
         Uses os.scandir() for better performance with large directories.
-        If target_filenames is provided, stops early when all files are found.
     """
     pdb_dir_path = Path(pdb_directory)
-    found_count = 0
-    target_count = len(target_filenames) if target_filenames else float('inf')
     
     try:
         # Use os.scandir() for better performance than glob() on large directories
@@ -54,64 +49,10 @@ def get_pdb_files_efficiently(
             for entry in entries:
                 # Check if it's a PDB file
                 if entry.is_file() and entry.name.endswith('.pdb'):
-                    # If we have a target set, only yield matching files
-                    if target_filenames:
-                        if entry.name in target_filenames:
-                            yield pdb_dir_path / entry.name
-                            found_count += 1
-                            # Early exit if we found all target files
-                            if found_count >= target_count:
-                                break
-                    else:
-                        # No filter - yield all PDB files
-                        yield pdb_dir_path / entry.name
+                    yield pdb_dir_path / entry.name
                         
     except OSError as e:
         raise OSError(f"Error scanning directory {pdb_directory}: {e}")
-
-
-def parse_pdb_file_list(pdb_list_arg: Optional[str] = None, pdb_list_file: Optional[str] = None) -> Set[str]:
-    """
-    Parse PDB file list from command line argument or file.
-    
-    Args:
-        pdb_list_arg (str, optional): Comma-separated list of PDB filenames
-        pdb_list_file (str, optional): Path to file containing PDB filenames
-        
-    Returns:
-        Set[str]: Set of PDB filenames to process
-        
-    Raises:
-        FileNotFoundError: If pdb_list_file doesn't exist
-        ValueError: If no valid filenames provided
-    """
-    target_filenames = set()
-    
-    # Add files from command line argument
-    if pdb_list_arg:
-        for filename in pdb_list_arg.split(','):
-            filename = filename.strip()
-            if filename:
-                # Add .pdb extension if not present
-                if not filename.endswith('.pdb'):
-                    filename += '.pdb'
-                target_filenames.add(filename)
-    
-    # Add files from file
-    if pdb_list_file:
-        if not os.path.exists(pdb_list_file):
-            raise FileNotFoundError(f"PDB list file '{pdb_list_file}' not found")
-            
-        with open(pdb_list_file, 'r') as f:
-            for line in f:
-                filename = line.strip()
-                if filename and not filename.startswith('#'):  # Skip empty lines and comments
-                    # Add .pdb extension if not present
-                    if not filename.endswith('.pdb'):
-                        filename += '.pdb'
-                    target_filenames.add(filename)
-    
-    return target_filenames
 
 
 def extract_pdb_chain_info(pdb_file: str) -> List[Tuple[str, str, str]]:
@@ -254,8 +195,6 @@ def process_pdb_directory(
     output_file: str,
     dom_path: str,
     domqual_script: str,
-    pdb_list_arg: Optional[str] = None,
-    pdb_list_file: Optional[str] = None,
     batch_size: int = 1000
 ) -> None:
     """
@@ -266,19 +205,11 @@ def process_pdb_directory(
         output_file (str): Output CSV file path
         dom_path (str): Path to dom executable
         domqual_script (str): Path to domqual Python script
-        pdb_list_arg (str, optional): Comma-separated list of PDB filenames
-        pdb_list_file (str, optional): Path to file containing PDB filenames
         batch_size (int): Number of files to process before writing intermediate results
     """
-    
-    # Parse target filenames if provided
-    target_filenames = None
-    if pdb_list_arg or pdb_list_file:
-        target_filenames = parse_pdb_file_list(pdb_list_arg, pdb_list_file)
-        print(f"Looking for {len(target_filenames)} specific PDB files")
-    
+        
     # Get iterator for PDB files (much more memory efficient for large directories)
-    pdb_files_iter = get_pdb_files_efficiently(pdb_directory, target_filenames)
+    pdb_files_iter = get_pdb_files_efficiently(pdb_directory)
     
     # Run domqual analysis on entire directory first (if needed)
     print("Running DomQual analysis...")
@@ -359,12 +290,7 @@ def main():
 Examples:
   # Process all PDB files (streaming for large directories)
   %(prog)s -d /large/pdb/directory/ -o results.csv --dom-path ./dom --domqual-path ./domqual.py
-  
-  # Process specific files (much faster for large directories)
-  %(prog)s -d /large/pdb/directory/ -o results.csv --dom-path ./dom --domqual-path ./domqual.py --pdb-list file1.pdb,file2.pdb
-  
-  # Process files from list file
-  %(prog)s -d /large/pdb/directory/ -o results.csv --dom-path ./dom --domqual-path ./domqual.py --pdb-list-file selected_files.txt
+
         """
     )
     
@@ -391,19 +317,7 @@ Examples:
         required=True,
         help='Path to domqual Python script'
     )
-    
-    # Mutually exclusive group for PDB file specification
-    pdb_group = parser.add_mutually_exclusive_group()
-    pdb_group.add_argument(
-        '--pdb-list',
-        help='Comma-separated list of PDB filenames to process'
-    )
-    
-    pdb_group.add_argument(
-        '--pdb-list-file',
-        help='Path to file containing PDB filenames to process (one per line)'
-    )
-    
+        
     parser.add_argument(
         '--batch-size',
         type=int,
@@ -432,8 +346,6 @@ Examples:
             args.output,
             args.dom_path,
             args.domqual_path,
-            args.pdb_list,
-            args.pdb_list_file,
             args.batch_size
         )
         
