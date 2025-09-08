@@ -18,9 +18,10 @@ params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
 params.base_code_dir = '/SAN/orengolab/bfvd/code'
 params.run_quality_checks_script = "${params.base_code_dir}/domain-annotation-pipeline/docker/scripts/run_quality_checks.py"
+params.chopped_pdb_dir = "${params.base_code_dir}/2025_09_03.post_processing/example_pdbs"
 params.dom_path = "${params.base_code_dir}/dom/dom"
 params.dom_qual_path = "${params.base_code_dir}/domqual/pytorch_foldclass_pred_dir.py"
-params.chunk_size = 1000
+params.chunk_size = 100
 
 process run_quality_checks {
 
