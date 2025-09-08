@@ -21,6 +21,7 @@ def parse_domain_boundaries(boundary_str, level):
 
 def run_pdb_selres(pdb_file, start, end, output_file, append=False):
     mode = 'a' if append else 'w'
+    ignore_lines = ['END', 'ENDMDL', 'MODEL']
     with open(output_file, mode) as out:
         result = subprocess.run(
             ['python', '-m', 'pdbtools.pdb_selres', f'-{start}:{end}', pdb_file],
@@ -28,7 +29,7 @@ def run_pdb_selres(pdb_file, start, end, output_file, append=False):
             text=True,
             check=True
         )
-        lines = [line for line in result.stdout.splitlines() if line.strip() != 'END']
+        lines = [line for line in result.stdout.splitlines() if line.split()[0] not in ignore_lines]
         out.write('\n'.join(lines) + '\n')
 
 def main(consensus_file, output_dir):
