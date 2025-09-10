@@ -8,7 +8,7 @@
 import pandas as pd
 import argparse
 
-def run(transform_path, globularity_path, plddt_path, taxonomy_path, output_path):
+def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_path, output_path):
     # Read input files
     transform_df = pd.read_csv(transform_path, sep='\t', dtype=str)
     glob_df = pd.read_csv(globularity_path, sep='\t', dtype=str)
@@ -44,7 +44,24 @@ def run(transform_path, globularity_path, plddt_path, taxonomy_path, output_path
 
     # Extract uniprot_id core for taxonomy merge
     merged['uniprot_core'] = merged['uniprot_id'].str.extract(r'([A-Z0-9]{6,})')
-
+    
+    # Merge foldseek data if provided
+    if foldseek_path:
+        fs_df = pd.read_csv(foldseek_path, sep='\t', dtype=str)
+        fs_df = fs_df.rename(columns={
+            'query_id': 'model_id', 
+            'target_id': 'foldseek_match_id',
+            'evalue': 'foldseek_evalue',
+            'tmscore': 'foldseek_tmscore',
+            'code': 'cath_label',
+            'type': 'foldseek_match_type',
+            'qcov': 'foldseek_query_cov',
+            'tcov': 'foldseek_target_cov',
+            }
+            )
+        # TODO: Change uniprot_id to model_id in (transformed consensus) everywhere else.
+        merged = merged.merge(fs_df, left_on='uniprot_id', right_on='model_id', how='left')
+    
     # Merge taxonomy if provided
     if taxonomy_path:
         tax_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
@@ -60,7 +77,14 @@ def run(transform_path, globularity_path, plddt_path, taxonomy_path, output_path
         'uniprot_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain',
         'num_segments', 'num_helix_strand_turn', 'num_helix', 'num_strand', 'num_helix_strand',
         'num_turn', 'packing_density', 'normed_radius_gyration', 'avg_plddt',
-        'proteome_id', 'tax_common_name', 'tax_scientific_name', 'tax_lineage'
+        'proteome_id', 'tax_common_name', 'tax_scientific_name', 'tax_lineage', 
+        'foldseek_match_id',
+        'foldseek_evalue',
+        'foldseek_tmscore',
+        'cath_label',
+        'foldseek_match_type',
+        'foldseek_query_cov',
+        'foldseek_target_cov'
     ]
 
     # Only keep columns that exist in the merged DataFrame
@@ -74,8 +98,9 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--transform', required=True)
     parser.add_argument('-g', '--globularity', required=True)
     parser.add_argument('-p', '--plddt', required=True)
+    parser.add_argument('-f', '--foldseek', required=False)
     parser.add_argument('-x', '--taxonomy', required=False)
     parser.add_argument('-o', '--output', required=True)
     args = parser.parse_args()
 
-    run(args.transform, args.globularity, args.plddt, args.taxonomy, args.output)
+    run(args.transform, args.globularity, args.plddt, args.foldseek, args.taxonomy, args.output)
