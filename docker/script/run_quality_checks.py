@@ -26,6 +26,10 @@ from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB import Polypeptide
 
 
+DOM_RESULT_MATCH = re.compile(r'^(?P<model_id>\S+)\s+(?P<dom_count_normal>[0-9]+) on (?P<dom_count_smoothed>[0-9]+) domains, (?P<dom_pct_agree>[0-9.]+) pct. agree')
+DOM_MIN_AGREEMENT = 80  # Minimum percentage agreement to consider dom result valid
+
+
 def get_pdb_files_efficiently(
     pdb_directory: str
 ) -> Iterator[Path]:
@@ -121,15 +125,21 @@ def run_dom_analysis(pdb_file: str, dom_path: str) -> int:
             
         # Parse output to extract domain count
         output = result.stdout
-        
-        # Look for "assign X domain" lines
-        domain_assignments = re.findall(r'assign\s+(\d+)\s+domain', output)
-        
-        if domain_assignments:
-            # Get the final domain count (last assignment)
-            return int(domain_assignments[-1])
-        
-        return 0
+
+        # Look for final assignment output
+        # AF-A0A009HHG7-F1-model_v4_TED01.pdb  1 on 1 domains, 100 pct. agree
+        match = DOM_RESULT_MATCH.match(output)
+        if match:
+            dom_count_normal = int(match.group('dom_count_normal'))
+            dom_count_smoothed = int(match.group('dom_count_smoothed'))
+            dom_pct_agree = float(match.group('dom_pct_agree'))
+
+            quality_check_result = True if dom_count_normal == 1 and dom_count_smoothed == 1 and dom_pct_agree >= DOM_MIN_AGREEMENT else False
+
+            return quality_check_result
+        else:
+            msg = f"Could not parse dom output for {pdb_file}"
+            raise ValueError(msg)
         
     except subprocess.TimeoutExpired:
         print(f"Dom analysis timed out for {pdb_file}", file=sys.stderr)
