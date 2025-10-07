@@ -135,8 +135,9 @@ workflow {
 
     // Create UniProt ID channel
     uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file, checkIfExists: true)
-        .splitCsv(header: true)
-        .map { row -> row.uniprot_id }
+        .splitText()
+        .map { it.trim() }
+        .filter { it != ''}
         .unique()
 
     // Apply debug limit if enabled
@@ -276,22 +277,22 @@ workflow {
     // PHASE 7: Run foldseek
     // =========================================
 
-    foldseek_create_db(chopped_pdb_ch)
+    // foldseek_create_db(chopped_pdb_ch)
 
-    // Define the target (CATH) database using config: params.target_db
-    ch_target_db = Channel.fromPath(params.target_db)
+    // // Define the target (CATH) database using config: params.target_db
+    // ch_target_db = Channel.fromPath(params.target_db)
 
-    // Run foldseek search on the output of process create_foldseek_db and the CATH database
-    foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
+    // // Run foldseek search on the output of process create_foldseek_db and the CATH database
+    // foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
 
-    // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
-    foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
+    // // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
+    // foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
 
-    // Parse output - first create a channel from the location of the python script
-    ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
+    // // Parse output - first create a channel from the location of the python script
+    // ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
 
-    // Now pass the convertalis .m8 and the python script as intput to the parsing process
-    foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
+    // // Now pass the convertalis .m8 and the python script as intput to the parsing process
+    // foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
 
     // =========================================
     // PHASE 8: Final Assembly
