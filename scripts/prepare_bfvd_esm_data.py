@@ -235,10 +235,11 @@ def check_foldcomp_available():
 def extract_bfvd_id_from_filename(filename):
     """Extract BFVD ID from filename"""
     base_name = Path(filename).stem
-    match = re.match(r'(MGY[0-9A-Z]+)', base_name)
+    regex = r'(MGY[0-9A-Z]+)'
+    match = re.search(regex, base_name)
     if match:
         return match.group(1)
-    raise ValueError(f"Could not extract BFVD ID from filename: {filename}")
+    raise ValueError(f"Could not extract BFVD ID from filename: {base_name} ({regex})")
 
 def decompress_foldcomp_archive(tar_path, temp_dir):
     """Decompress foldcomp archive to PDB files"""
