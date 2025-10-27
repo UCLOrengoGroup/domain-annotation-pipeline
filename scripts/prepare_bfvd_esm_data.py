@@ -13,6 +13,7 @@ import subprocess
 import hashlib
 import json
 import re
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -20,6 +21,22 @@ import gdown
 
 # Google Drive folder ID from the URL you provided
 FOLDER_ID = "12rlP_a9IQAnwRvfHTpEmkVDccDa780wi"
+
+class CacheError(Exception):
+    """Exception raised for cache-related errors"""
+    pass
+
+class DownloadError(Exception):
+    """Exception raised for download-related errors"""
+    pass
+
+class ConversionError(Exception):
+    """Exception raised for archive conversion errors"""
+    pass
+
+class FoldcompError(Exception):
+    """Exception raised for foldcomp-related errors"""
+    pass
 
 class CacheManager:
     """Manages caching state for downloads and conversions"""
@@ -32,32 +49,37 @@ class CacheManager:
     
     def load_cache(self):
         """Load cache data from file"""
-        if self.cache_file.exists():
-            try:
-                with open(self.cache_file, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Warning: Could not load cache file: {e}")
-        return {}
+        if not self.cache_file.exists():
+            return {}
+        
+        try:
+            with open(self.cache_file, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError, OSError) as e:
+            raise CacheError(f"Failed to load cache file {self.cache_file}: {e}") from e
     
     def save_cache(self):
         """Save cache data to file"""
         try:
             with open(self.cache_file, 'w') as f:
                 json.dump(self.cache_data, f, indent=2)
-        except Exception as e:
-            print(f"Warning: Could not save cache file: {e}")
+        except (IOError, OSError) as e:
+            raise CacheError(f"Failed to save cache file {self.cache_file}: {e}") from e
     
     def get_file_hash(self, file_path):
         """Calculate MD5 hash of file for integrity checking"""
-        if not Path(file_path).exists():
-            return None
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found for hashing: {file_path}")
         
-        hash_md5 = hashlib.md5()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        return hash_md5.hexdigest()
+        try:
+            hash_md5 = hashlib.md5()
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+            return hash_md5.hexdigest()
+        except (IOError, OSError) as e:
+            raise CacheError(f"Failed to calculate hash for {file_path}: {e}") from e
     
     def is_download_complete(self, file_id, file_path):
         """Check if download is complete and valid"""
@@ -72,7 +94,10 @@ class CacheManager:
             return False
         
         cached_info = self.cache_data[cache_key]
-        current_size = file_path.stat().st_size
+        try:
+            current_size = file_path.stat().st_size
+        except OSError as e:
+            raise CacheError(f"Failed to get file stats for {file_path}: {e}") from e
         
         # Verify file integrity (skip hash for large files to save time)
         return (
@@ -84,12 +109,20 @@ class CacheManager:
     def mark_download_complete(self, file_id, file_path):
         """Mark download as complete with metadata"""
         file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"Cannot mark non-existent file as downloaded: {file_path}")
+        
         cache_key = f"download_{file_id}"
+        
+        try:
+            file_size = file_path.stat().st_size
+        except OSError as e:
+            raise CacheError(f"Failed to get file stats for {file_path}: {e}") from e
         
         self.cache_data[cache_key] = {
             'status': 'complete',
             'timestamp': datetime.now().isoformat(),
-            'size': file_path.stat().st_size,
+            'size': file_size,
             'path': str(file_path)
         }
         self.save_cache()
@@ -107,8 +140,12 @@ class CacheManager:
             return False
         
         cached_info = self.cache_data[cache_key]
-        tar_mtime = tar_path.stat().st_mtime
-        zip_size = zip_path.stat().st_size
+        
+        try:
+            tar_mtime = tar_path.stat().st_mtime
+            zip_size = zip_path.stat().st_size
+        except OSError as e:
+            raise CacheError(f"Failed to get file stats for cache validation: {e}") from e
         
         # Check if conversion is up to date
         return (
@@ -122,16 +159,28 @@ class CacheManager:
         """Mark conversion as complete with metadata"""
         tar_path = Path(tar_path)
         zip_path = Path(zip_path)
+        
+        if not tar_path.exists():
+            raise FileNotFoundError(f"Source tar file not found: {tar_path}")
+        if not zip_path.exists():
+            raise FileNotFoundError(f"Output zip file not found: {zip_path}")
+        
         cache_key = f"conversion_{tar_path.name}"
+        
+        try:
+            tar_stat = tar_path.stat()
+            zip_stat = zip_path.stat()
+        except OSError as e:
+            raise CacheError(f"Failed to get file stats for cache marking: {e}") from e
         
         self.cache_data[cache_key] = {
             'status': 'complete',
             'timestamp': datetime.now().isoformat(),
             'tar_path': str(tar_path),
-            'tar_mtime': tar_path.stat().st_mtime,
-            'tar_size': tar_path.stat().st_size,
+            'tar_mtime': tar_stat.st_mtime,
+            'tar_size': tar_stat.st_size,
             'zip_path': str(zip_path),
-            'zip_size': zip_path.stat().st_size
+            'zip_size': zip_stat.st_size
         }
         self.save_cache()
 
@@ -150,14 +199,16 @@ def download_folder_from_google_drive(folder_id, output_dir):
             quiet=False,
             use_cookies=False
         )
-        return True
+        print("✓ Folder download successful!")
     except Exception as e:
-        print(f"Folder download failed: {e}")
-        return False
+        raise DownloadError(f"Google Drive folder download failed for folder {folder_id}: {e}") from e
 
 def find_tar_files(directory):
     """Find all tar files in directory recursively"""
     directory = Path(directory)
+    if not directory.exists():
+        raise FileNotFoundError(f"Directory not found: {directory}")
+    
     tar_files = []
     
     # Look for various tar file extensions
@@ -176,7 +227,9 @@ def check_foldcomp_available():
         result = subprocess.run(['foldcomp', '--help'], 
                               capture_output=True, text=True, timeout=10)
         return result.returncode == 0
-    except (subprocess.TimeoutExpired, FileNotFoundError):
+    except subprocess.TimeoutExpired:
+        raise FoldcompError("foldcomp command timed out during availability check")
+    except FileNotFoundError:
         return False
 
 def extract_bfvd_id_from_filename(filename):
@@ -185,8 +238,7 @@ def extract_bfvd_id_from_filename(filename):
     match = re.match(r'^(MGY\w+)_', base_name)
     if match:
         return match.group(1)
-    # If no MGY prefix, use the base filename
-    return base_name
+    raise ValueError(f"Could not extract BFVD ID from filename: {filename}")
 
 def decompress_foldcomp_archive(tar_path, temp_dir):
     """Decompress foldcomp archive to PDB files"""
@@ -197,35 +249,37 @@ def decompress_foldcomp_archive(tar_path, temp_dir):
     
     try:
         # Run foldcomp decompress
+        foldcomp_args = ['foldcomp', 'decompress', str(tar_path), str(temp_dir)] 
         result = subprocess.run(
-            ['foldcomp', 'decompress', str(tar_path), str(temp_dir)],
+            foldcomp_args,
             capture_output=True,
             text=True,
             timeout=3600  # 1 hour timeout for large archives
         )
         
         if result.returncode != 0:
-            print(f"  ✗ foldcomp failed: {result.stderr}")
-            return []
+            raise FoldcompError(f"foldcomp failed with return code {result.returncode}: "
+                              f"Command: {' '.join(foldcomp_args)}, STDERR: {result.stderr}")
         
         # Find all generated PDB files
         pdb_files = list(temp_dir.rglob("*.pdb"))
-        print(f"  Generated {len(pdb_files)} PDB files")
+        if not pdb_files:
+            raise FoldcompError(f"No PDB files generated from foldcomp decompression of {tar_path}")
         
+        print(f"  Generated {len(pdb_files)} PDB files")
         return pdb_files
         
     except subprocess.TimeoutExpired:
-        print(f"  ✗ foldcomp decompress timed out")
-        return []
-    except Exception as e:
-        print(f"  ✗ Error running foldcomp: {e}")
-        return []
+        raise FoldcompError(f"foldcomp decompress timed out after 1 hour for {tar_path}")
 
 def extract_tar_to_zip(tar_path, output_dir, cache_manager, force=False):
     """Extract tar file and create zip file with caching"""
     tar_path = Path(tar_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    if not tar_path.exists():
+        raise FileNotFoundError(f"Source tar file not found: {tar_path}")
     
     # Create zip filename
     zip_name = tar_path.stem
@@ -249,8 +303,7 @@ def extract_tar_to_zip(tar_path, output_dir, cache_manager, force=False):
         
         # Check if foldcomp is available
         if not check_foldcomp_available():
-            print(f"  ✗ foldcomp command not found. Please install foldcomp.")
-            return None
+            raise FoldcompError("foldcomp command not found. Please install foldcomp.")
         
         # Create temporary directory for foldcomp decompression
         temp_dir = Path.cwd() / 'temp_foldcomp' / tar_path.stem
@@ -262,51 +315,52 @@ def extract_tar_to_zip(tar_path, output_dir, cache_manager, force=False):
             # Decompress using foldcomp
             pdb_files = decompress_foldcomp_archive(tar_path, temp_dir)
             
-            if not pdb_files:
-                print(f"  ✗ No PDB files generated from foldcomp")
-                return None
-            
             # Create zip from decompressed PDB files
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
-                total_files = len(pdb_files)
-                processed_files = 0
-                
-                print(f"  Zipping {total_files} PDB files...")
-                
-                for pdb_file in pdb_files:
-                    try:
+            try:
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
+                    total_files = len(pdb_files)
+                    processed_files = 0
+                    
+                    print(f"  Zipping {total_files} PDB files...")
+                    
+                    for pdb_file in pdb_files:
                         # Use the filename as-is, or extract BFVD ID if needed
                         pdb_filename = pdb_file.name
                         
-                        # Read and add to zip
-                        with open(pdb_file, 'rb') as f:
-                            zip_file.writestr(pdb_filename, f.read())
-                        
-                        processed_files += 1
-                        
-                        # Progress indicator
-                        if processed_files % 1000 == 0 or processed_files == total_files:
-                            print(f"    Progress: {processed_files}/{total_files} files")
+                        try:
+                            # Read and add to zip
+                            with open(pdb_file, 'rb') as f:
+                                zip_file.writestr(pdb_filename, f.read())
                             
-                    except Exception as e:
-                        print(f"    Warning: Failed to add {pdb_file.name}: {e}")
-                        continue
+                            processed_files += 1
+                            
+                            # Progress indicator
+                            if processed_files % 1000 == 0 or processed_files == total_files:
+                                print(f"    Progress: {processed_files}/{total_files} files")
+                                
+                        except (IOError, OSError) as e:
+                            raise ConversionError(f"Failed to add {pdb_file.name} to zip: {e}") from e
+                            
+            except (zipfile.BadZipFile, IOError, OSError) as e:
+                raise ConversionError(f"Failed to create zip file {zip_path}: {e}") from e
             
         finally:
             # Clean up temporary directory
             if temp_dir.exists():
-                import shutil
-                shutil.rmtree(temp_dir)
+                try:
+                    shutil.rmtree(temp_dir)
+                except OSError as e:
+                    print(f"Warning: Failed to clean up temporary directory {temp_dir}: {e}")
     
     else:
         # Regular tar archive with PDB files
         print(f"  Processing regular tar archive")
         
+        # Remove incomplete zip if exists
+        if zip_path.exists():
+            zip_path.unlink()
+        
         try:
-            # Remove incomplete zip if exists
-            if zip_path.exists():
-                zip_path.unlink()
-            
             # Open tar file and create zip file
             with tarfile.open(tar_path, 'r:*') as tar_file:
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zip_file:
@@ -320,45 +374,47 @@ def extract_tar_to_zip(tar_path, output_dir, cache_manager, force=False):
                         if member.isfile():
                             # Extract file data from tar
                             file_data = tar_file.extractfile(member)
-                            if file_data:
-                                try:
-                                    bfvd_id = extract_bfvd_id_from_filename(member.name)
-                                    pdb_filename = f"{bfvd_id}.pdb"
-                                except Exception:
-                                    # If ID extraction fails, use original filename
-                                    pdb_filename = Path(member.name).name
-                                
-                                # Add to zip
-                                zip_file.writestr(pdb_filename, file_data.read())
-                                processed_files += 1
-                                
-                                # Progress indicator
-                                if processed_files % 1000 == 0 or processed_files == total_files:
-                                    print(f"    Progress: {processed_files}/{total_files} files")
+                            if file_data is None:
+                                raise ConversionError(f"Failed to extract {member.name} from tar archive")
+
+                            bfvd_id = extract_bfvd_id_from_filename(member.name)
+                            pdb_filename = f"{bfvd_id}.pdb"
+                            
+                            # Add to zip
+                            zip_file.writestr(pdb_filename, file_data.read())
+                            processed_files += 1
+                            
+                            # Progress indicator
+                            if processed_files % 1000 == 0 or processed_files == total_files:
+                                print(f"    Progress: {processed_files}/{total_files} files")
                         
-        except Exception as e:
-            print(f"✗ Error processing regular archive {tar_path.name}: {e}")
+        except (tarfile.TarError, zipfile.BadZipFile, IOError, OSError) as e:
             # Clean up partial zip
             if zip_path.exists():
                 zip_path.unlink()
-            return None
+            raise ConversionError(f"Error processing regular archive {tar_path.name}: {e}") from e
     
     # Verify conversion
-    if zip_path.exists() and zip_path.stat().st_size > 0:
-        cache_manager.mark_conversion_complete(tar_path, zip_path)
-        
-        # Show size comparison
-        tar_size = tar_path.stat().st_size / (1024*1024)  # MB
-        zip_size = zip_path.stat().st_size / (1024*1024)  # MB
-        compression_ratio = (1 - zip_size/tar_size) * 100 if tar_size > 0 else 0
-        
-        print(f"✓ Conversion complete: {zip_path.name}")
-        print(f"  Size: {tar_size:.1f}MB → {zip_size:.1f}MB ({compression_ratio:.1f}% compression)")
-        print(f"  Type: {'Foldcomp' if is_foldcomp else 'Regular'} archive")
-        return zip_path
-    else:
-        print(f"✗ Conversion failed: {zip_path.name} (file empty or missing)")
-        return None
+    if not zip_path.exists():
+        raise ConversionError(f"Conversion failed: output file {zip_path.name} was not created")
+    
+    zip_size = zip_path.stat().st_size
+    if zip_size == 0:
+        zip_path.unlink()  # Remove empty file
+        raise ConversionError(f"Conversion failed: output file {zip_path.name} is empty")
+    
+    # Mark as complete in cache
+    cache_manager.mark_conversion_complete(tar_path, zip_path)
+    
+    # Show size comparison
+    tar_size = tar_path.stat().st_size / (1024*1024)  # MB
+    zip_size_mb = zip_size / (1024*1024)  # MB
+    compression_ratio = (1 - zip_size_mb/tar_size) * 100 if tar_size > 0 else 0
+    
+    print(f"✓ Conversion complete: {zip_path.name}")
+    print(f"  Size: {tar_size:.1f}MB → {zip_size_mb:.1f}MB ({compression_ratio:.1f}% compression)")
+    print(f"  Type: {'Foldcomp' if is_foldcomp else 'Regular'} archive")
+    return zip_path
 
 def main():
     """Main processing function"""
@@ -396,40 +452,51 @@ def main():
     # Try to download entire folder
     print("\n1. Attempting to download entire Google Drive folder...")
     
-    if download_folder_from_google_drive(FOLDER_ID, download_dir):
-        print("✓ Folder download successful!")
+    download_folder_from_google_drive(FOLDER_ID, download_dir)
+    
+    # Find all tar files in downloaded content
+    tar_files = find_tar_files(download_dir)
+    if not tar_files:
+        raise DownloadError("No tar files found in downloaded content")
+    
+    print(f"Found {len(tar_files)} tar files:")
+    
+    # Categorize files
+    foldcomp_files = []
+    regular_files = []
+    
+    for tar_file in tar_files:
+        if is_foldcomp_archive(tar_file.name):
+            foldcomp_files.append(tar_file)
+            print(f"  - {tar_file.name} (foldcomp)")
+        else:
+            regular_files.append(tar_file)
+            print(f"  - {tar_file.name} (regular)")
+    
+    print(f"\nArchive summary: {len(foldcomp_files)} foldcomp, {len(regular_files)} regular")
+    
+    # Convert each tar file to zip
+    successful_conversions = 0
+    failed_conversions = []
+    
+    for i, tar_file in enumerate(tar_files, 1):
+        print(f"\n[{i}/{len(tar_files)}] Processing {tar_file.name}...")
         
-        # Find all tar files in downloaded content
-        tar_files = find_tar_files(download_dir)
-        print(f"Found {len(tar_files)} tar files:")
-        
-        # Categorize files
-        foldcomp_files = []
-        regular_files = []
-        
-        for tar_file in tar_files:
-            if is_foldcomp_archive(tar_file.name):
-                foldcomp_files.append(tar_file)
-                print(f"  - {tar_file.name} (foldcomp)")
-            else:
-                regular_files.append(tar_file)
-                print(f"  - {tar_file.name} (regular)")
-        
-        print(f"\nArchive summary: {len(foldcomp_files)} foldcomp, {len(regular_files)} regular")
-        
-        # Convert each tar file to zip
-        successful_conversions = 0
-        for i, tar_file in enumerate(tar_files, 1):
-            print(f"\n[{i}/{len(tar_files)}] Processing {tar_file.name}...")
-            
+        try:
             zip_path = extract_tar_to_zip(tar_file, output_dir, cache_manager, force_conversion)
             if zip_path:
                 successful_conversions += 1
-        
-        print(f"\n✓ Conversion results: {successful_conversions}/{len(tar_files)} successful")
-        
-    else:
-        raise RuntimeError("✗ Folder download failed")
+        except Exception as e:
+            failed_conversions.append((tar_file.name, str(e)))
+            print(f"✗ Failed to process {tar_file.name}: {e}")
+            continue
+    
+    print(f"\n✓ Conversion results: {successful_conversions}/{len(tar_files)} successful")
+    
+    if failed_conversions:
+        print(f"\n✗ Failed conversions ({len(failed_conversions)}):")
+        for filename, error in failed_conversions:
+            print(f"  - {filename}: {error}")
 
     # Final summary
     print("\n" + "=" * 60)
@@ -447,11 +514,17 @@ def main():
         for zip_file in sorted(zip_files):
             size_mb = zip_file.stat().st_size / (1024*1024)
             print(f"  - {zip_file.name} ({size_mb:.1f}MB)")
+    else:
+        print("⚠ No output files created")
     
     print(f"\nCache location: {cache_dir.absolute()}")
     print("\nRequirements:")
     print("  - foldcomp command for processing foldcomp archives")
     print("  - Install: https://github.com/steineggerlab/foldcomp")
+    
+    # Raise exception if any critical failures occurred
+    if failed_conversions and successful_conversions == 0:
+        raise ConversionError(f"All {len(failed_conversions)} conversions failed")
 
 if __name__ == "__main__":
     main()
