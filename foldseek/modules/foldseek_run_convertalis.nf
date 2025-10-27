@@ -1,8 +1,9 @@
-process run_convertalis {
+process foldseek_run_convertalis {
+
     publishDir "results/convertalis", mode: 'copy'
     
     input:
-    path query_db_dir
+    path query_db
     path target_db
     path result_db_dir
 
@@ -13,9 +14,9 @@ process run_convertalis {
     script:
     """
     foldseek convertalis \\
-        ${query_db_dir}/query_db \\
-        ${target_db}/cath_ssg5_fs_db \\
-        ${result_db_dir}/foldseek_output_db \\
+        ${query_db} \\
+        ${target_db} \\
+        foldseek_output_db \\
         foldseek_output.m8 \\
         --format-output "query,target,fident,evalue,qlen,tlen,qtmscore,ttmscore,qcov,tcov"
 

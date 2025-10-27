@@ -1,11 +1,11 @@
-process create_db {
+process foldseek_create_db {
     publishDir "results", mode: 'copy'
     
     input:
     path pdb_files
 
     output:
-    path "database_dir", emit: query_db_dir
+    path "database_dir/query_db", emit: query_db
     path "versions.yml", emit: versions
 
     script:

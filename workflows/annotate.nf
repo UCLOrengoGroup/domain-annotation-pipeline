@@ -23,14 +23,16 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { collect_taxonomy } from '../modules/collect_taxonomy.nf' //can delete line - unused process.
+include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
+//can delete line - unused process.
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
 // Domain prediction modules
-include { run_chainsaw } from '../modules/run_chainsaw.nf'
-include { run_merizo } from '../modules/run_merizo.nf'
-include { run_unidoc } from '../modules/run_unidoc.nf'
+// include { run_chainsaw } from '../modules/run_chainsaw.nf'
+// include { run_merizo } from '../modules/run_merizo.nf'
+// include { run_unidoc } from '../modules/run_unidoc.nf'
+include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 
 // Filtering and consensus modules
 include { run_filter_domains } from '../modules/run_filter_domains.nf'
@@ -57,6 +59,13 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
 include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+
+// Foldseek modules
+include { foldseek_create_db } from '../foldseek/modules/foldseek_create_db.nf'
+include { foldseek_run_foldseek } from '../foldseek/modules/foldseek_run_foldseek.nf'
+include { foldseek_run_convertalis } from '../foldseek/modules/foldseek_run_convertalis.nf'
+include { foldseek_process_results } from '../foldseek/modules/foldseek_process_results.nf'
+
 
 // ===============================================
 // HELPER FUNCTIONS
@@ -127,8 +136,9 @@ workflow {
 
     // Create UniProt ID channel
     uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file, checkIfExists: true)
-        .splitCsv(header: true)
-        .map { row -> row.uniprot_id }
+        .splitText()
+        .map { it.trim() }
+        .filter { it != ''}
         .unique()
 
     // Apply debug limit if enabled
@@ -148,7 +158,7 @@ workflow {
     // Get taxonomic data
     uniprot_data_ch = get_uniprot_data(af_ids_ch)
     taxonomy_ch = uniprot_data_ch.collectFile(
-        name: 'all_taxonomy.tsv',  // replaces uniprot_data.tsv to agree with collect_results_add_metadata
+        name: 'all_taxonomy.tsv',
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
@@ -162,100 +172,66 @@ workflow {
     // PHASE 2: Domain Prediction
     // =========================================
 
-    // Run domain prediction tools in parallel
     heavy_chunk_ch = filtered_pdb_ch
         .flatten()
         .collate(params.heavy_chunk_size)
-    chainsaw_results_ch = run_chainsaw(heavy_chunk_ch)
-    merizo_results_ch = run_merizo(heavy_chunk_ch)
-    unidoc_results_ch = run_unidoc(filtered_pdb_ch)
+    
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
-    // Collect all domain prediction results
-    collected_chainsaw_ch = chainsaw_results_ch.collectFile(
+    // collect the result for the chainsaw output
+    collected_chainsaw_ch = segmentation_ch.chainsaw.collectFile(
         name: 'domain_assignments.chainsaw.tsv',
         storeDir: params.results_dir,
     )
-
-    collected_merizo_ch = merizo_results_ch.collectFile(
+    collected_merizo_ch = segmentation_ch.merizo.collectFile(
         name: 'domain_assignments.merizo.tsv',
         storeDir: params.results_dir,
     )
-
-    collected_unidoc_ch = unidoc_results_ch.collectFile(
+    collected_unidoc_ch = segmentation_ch.unidoc.collectFile(
         name: 'domain_assignments.unidoc.tsv',
         storeDir: params.results_dir,
     )
-
-    // Filter chainsaw results
-    filtered_chainsaw_ch = run_filter_domains(collected_chainsaw_ch)
-
-    // Convert and filter merizo/unidoc results
-    converted_merizo_results_ch = convert_merizo_results(
-        collected_chainsaw_ch,
-        collected_merizo_ch,
-    )
-    converted_unidoc_results_ch = convert_unidoc_results(
-        collected_chainsaw_ch,
-        collected_unidoc_ch,
-    )
-
-    filtered_converted_merizo_results_ch = run_filter_domains_reformatted_merizo(
-        converted_merizo_results_ch
-    )
-
-    filtered_converted_unidoc_results_ch = run_filter_domains_reformatted_unidoc(
-        converted_unidoc_results_ch
+    collected_consensus_ch = segmentation_ch.consensus.collectFile(
+        name: 'domain_assignments.consensus.tsv',
+        storeDir: params.results_dir,
     )
 
     // =========================================
-    // PHASE 4: Consensus Generation
-    // =========================================
-
-    // Generate consensus from filtered results
-    consensus_raw_ch = run_get_consensus(
-        filtered_chainsaw_ch,
-        filtered_converted_merizo_results_ch.flatten().collect(),
-        filtered_converted_unidoc_results_ch.flatten().collect(),
-    )
-
-    consensus_filtered_ch = run_filter_consensus(consensus_raw_ch)
-
-    // =========================================
-    // PHASE 5: Post-Consensus Processing
+    // PHASE 4: Post-Consensus Processing
     // =========================================
 
     // Chop pdbs using pdb files:
     chopped_pdb_ch = chop_pdb(
-        consensus_filtered_ch.filtered,
+        collected_consensus_ch,
         filtered_pdb_ch.collect(),
     )
 
     // Generate MD5 hashes for domains
-    md5_individual_ch = create_md5(chopped_pdb_ch
-        .flatten()
-        .collate(params.light_chunk_size)   // Changed to light chunk size
+    md5_individual_ch = create_md5(
+        chopped_pdb_ch.flatten().collate(params.light_chunk_size)
     )
     md5_combined_ch = md5_individual_ch
         .flatten()
         .collectFile(
-        name: "all_md5.tsv",
-        sort: true,
-        storeDir: params.results_dir,
+            name: "all_md5.tsv",
+            sort: true,
+            storeDir: params.results_dir,
         )
 
     // =========================================
-    // PHASE 6: Structure Analysis
+    // PHASE 5: Structure Analysis
     // =========================================
 
     // Run STRIDE analysis
     stride_results_ch = run_stride(chopped_pdb_ch)
-    stride_summaries_ch = summarise_stride(stride_results_ch
-        .flatten()
-        .collate(params.light_chunk_size))  // Changed to light chunksize
+    stride_summaries_ch = summarise_stride(
+        stride_results_ch.flatten().collate(params.light_chunk_size)
+    )
+    // Changed to light chunksize
 
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch)
@@ -265,12 +241,33 @@ workflow {
     plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
 
     // =========================================
-    // PHASE 7: Final Assembly
+    // PHASE 6: Run foldseek
+    // =========================================
+
+    // foldseek_create_db(chopped_pdb_ch)
+
+    // // Define the target (CATH) database using config: params.target_db
+    // ch_target_db = Channel.fromPath(params.target_db)
+
+    // // Run foldseek search on the output of process create_foldseek_db and the CATH database
+    // foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
+
+    // // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
+    // foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
+
+    // // Parse output - first create a channel from the location of the python script
+    // ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
+
+    // // Now pass the convertalis .m8 and the python script as intput to the parsing process
+    // foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
+
+    // =========================================
+    // PHASE 8: Final Assembly
     // =========================================
 
     // Transform consensus with structure data
     transformed_consensus_ch = transform_consensus(
-        consensus_filtered_ch.filtered,
+        collected_consensus_ch,
         md5_combined_ch,
         stride_summaries_ch.collect(),
     )
@@ -293,8 +290,9 @@ workflow {
         taxonomy_ch,
     )
 
+
     // =========================================
-    // PHASE 8: Output Generation
+    // PHASE 9: Output Generation
     // =========================================
 
     // Ensure final outputs are saved
