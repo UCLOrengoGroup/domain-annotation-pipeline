@@ -29,9 +29,10 @@ include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
 // Domain prediction modules
-include { run_chainsaw } from '../modules/run_chainsaw.nf'
-include { run_merizo } from '../modules/run_merizo.nf'
-include { run_unidoc } from '../modules/run_unidoc.nf'
+// include { run_chainsaw } from '../modules/run_chainsaw.nf'
+// include { run_merizo } from '../modules/run_merizo.nf'
+// include { run_unidoc } from '../modules/run_unidoc.nf'
+include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 
 // Filtering and consensus modules
 include { run_filter_domains } from '../modules/run_filter_domains.nf'
@@ -171,75 +172,41 @@ workflow {
     // PHASE 2: Domain Prediction
     // =========================================
 
-    // Run domain prediction tools in parallel
     heavy_chunk_ch = filtered_pdb_ch
         .flatten()
         .collate(params.heavy_chunk_size)
-    chainsaw_results_ch = run_chainsaw(heavy_chunk_ch)
-    merizo_results_ch = run_merizo(heavy_chunk_ch)
-    unidoc_results_ch = run_unidoc(filtered_pdb_ch)
+    
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
-    // Collect all domain prediction results
-    collected_chainsaw_ch = chainsaw_results_ch.collectFile(
+    // collect the result for the chainsaw output
+    collected_chainsaw_ch = segmentation_ch.chainsaw.collectFile(
         name: 'domain_assignments.chainsaw.tsv',
         storeDir: params.results_dir,
     )
-
-    collected_merizo_ch = merizo_results_ch.collectFile(
+    collected_merizo_ch = segmentation_ch.merizo.collectFile(
         name: 'domain_assignments.merizo.tsv',
         storeDir: params.results_dir,
     )
-
-    collected_unidoc_ch = unidoc_results_ch.collectFile(
+    collected_unidoc_ch = segmentation_ch.unidoc.collectFile(
         name: 'domain_assignments.unidoc.tsv',
         storeDir: params.results_dir,
     )
-
-    // Filter chainsaw results
-    filtered_chainsaw_ch = run_filter_domains(collected_chainsaw_ch)
-
-    // Convert and filter merizo/unidoc results
-    converted_merizo_results_ch = convert_merizo_results(
-        collected_chainsaw_ch,
-        collected_merizo_ch,
-    )
-    converted_unidoc_results_ch = convert_unidoc_results(
-        collected_chainsaw_ch,
-        collected_unidoc_ch,
-    )
-
-    filtered_converted_merizo_results_ch = run_filter_domains_reformatted_merizo(
-        converted_merizo_results_ch
-    )
-
-    filtered_converted_unidoc_results_ch = run_filter_domains_reformatted_unidoc(
-        converted_unidoc_results_ch
+    collected_consensus_ch = segmentation_ch.consensus.collectFile(
+        name: 'domain_assignments.consensus.tsv',
+        storeDir: params.results_dir,
     )
 
     // =========================================
-    // PHASE 4: Consensus Generation
-    // =========================================
-
-    // Generate consensus from filtered results
-    consensus_raw_ch = run_get_consensus(
-        filtered_chainsaw_ch,
-        filtered_converted_merizo_results_ch.flatten().collect(),
-        filtered_converted_unidoc_results_ch.flatten().collect(),
-    )
-
-    consensus_filtered_ch = run_filter_consensus(consensus_raw_ch)
-
-    // =========================================
-    // PHASE 5: Post-Consensus Processing
+    // PHASE 4: Post-Consensus Processing
     // =========================================
 
     // Chop pdbs using pdb files:
     chopped_pdb_ch = chop_pdb(
-        consensus_filtered_ch.filtered,
+        collected_consensus_ch,
         filtered_pdb_ch.collect(),
     )
 
@@ -256,7 +223,7 @@ workflow {
         )
 
     // =========================================
-    // PHASE 6: Structure Analysis
+    // PHASE 5: Structure Analysis
     // =========================================
 
     // Run STRIDE analysis
@@ -274,7 +241,7 @@ workflow {
     plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
 
     // =========================================
-    // PHASE 7: Run foldseek
+    // PHASE 6: Run foldseek
     // =========================================
 
     // foldseek_create_db(chopped_pdb_ch)
@@ -300,7 +267,7 @@ workflow {
 
     // Transform consensus with structure data
     transformed_consensus_ch = transform_consensus(
-        consensus_filtered_ch.filtered,
+        collected_consensus_ch,
         md5_combined_ch,
         stride_summaries_ch.collect(),
     )
