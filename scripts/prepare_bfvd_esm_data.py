@@ -235,7 +235,7 @@ def check_foldcomp_available():
 def extract_bfvd_id_from_filename(filename):
     """Extract BFVD ID from filename"""
     base_name = Path(filename).stem
-    match = re.match(r'^(MGY[0-9A-Z]+)_', base_name)
+    match = re.match(r'(MGY[0-9A-Z]+)', base_name)
     if match:
         return match.group(1)
     raise ValueError(f"Could not extract BFVD ID from filename: {filename}")
