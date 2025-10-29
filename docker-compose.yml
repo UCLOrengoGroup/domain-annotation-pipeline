@@ -6,17 +6,5 @@ services:
   script:
     build: docker/script
 
-  pdb-tools:
-    build: docker/pdb-tools
-
-  unidoc:
-    build: docker/unidoc
-
-  chainsaw:
-    build: docker/chainsaw
-
-  merizo:
-    build: docker/merizo
-
   ted-tools:
     build: docker/ted-tools
