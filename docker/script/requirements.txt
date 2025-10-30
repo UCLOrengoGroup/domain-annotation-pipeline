@@ -2,3 +2,4 @@ click
 pandas
 biopython
 requests
+pdb-tools
