@@ -18,8 +18,9 @@ process run_ted_segmentation {
 
     script:
     """
-    WORKDIR=\$PWD
-    ${params.run_segmentation_script} -i \$WORKDIR/pdb -o \$WORKDIR/output
-    cd \$WORKDIR
+    TMP_LOCAL_WORKDIR=\$PWD
+    echo "Running TED segmentation on PDB files in \$TMP_LOCAL_WORKDIR/pdb"
+    ${params.run_segmentation_script} -i \$TMP_LOCAL_WORKDIR/pdb -o ./output
+    cd \$TMP_LOCAL_WORKDIR
     """
 }
