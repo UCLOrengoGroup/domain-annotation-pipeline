@@ -8,12 +8,29 @@ T_EVALUE_THRESHOLD = 0.108662
 T_COVERAGE_THRESHOLD = 0.786333
 T_TMSCORE_THRESHOLD = 0.416331
 
+OUTPUT_COLUMNS = [
+    'query_id',
+    'target_id',
+    'evalue',
+    'tmscore',
+    'code',
+    'type',
+    'qcov',
+    'tcov',
+]
+WRITTEN_HEADERS = False
+
 @click.command()
 @click.option('--input', '-i', 'input_file', required=True, type=click.Path(exists=True),
               help='Path to the Foldseek output file.')
+@click.option('--cath', '-c', 'cath_domain_file', required=True, type=click.Path(exists=True),
+              help='Path to CATH domain input file.')
 @click.option('--output', '-o', 'output_file', required=True, type=click.Path(),
               help='File to write the parsed results.')
-def process_foldseek(input_file, output_file):
+def process_foldseek(input_file, cath_domain_file, output_file):
+
+    domain_lookup = parse_cath_domain_list(cath_domain_file)
+
     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
         current_query_hits = []
         current_query_id = None
@@ -23,7 +40,7 @@ def process_foldseek(input_file, output_file):
             if len(recs) < 8:
                 continue
 
-            query_id, target_id, evalue, qlen, tlen, qtmscore, ttmscore = parse_record(recs)
+            query_id, target_id, evalue, qlen, tlen, qtmscore, ttmscore, qcov, tcov = parse_record(recs)
 
             if current_query_id is None:
                 current_query_id = query_id
@@ -35,30 +52,47 @@ def process_foldseek(input_file, output_file):
                 current_query_hits = []
                 current_query_id = query_id
 
-            update_hits(current_query_hits, target_id, evalue, qlen, tlen, qtmscore, ttmscore)
+            update_hits(current_query_hits, domain_lookup, target_id, evalue, qlen, tlen, qtmscore, ttmscore, qcov, tcov)
 
         if current_query_hits:
             best_hit = determine_best_hit(current_query_hits)
             if best_hit:
                 write_best_hit(outfile, current_query_id, best_hit)
 
-def parse_record(record):
-    query_id, target_id = record[0], record[1]
-    evalue, qlen, tlen, qtmscore, ttmscore = map(float, record[3:8])
-    return query_id, target_id, evalue, int(qlen), int(tlen), qtmscore, ttmscore
+def parse_cath_domain_list(cath_list_file):
+    domain_lookup = {}
+    with open(cath_list_file) as fh:
+        for line in fh:
+            domain_id, C, A, T, H, S, O, L, I, D, length, resolution= line.split()
+            sfam_id = ".".join([C, A, T, H])
+            domain_lookup[domain_id] = sfam_id
+    return domain_lookup
 
-def update_hits(current_query_hits, target_id, evalue, qlen, tlen, qtmscore, ttmscore):
+def parse_record(record):
+    if len(record) != 10:
+        raise ValueError(f'failed to get expected columns in foldseek output (got {len(record)} expected 10)')
+    query_id, target_id = record[0], record[1]
+    evalue, qlen, tlen, qtmscore, ttmscore, qcov, tcov = map(float, record[3:])
+    return query_id, target_id, evalue, int(qlen), int(tlen), qtmscore, ttmscore, qcov, tcov
+
+def update_hits(current_query_hits, domain_lookup, target_id, evalue, qlen, tlen, qtmscore, ttmscore, qcov, tcov):
     coverage = min(qlen, tlen) / max(qlen, tlen)
     tmscore = max(qtmscore, ttmscore)
+    if target_id not in domain_lookup:
+        raise KeyError(f"failed to find target id {target_id} in domain lookup")
+    sfam_id = domain_lookup[target_id]
     hit_type = determine_hit_type(evalue, coverage, tmscore)
-    code = determine_code(target_id, hit_type)
+    code = determine_code(target_id, hit_type, sfam_id)
 
     current_query_hits.append({
         'code': code,
+        'target_id': target_id,
         'evalue': evalue,
         'coverage': coverage,
         'tmscore': tmscore,
-        'type': hit_type
+        'type': hit_type,
+        'qcov': qcov,
+        'tcov': tcov,
     })
 
 def determine_hit_type(evalue, coverage, tmscore):
@@ -70,15 +104,16 @@ def determine_hit_type(evalue, coverage, tmscore):
         if tmscore > T_TMSCORE_THRESHOLD:
             return 'N'
         else:
-            return 'No_Hit'
+            return None
 
-def determine_code(target_id, hit_type):
-    cath_code = target_id.split('__')[0]
+def determine_code(target_id, hit_type, sfam_id):
     if hit_type == 'H':
-        return cath_code
-    else:
-        cat_code = '.'.join(cath_code.split('.')[:3])
+        return sfam_id
+    elif hit_type == 'T':
+        cat_code = '.'.join(sfam_id.split('.')[:3])
         return cat_code
+    else:
+        return None
 
 def determine_best_hit(hits):
     h_hits = [hit for hit in hits if hit['type'] == 'H']
@@ -102,7 +137,14 @@ def determine_best_hit(hits):
     return None
 
 def write_best_hit(outfile, query_id, best_hit):
-    outfile.write(f"{query_id} {best_hit['code']} {best_hit['type']}\n")
+    global WRITTEN_HEADERS
+    if WRITTEN_HEADERS is False:
+        outfile.write("\t".join(OUTPUT_COLUMNS) + "\n")
+        WRITTEN_HEADERS = True
+    best_hit['query_id'] = query_id
+    outfile.write(
+        "\t".join([str(best_hit[colname]) for colname in OUTPUT_COLUMNS]) + "\n"
+    )
 
 if __name__ == '__main__':
     process_foldseek() 
