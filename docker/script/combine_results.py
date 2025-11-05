@@ -1,9 +1,6 @@
 import click
 import pandas as pd
 
-#MERIZO_COLS = "af_chain_id nres nres_dom nres_ndr ndom pIoU runtime result".split()
-#UNIDOC_COLS = "af_chain_id result".split()
-#CHAINSAW_COLS = "af_chain_id sequence_md5	nres ndom	result uncertainty time_sec".split()
 MERIZO_COLS = "af_chain_id md5 nres ndom result score".split()
 UNIDOC_COLS = "af_chain_id md5 nres ndom result score".split()
 CHAINSAW_COLS = "af_chain_id md5 nres ndom result score".split()
