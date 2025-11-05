@@ -19,17 +19,17 @@ def parse_domain_boundaries(boundary_str, level):
             domains.append((level, ranges))
     return domains
 
-def run_pdb_selres(pdb_file, start, end, output_file, append=False):
+def run_pdb_selres(pdb_file, domain_ranges, output_file, append=False):
     mode = 'a' if append else 'w'
+
+    chopping_string = ','.join([f"{start}:{end}" for start, end in domain_ranges])
     with open(output_file, mode) as out:
-        result = subprocess.run(
-            ['python', '-m', 'pdbtools.pdb_selres', f'-{start}:{end}', pdb_file],
-            capture_output=True,
+        subprocess.run(
+            ['python', '-m', 'pdbtools.pdb_selres', f'-{chopping_string}', pdb_file],
+            stdout=out,
             text=True,
             check=True
         )
-        lines = [line for line in result.stdout.splitlines() if line.strip() != 'END']
-        out.write('\n'.join(lines) + '\n')
 
 def main(consensus_file, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -53,10 +53,7 @@ def main(consensus_file, output_dir):
 
             for i, (level, domain_ranges) in enumerate(all_domains, start=1):
                 out_file = os.path.join(output_dir, f"{pdb_id}_{i:02}.pdb")
-                for j, (start, end) in enumerate(domain_ranges):
-                    run_pdb_selres(pdb_path, start, end, out_file, append=(j > 0))
-                with open(out_file, 'a') as out_h:
-                    out_h.write('END\n')
+                run_pdb_selres(pdb_path, domain_ranges, out_file)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
