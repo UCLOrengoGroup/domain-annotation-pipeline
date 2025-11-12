@@ -1,3 +1,4 @@
+# new way of calulating md5 with biostructure_to_md5
 #!/usr/bin/env python3
 import sys
 import os

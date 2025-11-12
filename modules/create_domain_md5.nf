@@ -4,10 +4,10 @@ process create_md5 {
 
     input:
     path pdb_files
-    file 'scripts/generate_md5.py'
+    file 'scripts/generate_md5.py' //added a new path.
     
     output:
-    path "*.tsv"    
+    path "*.tsv"
     
     script:
     """
