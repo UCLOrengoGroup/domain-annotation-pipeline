@@ -1,6 +1,6 @@
 process join_plddt_md5 {
     label 'sge_low'
-    publishDir "${params.results_dir}"
+    publishDir "${params.results_dir}", mode: 'copy'
 
     input:
     path plDDT_file

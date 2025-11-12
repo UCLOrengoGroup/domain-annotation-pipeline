@@ -19,6 +19,16 @@ process run_ted_segmentation {
     script:
     """
     ${params.run_segmentation_script_setup}
+    which python3
+    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+    set -x
+    uname -a
+    pwd
+    mkdir output
+    ls -lrta
+    ls -l /dev/nvidia*
+    nvidia-smi -L
+    env | sort
     ${params.run_segmentation_script} -i ./pdb -o ./output
     """
 }
