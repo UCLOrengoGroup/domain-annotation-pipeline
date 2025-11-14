@@ -26,8 +26,8 @@ process run_ted_segmentation {
     pwd
     mkdir output
     ls -lrta
-    ls -l /dev/nvidia*
-    nvidia-smi -L
+    ls -l /dev/nvidia* || true
+    nvidia-smi -L || true
     env | sort
     ${params.run_segmentation_script} -i ./pdb -o ./output
     """
