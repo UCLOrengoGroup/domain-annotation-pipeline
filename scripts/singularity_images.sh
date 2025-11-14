@@ -12,6 +12,7 @@ SIF_DIR="./sif_files"
 
 # Function to build and push Docker images to registry
 push_docker_images() {
+    local specific_service="$1"
     echo "=== PUSHING DOCKER IMAGES ==="
     
     docker login $REMOTE
@@ -20,7 +21,17 @@ push_docker_images() {
     # echo "Building Docker images..."
     # docker compose -f $DOCKER_COMPOSE_FILE build
 
-    for image_alias in $(docker compose -f $DOCKER_COMPOSE_FILE config --services); do
+    # Get list of services to process
+    local services
+    if [ -n "$specific_service" ]; then
+        services="$specific_service"
+        echo "Processing specific service: $specific_service"
+    else
+        services=$(docker compose -f $DOCKER_COMPOSE_FILE config --services)
+        echo "Processing all services"
+    fi
+
+    for image_alias in $services; do
 
         image_name="${DOCKER_STUB}${image_alias}"
         echo "Processing image: ${image_name}"
@@ -47,6 +58,7 @@ push_docker_images() {
 
 # Function to pull Docker images and convert to Singularity SIF files
 pull_singularity_images() {
+    local specific_service="$1"
     echo "=== PULLING TO SINGULARITY SIF FILES ==="
     
     # Create directory for SIF files
@@ -61,7 +73,17 @@ pull_singularity_images() {
         echo "Warning: GHCR_TOKEN not set. May need authentication for private repositories."
     fi
 
-    for image_alias in $(docker compose -f $DOCKER_COMPOSE_FILE config --services); do
+    # Get list of services to process
+    local services
+    if [ -n "$specific_service" ]; then
+        services="$specific_service"
+        echo "Processing specific service: $specific_service"
+    else
+        services=$(docker compose -f $DOCKER_COMPOSE_FILE config --services)
+        echo "Processing all services"
+    fi
+
+    for image_alias in $services; do
 
         image_name="${DOCKER_STUB}${image_alias}"
         IMAGE_TAG_NAME="${REMOTE}/${USERNAME}/${image_name}"
@@ -95,35 +117,42 @@ pull_singularity_images() {
 
 # Function to show usage
 usage() {
-    echo "Usage: $0 [push|pull|both]"
+    echo "Usage: $0 [push|pull|both] [service_name]"
     echo ""
     echo "Commands:"
-    echo "  push  - Build and push Docker images to registry"
-    echo "  pull  - Pull Docker images and convert to Singularity SIF files"
-    echo "  both  - Run both push and pull operations"
+    echo "  push [service]  - Build and push Docker images to registry"
+    echo "  pull [service]  - Pull Docker images and convert to Singularity SIF files"
+    echo "  both [service]  - Run both push and pull operations"
+    echo ""
+    echo "Arguments:"
+    echo "  service_name    - Optional: specific service to process (e.g., cath-af-cli)"
+    echo "                    If omitted, all services will be processed"
     echo ""
     echo "Environment variables:"
     echo "  GHCR_TOKEN - GitHub Container Registry token (required for private repos)"
     echo ""
     echo "Examples:"
-    echo "  $0 push                    # Push Docker images"
-    echo "  $0 pull                    # Pull and convert to SIF"
+    echo "  $0 push                    # Push all Docker images"
+    echo "  $0 push cath-af-cli        # Push only cath-af-cli"
+    echo "  $0 pull                    # Pull and convert all to SIF"
+    echo "  $0 pull cath-af-cli        # Pull and convert only cath-af-cli"
     echo "  GHCR_TOKEN=xxx $0 pull     # Pull with authentication"
-    echo "  $0 both                    # Push then pull"
+    echo "  $0 both                    # Push then pull all"
+    echo "  $0 both cath-af-cli        # Push then pull only cath-af-cli"
 }
 
 # Main script logic
 case "${1:-}" in
     push)
-        push_docker_images
+        push_docker_images "$2"
         ;;
     pull)
-        pull_singularity_images
+        pull_singularity_images "$2"
         ;;
     both)
-        push_docker_images
+        push_docker_images "$2"
         echo ""
-        pull_singularity_images
+        pull_singularity_images "$2"
         ;;
     *)
         usage
