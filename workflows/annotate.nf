@@ -211,10 +211,8 @@ workflow {
     )
 
     //Generate MD5 hashes for domains added a new file and script_ch
-    script_ch = file('scripts/generate_md5.py')
     md5_individual_ch = create_md5(
         chopped_pdb_ch.flatten().collate(params.light_chunk_size),
-        script_ch
     )
 
     md5_combined_ch = md5_individual_ch
