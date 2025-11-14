@@ -3,16 +3,13 @@ process create_md5 {
     container 'domain-annotation-pipeline-cath-af-cli'
 
     input:
-    path pdb_files
-    file 'scripts/generate_md5.py' //added a new path.
+    path "pdb/*"
     
     output:
-    path "*.tsv"
+    path "output.tsv"
     
     script:
     """
-    for pdb_file in ${pdb_files}; do
-        python3 scripts/generate_md5.py "\${pdb_file}"
-    done
+    cath-af-cli pdb-to-md5 -d ./pdb -o output.tsv
     """
 }
