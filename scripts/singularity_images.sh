@@ -38,14 +38,9 @@ push_docker_images() {
         
         IMAGE_TAG_NAME="${REMOTE}/${USERNAME}/${image_name}"
 
-        # Check if the image is already tagged
-        if docker image ls | grep -q "$IMAGE_TAG_NAME"; then
-            echo "Image ${IMAGE_TAG_NAME} already exists, skipping tagging."
-        else
-            # Tag the image
-            echo "Tagging image ${image_name} as ${IMAGE_TAG_NAME}:latest"
-            docker tag "${image_name}:latest" "${IMAGE_TAG_NAME}:latest"
-        fi
+        # Tag the image
+        echo "Tagging image ${image_name} as ${IMAGE_TAG_NAME}:latest"
+        docker tag "${image_name}:latest" "${IMAGE_TAG_NAME}:latest"
 
         echo "Pushing ${IMAGE_TAG_NAME}:latest"
         docker push ${IMAGE_TAG_NAME}:latest
