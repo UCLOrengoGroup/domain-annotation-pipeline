@@ -1,5 +1,4 @@
 services:
-
   cath-af-cli:
     platform: linux/amd64
     build: docker/cath-af-cli
@@ -8,22 +7,14 @@ services:
     platform: linux/amd64
     build: docker/script
 
-  pdb-tools:
-    platform: linux/amd64
-    build: docker/pdb-tools
-
-  unidoc:
-    platform: linux/amd64
-    build: docker/unidoc
-
-  chainsaw:
-    platform: linux/amd64
-    build: docker/chainsaw
-
-  merizo:
-    platform: linux/amd64
-    build: docker/merizo
-
   ted-tools:
     platform: linux/amd64
     build: docker/ted-tools
+
+  foldseek:
+    platform: linux/arm64
+    build:
+      context: https://github.com/steineggerlab/foldseek.git
+      dockerfile: ./Dockerfile
+      args:
+        TARGETARCH: arm64

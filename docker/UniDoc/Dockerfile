@@ -10,7 +10,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
-RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
+#RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
+RUN wget --no-check-certificate https://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc_20250514.tgz && tar xvf UniDoc_20250514.tgz
 
 WORKDIR /app/UniDoc
 

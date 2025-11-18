@@ -3,9 +3,9 @@ process collect_results {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    file 'chainsaw_results.tsv'
-    file 'merizo_results.tsv'
-    file 'unidoc_results.tsv'
+    file 'domain_assignments.chainsaw.tsv' //updated file names
+    file 'domain_assignments.merizo.tsv'
+    file 'domain_assignments.unidoc.tsv'
 
     output:
     file 'domain_assignments.tsv'
@@ -13,9 +13,9 @@ process collect_results {
     script:
     """
     ${params.combine_script} \
-        -m merizo_results.tsv \
-        -u unidoc_results.tsv \
-        -c chainsaw_results.tsv \
+        -m domain_assignments.merizo.tsv \
+        -u domain_assignments.unidoc.tsv \
+        -c domain_assignments.chainsaw.tsv \
         -o domain_assignments.tsv
     """
 }

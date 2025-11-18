@@ -1,18 +1,15 @@
 process create_md5 {
     label 'sge_low'
-    container 'domain-annotation-pipeline-script'
+    container 'domain-annotation-pipeline-cath-af-cli'
 
     input:
-    path pdb_files
+    path "pdb/*"
     
     output:
-    path "*.tsv"
-        
+    path "output.tsv"
+    
     script:
     """
-    for pdb_file in ${pdb_files}; do
-        base_name=\$(basename "\${pdb_file}" .pdb)
-        ${params.md5_script} \${pdb_file} md5_\${pdb_file}.tsv
-    done
+    cath-af-cli pdb-to-md5 -d ./pdb -o output.tsv
     """
 }
