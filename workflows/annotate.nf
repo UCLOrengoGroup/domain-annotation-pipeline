@@ -45,6 +45,7 @@ include { run_filter_consensus } from '../modules/run_filter_consensus.nf'
 
 // Post-processing modules
 include { chop_pdb } from '../modules/chop_pdb.nf'
+include { chop_pdb_from_zip } from '../modules/chop_pdb_from_zip.nf'
 include { create_md5 } from '../modules/create_domain_md5.nf'
 include { run_stride } from '../modules/run_stride.nf'
 include { summarise_stride } from '../modules/summarise_stride.nf'
@@ -204,10 +205,14 @@ workflow {
     // PHASE 4: Post-Consensus Processing
     // =========================================
 
-    // Chop pdbs using pdb files:
-    chopped_pdb_ch = chop_pdb(
-        collected_consensus_ch,
-        filtered_pdb_ch.collect(),
+    // Split consensus file into chunks for parallel processing using native Nextflow
+    consensus_chunks_ch = collected_consensus_ch
+        .splitText(by: params.light_chunk_size, file: true)
+
+    // Chop pdbs in parallel using chunks and extracting from zip on-the-fly
+    chopped_pdb_ch = chop_pdb_from_zip(
+        consensus_chunks_ch,
+        file(params.pdb_zip_file)
     )
 
     //Generate MD5 hashes for domains added a new file and script_ch
