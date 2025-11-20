@@ -173,10 +173,21 @@ workflow {
     // PHASE 2: Domain Prediction
     // =========================================
 
+    // deterministic chunking: collect & sort, then chunk
+    // required for caching, but waits for all PDBs first
     heavy_chunk_ch = filtered_pdb_ch
         .flatten()
-        .collate(params.heavy_chunk_size)
-    
+        .toSortedList { it.toString() } // sort PDB paths deterministically
+        .flatMap { List allFiles ->
+            def chunks = []
+            def setp = params.heavy_chunk_size as int
+            for (int i = 0; i < allFiles.size(); i += setp) {
+                def end = Math.min(i + setp, allFiles.size())
+                chunks << allFiles.subList(i, end)
+            }
+            return chunks
+        }
+
     segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
 
     // =========================================
