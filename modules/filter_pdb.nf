@@ -4,11 +4,11 @@ process filter_pdb {
     container 'domain-annotation-pipeline-pdb-tools'
 
     input:
-    path "*"
+    tuple( val(id), path("*") )
     val min_residues
 
     output:
-    path 'filtered_pdbs/*.pdb', optional: true
+    tuple( val(id), path('filtered_pdbs/*.pdb', optional: true) )
 
     script:
     """

@@ -148,26 +148,45 @@ workflow {
     }
 
     // Create chunked AF IDs for processing
-    af_ids_ch = uniprot_ids_ch
+    chunked_af_ids_ch = uniprot_ids_ch
         .collectFile(
             name: 'all_af_ids.txt',
             newLine: true,
             storeDir: "${params.results_dir}/intermediate",
         )
         .splitText(by: params.chunk_size, file: true)
+        .toList()
+        .flatMap { List chunk_files ->
+            // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
+            chunk_files.withIndex().collect { cf, idx ->
+                [ idx, cf ]
+            }
+        }
 
     // Get taxonomic data
-    uniprot_data_ch = get_uniprot_data(af_ids_ch)
+    uniprot_data_ch = get_uniprot_data(chunked_af_ids_ch)
     taxonomy_ch = uniprot_data_ch.collectFile(
         name: 'all_taxonomy.tsv',
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
-    )
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
+
+    // af_ids_ch.view { "af_ids_ch: " + it }
+    chunked_af_ids_ch.view { "chunked_af_ids_ch: " + it }
 
     // Extract and filter PDB files
-    unfiltered_pdb_ch = extract_pdb_from_zip(af_ids_ch, file(params.pdb_zip_file))
+    // pass only the ID file path channel (af_ids_ch) to the extractor so it receives a path
+    unfiltered_pdb_ch = extract_pdb_from_zip(chunked_af_ids_ch, file(params.pdb_zip_file))
+    // unfiltered_pdb_ch = extract_pdb_from_zip(af_ids_ch, file(params.pdb_zip_file))
     filtered_pdb_ch = filter_pdb(unfiltered_pdb_ch, params.min_chain_residues)
+
+    // TODO: currently the rest of the workflow uses channel without chunk index
+    //       we should feed, this through to all subsequent steps for better
+    //       tracking / debugging / caching
+    af_ids_ch = chunked_af_ids_ch.map { it -> it[1] }
+    filtered_pdb_ch = filtered_pdb_ch.map { it -> it[1] }
 
     // =========================================
     // PHASE 2: Domain Prediction
@@ -180,9 +199,9 @@ workflow {
         .toSortedList { it.toString() } // sort PDB paths deterministically
         .flatMap { List allFiles ->
             def chunks = []
-            def setp = params.heavy_chunk_size as int
-            for (int i = 0; i < allFiles.size(); i += setp) {
-                def end = Math.min(i + setp, allFiles.size())
+            def step = params.heavy_chunk_size as int
+            for (int i = 0; i < allFiles.size(); i += step) {
+                def end = Math.min(i + step, allFiles.size())
                 chunks << allFiles.subList(i, end)
             }
             return chunks
@@ -224,9 +243,9 @@ workflow {
     chopped_pdb_ch = chop_pdb_from_zip(
         consensus_chunks_ch,
         file(params.pdb_zip_file)
-    )
+    ).flatten().collect()
 
-    //Generate MD5 hashes for domains added a new file and script_ch
+    // Generate MD5 hashes for domains added a new file and script_ch
     md5_individual_ch = create_md5(
         chopped_pdb_ch.flatten().collate(params.light_chunk_size),
     )
