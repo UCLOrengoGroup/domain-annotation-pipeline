@@ -1,4 +1,5 @@
 FROM python:3.10-slim
+# FROM pytorch/pytorch:
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -9,7 +10,7 @@ RUN apt-get update \
 
 # RUN git clone https://github.com/psipred/ted-tools.git /app/ted-tools
 ARG CACHE_BUST=3
-RUN git clone --depth 1 --single-branch -b import-unidoc-code https://github.com/sillitoe/ted-tools.git /app/ted-tools
+RUN git clone --depth 1 https://github.com/sillitoe/ted-tools.git /app/ted-tools
 
 WORKDIR /app/ted-tools/ted_consensus_1.0
 
