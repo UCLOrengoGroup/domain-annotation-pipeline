@@ -4,10 +4,10 @@ process run_measure_globularity {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path "pdb/*" //pdb_dir
+    tuple val(id), path("pdb/*") //pdb_dir
 
     output:
-    path "domain_globularity.tsv"
+    tuple val(id), path("domain_globularity.tsv")
     
     script:
     """

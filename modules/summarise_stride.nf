@@ -4,10 +4,10 @@ process summarise_stride {
     publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug // only publish if run in debug mode
 
     input:
-    path stride_files
+    tuple val(id), path(stride_files)
 
     output:
-    path "stride_batch_*.summary"
+    tuple val(id), path("stride_batch_*.summary")
 
     script:
     """

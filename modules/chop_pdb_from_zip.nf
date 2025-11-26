@@ -4,11 +4,11 @@ process chop_pdb_from_zip {
     publishDir "${params.results_dir}/chopped_pdbs" , mode: 'copy'
 
     input:
-    path consensus_chunk
+    tuple val(id), path(consensus_chunk)
     path pdb_zip
 
     output:
-    path 'chopped_pdbs/*.pdb'
+    tuple val(id), path('chopped_pdbs/*.pdb')
     
     script:
     """
