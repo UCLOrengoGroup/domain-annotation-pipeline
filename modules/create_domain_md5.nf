@@ -3,10 +3,10 @@ process create_md5 {
     container 'domain-annotation-pipeline-cath-af-cli'
 
     input:
-    path "pdb/*"
+    tuple val(id), path("pdb/*")
     
     output:
-    path "output.tsv"
+    tuple val(id), path("output.tsv")
     
     script:
     """
