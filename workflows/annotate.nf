@@ -130,6 +130,7 @@ def validateParameters() {
 workflow {
 
     validateParameters()
+    file("${params.results_dir}/consensus_chunks").mkdirs()
 
     // =========================================
     // PHASE 1: Data Preparation
@@ -237,7 +238,10 @@ workflow {
 
     // Split consensus file into chunks for parallel processing using native Nextflow
     consensus_chunks_ch = collected_consensus_ch
-        .splitText(by: params.light_chunk_size, file: true)
+        .splitText(
+            by: params.light_chunk_size, 
+            file: "${params.results_dir}/consensus_chunks"
+        )
         .toList()
         .flatMap { List chunk_files ->
             // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
