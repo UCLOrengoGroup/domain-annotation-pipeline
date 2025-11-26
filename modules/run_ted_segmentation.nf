@@ -31,4 +31,11 @@ process run_ted_segmentation {
     env | sort
     ${params.run_segmentation_script} -i ./pdb -o ./output
     """
+
+
+    stub:
+    """
+    echo "Stub process for run_ted_segmentation"
+    rsync -av /launchDir/fixtures/debug/run_ted_segmentation/ ./
+    """
 }
