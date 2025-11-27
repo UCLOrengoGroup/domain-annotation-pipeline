@@ -35,15 +35,18 @@ jobs:
         run: |
           set -euxo pipefail
           DATE_TAG=$(date -u +%Y%m%d)
+          # normalize owner and branch to lowercase, sanitize branch for tag
+          OWNER_LOWER=$(echo "${GH_OWNER}" | tr '[:upper:]' '[:lower:]')
+          BRANCH_TAG=$(echo "${BRANCH_NAME:-unknown}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
           services=(cath-af-cli script ted-tools)
           for service in "${services[@]}"; do
             echo "Building and pushing ${service} for linux/amd64..."
-            IMAGE_BASE=ghcr.io/${GH_OWNER}/domain-annotation-pipeline-${service}
+            IMAGE_BASE=ghcr.io/${OWNER_LOWER}/domain-annotation-pipeline-${service}
             docker buildx build \
               --platform linux/amd64 \
               --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8} \
               --tag ${IMAGE_BASE}:linux-amd64-${DATE_TAG} \
-              --tag ${IMAGE_BASE}:${BRANCH_NAME}-latest \
+              --tag ${IMAGE_BASE}:${BRANCH_TAG}-latest \
               --tag ${IMAGE_BASE}:linux-amd64-latest \
               --push \
               docker/${service}
