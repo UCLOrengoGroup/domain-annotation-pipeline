@@ -14,7 +14,7 @@ RUN git clone --depth 1 https://github.com/sillitoe/ted-tools.git /app/ted-tools
 
 WORKDIR /app/ted-tools/ted_consensus_1.0
 
-RUN bash setup.sh
+RUN bash setup.sh && python3 -m pip cache purge
 
 # If we want to use the old UniDoc executables
 # RUN TED_VERSION=1.0 bash setup.sh
