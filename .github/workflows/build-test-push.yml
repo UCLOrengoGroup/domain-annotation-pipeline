@@ -14,21 +14,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker Compose images
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push SGE-compatible images to GHCR (linux/amd64)
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GIT_SHA: ${{ github.sha }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          for service in $(docker compose -f docker-compose.yml config --services); do
-            echo "Building and pushing $service individually (to avoid space issues)..."
-            docker compose -f docker-compose.yml build $service
-            docker compose -f docker-compose.yml push $service
-            # clean up local images to save space
-            docker rmi -f $(docker images -q)
+          set -euxo pipefail
+          DATE_TAG=$(date -u +%Y%m%d)
+          services=(cath-af-cli script ted-tools)
+          for service in "${services[@]}"; do
+            echo "Building and pushing ${service} for linux/amd64..."
+            IMAGE_BASE=ghcr.io/${GH_OWNER}/domain-annotation-pipeline-${service}
+            docker buildx build \
+              --platform linux/amd64 \
+              --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8} \
+              --tag ${IMAGE_BASE}:linux-amd64-${DATE_TAG} \
+              --tag ${IMAGE_BASE}:${BRANCH_NAME}-latest \
+              --tag ${IMAGE_BASE}:linux-amd64-latest \
+              --push \
+              docker/${service}
+            docker buildx rm || true
           done
 
-      - name: Logout from Docker Hub
-        run: docker logout
+      - name: Logout from GHCR
+        run: docker logout ghcr.io || true
