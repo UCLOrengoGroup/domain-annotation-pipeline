@@ -2,8 +2,9 @@
  * Collect the 3 filtered FILENAMES from filter_domains.py, save them into a csv file as a check and pass names onto runGetConsensus.
  */
 process collect_chopping_names {
-
-    publishDir './results' , mode: 'copy'
+    label 'sge_low'
+    publishDir "${params.results_dir}"
+    
     input:
         path filtered_file
 

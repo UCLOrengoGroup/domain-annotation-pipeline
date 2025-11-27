@@ -7,6 +7,7 @@ RUN apt-get update && \
     cmake \
     git \
     wget \
+    procps \
     zlib1g-dev \
     make && \
     rm -rf /var/lib/apt/lists/*

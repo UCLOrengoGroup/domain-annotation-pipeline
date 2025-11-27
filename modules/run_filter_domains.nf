@@ -4,9 +4,9 @@
  * to: 
  */
 process run_filter_domains {
+    label 'sge_low'
     container 'domain-annotation-pipeline-ted-tools'
-    stageInMode 'copy'
-    publishDir './results' , mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
         path chopping_file

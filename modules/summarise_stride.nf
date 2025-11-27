@@ -1,16 +1,17 @@
 process summarise_stride {
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
-    publishDir './results/stride', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug // only publish if run in debug mode
 
     input:
-    path '*.stride'
+    tuple val(id), path(stride_files)
 
     output:
-    path "stride.summary"
+    tuple val(id), path("stride_batch_*.summary")
 
     script:
     """
-    ${params.stride_summary_script} -o stride.summary -d . --suffix .stride
+    batch_id=\$(date +%s%N | cut -b1-13)
+    ${params.stride_summary_script} -o stride_batch_\${batch_id}.summary -d . --suffix .stride
     """
 }

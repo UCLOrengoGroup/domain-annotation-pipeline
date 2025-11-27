@@ -1,19 +1,16 @@
 process run_plddt {
-    container 'domain-annotation-pipeline-cath-af-cli'
-    stageInMode 'copy'
-    publishDir 'results' , mode: 'copy'
+    label 'sge_low'
+    container 'domain-annotation-pipeline-script'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path cif_files
-    path af_ids
+    tuple val(id), path("pdb/*")
 
     output:
-    path "domain_plddt_and_lur.tsv" 
+    tuple val(id), path("domain_avg_plddt.tsv")
 
     script:
     """
-    mkdir -p cifs
-    cp ${cif_files} cifs/
-    ${params.plddt_script} --cif_in_dir cifs --id_file ${af_ids} --plddt_stats_file domain_plddt_and_lur.tsv
+    ${params.plddt_script} ./pdb -o domain_avg_plddt.tsv
     """
 }

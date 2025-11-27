@@ -1,0 +1,20 @@
+services:
+  cath-af-cli:
+    platform: linux/amd64
+    build: docker/cath-af-cli
+
+  script:
+    platform: linux/amd64
+    build: docker/script
+
+  ted-tools:
+    platform: linux/amd64
+    build: docker/ted-tools
+
+  foldseek:
+    platform: linux/arm64
+    build:
+      context: https://github.com/steineggerlab/foldseek.git
+      dockerfile: ./Dockerfile
+      args:
+        TARGETARCH: arm64

@@ -1,16 +1,15 @@
 process create_md5 {
-    container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
-    //publishDir 'results/md5', mode: 'copy'
+    label 'sge_low'
+    container 'domain-annotation-pipeline-cath-af-cli'
 
     input:
-    path pdb_file
+    tuple val(id), path("pdb/*")
     
     output:
-    path "*.tsv"
-        
+    tuple val(id), path("output.tsv")
+    
     script:
     """
-    ${params.md5_script} ${pdb_file} md5_${pdb_file}.tsv
+    cath-af-cli pdb-to-md5 -d ./pdb -o output.tsv
     """
 }

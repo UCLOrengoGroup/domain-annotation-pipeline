@@ -1,15 +1,15 @@
 process get_uniprot_data {
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
 
     input:
-    val uniprot_id
+    tuple val(id), path(uniprot_id_file)
 
     output:
-    path "uniprot_*.tsv"
+    tuple val(id), path("uniprot_data.tsv")
 
     script:
     """
-    ${params.fetch_uniprot_script} -a ${uniprot_id} -o uniprot_${uniprot_id}.tsv
+    ${params.fetch_uniprot_script} -i ${uniprot_id_file} -o uniprot_data.tsv
     """
 }

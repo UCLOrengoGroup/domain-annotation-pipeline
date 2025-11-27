@@ -3,17 +3,15 @@ FROM --platform=linux/amd64 python:3.10
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-  vim wget gzip tar git\
+  vim wget gzip tar git procps \
   && apt-get autoremove -yqq --purge \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
-# [2025/07/01] This is here because the above link is not currently working
-RUN wget https://github.com/sillitoe/unidoc/raw/refs/heads/main/UniDoc.tgz && tar xvf UniDoc.tgz
-RUN cp UniDoc/bin/UniDoc_structure /app/UniDoc/UniDoc_struct
+#RUN wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz && tar xvf UniDoc.tgz
+RUN wget --no-check-certificate https://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc_20250514.tgz && tar xvf UniDoc_20250514.tgz
 
 WORKDIR /app/UniDoc
 

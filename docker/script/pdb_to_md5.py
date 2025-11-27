@@ -4,10 +4,27 @@ import sys
 import os
 import hashlib
 from Bio.PDB import PDBParser, PPBuilder
+from io import StringIO
 
 def get_sequence_from_pdb(pdb_file, chain_id=None):
     parser = PDBParser(QUIET=True)
-    structure = parser.get_structure("PDB_structure", pdb_file)
+
+    with open(pdb_file, "r") as f:
+        lines = f.readlines()
+
+    # Keep MODEL/ENDMDL only if they are at the start or end — remove others
+    cleaned_lines = []
+    for i, line in enumerate(lines):
+        if line.startswith("MODEL") or line.startswith("ENDMDL"):
+            if i == 0 or i == len(lines) - 1:
+                cleaned_lines.append(line)
+            else:
+                continue
+        else:
+            cleaned_lines.append(line)
+
+    pdb_string = "".join(cleaned_lines)
+    structure = parser.get_structure("PDB_structure", StringIO(pdb_string))
     ppb = PPBuilder()
 
     for model in structure:

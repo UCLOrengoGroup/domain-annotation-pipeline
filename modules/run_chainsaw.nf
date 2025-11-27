@@ -1,6 +1,7 @@
 process run_chainsaw {
+    label 'sge_gpu_high'
     container 'domain-annotation-pipeline-chainsaw'
-    stageInMode 'copy'
+
     input:
     path '*'
 

@@ -1,17 +1,16 @@
 process run_measure_globularity {
+    label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
-    stageInMode 'copy'
-    publishDir 'results' , mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path pdb_dir
+    tuple val(id), path("pdb/*") //pdb_dir
 
     output:
-    path "domain_globularity.tsv"
-    //mkdir -p chopped_pdbs  then   cp ${pdb_files} chopped_pdbs/
+    tuple val(id), path("domain_globularity.tsv")
     
     script:
     """
-    ${params.globularity_script} --pdb_dir ${pdb_dir} --domain_globularity domain_globularity.tsv
+    ${params.globularity_script} --pdb_dir ./pdb --domain_globularity domain_globularity.tsv
     """
 }

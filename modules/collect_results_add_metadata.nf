@@ -1,12 +1,12 @@
 process collect_results_final {
+    label 'sge_low'
     container 'domain-annotation-pipeline-script'
-    stageInMode 'copy'
-    publishDir './results', mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
     file 'transformed_consensus.tsv'
     file 'domain_globularity.tsv'
-    file 'domain_plddt_and_lur.tsv'
+    file 'plddt_with_md5.tsv'
     file 'all_taxonomy.tsv'
 
     output:
@@ -17,7 +17,7 @@ process collect_results_final {
     ${params.combine_final_script} \
         -t transformed_consensus.tsv \
         -g domain_globularity.tsv \
-        -p domain_plddt_and_lur.tsv \
+        -p plddt_with_md5.tsv \
         -x all_taxonomy.tsv \
         -o final_results.tsv
     """
