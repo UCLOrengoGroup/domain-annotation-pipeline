@@ -85,7 +85,7 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         # re-scale plddt to 0-1
         plddt = merged['avg_plddt']/100
         # calculate consensus marker
-        Consensus = np.where((merged['consensus_level']== "high"), 1.0, 0.5)
+        consensus = np.where((merged['consensus_level']== "high"), 1.0, 0.5)
         # calculate globularity marker
         globularity = np.where((merged['packing_density'] >= 10.333) & (merged['normed_radius_gyration'] < 0.356), 1.0, 0.0)
         # calculate an EV value
@@ -98,7 +98,7 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         # calculate the final: Q-score
         merged['Q_score'] = round(100 * (
             4 * min_cov
-            + Consensus
+            + consensus
             + globularity
             + plddt
             + ev
