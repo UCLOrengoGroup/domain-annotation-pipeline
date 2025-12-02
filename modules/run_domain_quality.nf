@@ -1,13 +1,16 @@
-process run_quality_checks {
+process run_domain_quality {
+    label 'sge_gpu_high'
+    container 'domain-annotation-pipeline-ted-tools'
 
     input:
-    path "pdb/*.pdb"
+    tuple val(id), path("chopped_pdbs/*")
 
     output:
-    path "domain_quality.csv"
+    tuple val(id), path("domain_quality.csv")
 
     script:
     """
-    ${params.domain_quality_script} -d pdb/ -o domain_quality.csv
+    ${params.domain_quality_script_setup}
+    ${params.domain_quality_script} -d chopped_pdbs/ -o domain_quality.csv
     """
 }

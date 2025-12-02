@@ -52,6 +52,7 @@ include { summarise_stride } from '../modules/summarise_stride.nf'
 include { transform_consensus } from '../modules/transform.nf'
 
 // Analysis modules
+include { run_domain_quality } from '../modules/run_domain_quality.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { run_plddt } from '../modules/run_plddt.nf'
 include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
@@ -289,6 +290,13 @@ workflow {
     ) { it -> it[1] } // use file name to collect
 
     // chopped_pdb_ch.view { "chopped_pdb_ch: " + it }
+    domain_quality_ch = run_domain_quality(chopped_pdb_ch)
+
+    collected_domain_quality_ch = domain_quality_ch.collectFile(
+        name: "all_domain_quality.csv",
+        storeDir: params.results_dir,
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
 
     // Run pLDDT analysis
     plddt_ch = run_plddt(chopped_pdb_ch)
@@ -301,6 +309,7 @@ workflow {
     ) { it -> it[1] } // use file name to collect
 
     collected_plddt_with_md5_ch = join_plddt_md5(collected_plddt_ch, collected_md5_ch)
+
 
     // =========================================
     // PHASE 6: Run foldseek
@@ -345,10 +354,17 @@ workflow {
     )
 
     // Generate final comprehensive results
+    collect_results_script_ch = Channel.fromPath(
+        "${workflow.projectDir}/../docker/script/combine_results_final.py", 
+        checkIfExists: true
+    )
+    collect_results_script_ch.view { "collect_results_script_ch: " + it }
     final_results_ch = collect_results_final(
+        collect_results_script_ch,
         transformed_consensus_ch,
         collected_globularity_ch,
         collected_plddt_with_md5_ch,
+        collected_domain_quality_ch,
         collected_taxonomy_ch,
     )
 
