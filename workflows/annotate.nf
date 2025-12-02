@@ -307,7 +307,13 @@ workflow {
 
     // Create the query DB from the chopped pdbs
     //foldseek_create_db(chopped_pdbs_collected)
-    foldseek_create_db(chopped_pdb_ch.flatten().collate(params.light_chunk_size),)
+    chopped_pdb_ch
+        .map { id, files -> files }  // ← Extract just the files
+        .flatten()
+        .collate(params.light_chunk_size)
+        .set { pdb_chunks }
+
+    foldseek_create_db(pdb_chunks)
 
     // Define the target (CATH) database using config: params.target_db - .flatten()
     ch_target_db = Channel.fromPath(params.target_db)
@@ -352,6 +358,7 @@ workflow {
         collected_chainsaw_ch,
         collected_merizo_ch,
         collected_unidoc_ch,
+        
     )
 
     // Generate final comprehensive results
@@ -360,6 +367,7 @@ workflow {
         collected_globularity_ch,
         collected_plddt_with_md5_ch,
         collected_taxonomy_ch,
+        foldseek_ch,
     )
 
     // =========================================
