@@ -130,6 +130,7 @@ def validateParameters() {
 workflow {
 
     validateParameters()
+    file("${params.results_dir}/consensus_chunks").mkdirs()
 
     // =========================================
     // PHASE 1: Data Preparation
@@ -148,26 +149,45 @@ workflow {
     }
 
     // Create chunked AF IDs for processing
-    af_ids_ch = uniprot_ids_ch
+    chunked_af_ids_ch = uniprot_ids_ch
         .collectFile(
             name: 'all_af_ids.txt',
             newLine: true,
             storeDir: "${params.results_dir}/intermediate",
         )
         .splitText(by: params.chunk_size, file: true)
+        .toList()
+        .flatMap { List chunk_files ->
+            // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
+            chunk_files.withIndex().collect { cf, idx ->
+                [ idx, cf ]
+            }
+        }
 
     // Get taxonomic data
-    uniprot_data_ch = get_uniprot_data(af_ids_ch)
-    taxonomy_ch = uniprot_data_ch.collectFile(
+    uniprot_data_ch = get_uniprot_data(chunked_af_ids_ch)
+    collected_taxonomy_ch = uniprot_data_ch.collectFile(
         name: 'all_taxonomy.tsv',
         keepHeader: true,
         newLine: true,
         storeDir: params.results_dir,
-    )
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
+
+    // af_ids_ch.view { "af_ids_ch: " + it }
+    // chunked_af_ids_ch.view { "chunked_af_ids_ch: " + it }
 
     // Extract and filter PDB files
-    unfiltered_pdb_ch = extract_pdb_from_zip(af_ids_ch, file(params.pdb_zip_file))
+    // pass only the ID file path channel (af_ids_ch) to the extractor so it receives a path
+    unfiltered_pdb_ch = extract_pdb_from_zip(chunked_af_ids_ch, file(params.pdb_zip_file))
+    // unfiltered_pdb_ch = extract_pdb_from_zip(af_ids_ch, file(params.pdb_zip_file))
     filtered_pdb_ch = filter_pdb(unfiltered_pdb_ch, params.min_chain_residues)
+
+    // TODO: currently the rest of the workflow uses channel without chunk index
+    //       we should feed, this through to all subsequent steps for better
+    //       tracking / debugging / caching
+    af_ids_ch = chunked_af_ids_ch.map { it -> it[1] }
+    filtered_pdb_ch = filtered_pdb_ch.map { it -> it[1] }
 
     // =========================================
     // PHASE 2: Domain Prediction
@@ -180,9 +200,9 @@ workflow {
         .toSortedList { it.toString() } // sort PDB paths deterministically
         .flatMap { List allFiles ->
             def chunks = []
-            def setp = params.heavy_chunk_size as int
-            for (int i = 0; i < allFiles.size(); i += setp) {
-                def end = Math.min(i + setp, allFiles.size())
+            def step = params.heavy_chunk_size as int
+            for (int i = 0; i < allFiles.size(); i += step) {
+                def end = Math.min(i + step, allFiles.size())
                 chunks << allFiles.subList(i, end)
             }
             return chunks
@@ -218,47 +238,68 @@ workflow {
 
     // Split consensus file into chunks for parallel processing using native Nextflow
     consensus_chunks_ch = collected_consensus_ch
-        .splitText(by: params.light_chunk_size, file: true)
+        .splitText(
+            by: params.light_chunk_size, 
+            file: "${params.results_dir}/consensus_chunks"
+        )
+        .toList()
+        .flatMap { List chunk_files ->
+            // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
+            chunk_files.withIndex().collect { cf, idx ->
+                [ idx, cf ]
+            }
+        }
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly
     chopped_pdb_ch = chop_pdb_from_zip(
         consensus_chunks_ch,
         file(params.pdb_zip_file)
     )
-    // foldseek must wait for all chopped files in a single collected form
-    //chopped_pdbs_collected = chopped_pdb_ch.collect()
-    //chopped_pdbs_collected = chopped_pdb_ch.buffer(size: params.chunk_size, remainder: true)
-    
-    //Generate MD5 hashes for domains added a new file and script_ch
-    md5_individual_ch = create_md5(
-        chopped_pdb_ch.flatten().collate(params.light_chunk_size),
-    )
-
-    md5_combined_ch = md5_individual_ch
-        .flatten()
+    // Generate MD5 hashes for domains added a new file and script_ch
+    md5_chunks_ch = create_md5(chopped_pdb_ch)
+    collected_md5_ch = md5_chunks_ch
         .collectFile(
             name: "all_md5.tsv",
-            sort: true,
             storeDir: params.results_dir,
-        )
+            sort: { it -> it[0] } // sort by chunk id
+        ) { it -> it[1] } // use file name to collect
 
     // =========================================
     // PHASE 5: Structure Analysis
     // =========================================
 
     // Run STRIDE analysis
-    stride_results_ch = run_stride(chopped_pdb_ch)
-    stride_summaries_ch = summarise_stride(
-        stride_results_ch.flatten().collate(params.light_chunk_size)
-    )
-    // Changed to light chunksize
-
+    stride_results_ch = run_stride(chopped_pdb_ch)    
+    stride_summaries_ch = summarise_stride(stride_results_ch)
+    collected_stride_summaries_ch = stride_summaries_ch.collectFile(
+        name: "all_stride_summaries.tsv",
+        storeDir: params.results_dir,
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
+    
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch)
+    // globularity_ch.view { "globularity_ch: " + it }
+    // no flatten as only a single file per chunk
+    collected_globularity_ch = globularity_ch.collectFile(
+        name: "all_domain_globularity.tsv",
+        storeDir: params.results_dir,
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
+
+    // chopped_pdb_ch.view { "chopped_pdb_ch: " + it }
 
     // Run pLDDT analysis
     plddt_ch = run_plddt(chopped_pdb_ch)
-    plddt_with_md5_ch = join_plddt_md5(plddt_ch, md5_combined_ch)
+    // plddt_ch.view { "plddt_ch: " + it }
+    // no flatten as only a single file per chunk
+    collected_plddt_ch = plddt_ch.collectFile(
+        name: "all_plddt.tsv",
+        storeDir: params.results_dir,
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> it[1] } // use file name to collect
+
+    collected_plddt_with_md5_ch = join_plddt_md5(collected_plddt_ch, collected_md5_ch)
 
     // =========================================
     // PHASE 6: Run foldseek
@@ -299,12 +340,12 @@ workflow {
     // Transform consensus with structure data
     transformed_consensus_ch = transform_consensus(
         collected_consensus_ch,
-        md5_combined_ch,
-        stride_summaries_ch.collect(),
+        collected_md5_ch,
+        collected_stride_summaries_ch,
     )
 
     // Generate AF domain IDs
-    af_domain_ids_ch = run_AF_domain_id(transformed_consensus_ch)
+    // af_domain_ids_ch = run_AF_domain_id(transformed_consensus_ch)
 
     // Collect intermediate results
     intermediate_results_ch = collect_results(
@@ -316,12 +357,10 @@ workflow {
     // Generate final comprehensive results
     final_results_ch = collect_results_final(
         transformed_consensus_ch,
-        globularity_ch,
-        plddt_with_md5_ch,
-        taxonomy_ch,
-        foldseek_ch,
+        collected_globularity_ch,
+        collected_plddt_with_md5_ch,
+        collected_taxonomy_ch,
     )
-
 
     // =========================================
     // PHASE 9: Output Generation

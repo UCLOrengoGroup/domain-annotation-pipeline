@@ -4,10 +4,10 @@ process run_plddt {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path "pdb/*"
+    tuple val(id), path("pdb/*")
 
     output:
-    path "domain_avg_plddt.tsv" 
+    tuple val(id), path("domain_avg_plddt.tsv")
 
     script:
     """
