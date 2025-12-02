@@ -225,7 +225,10 @@ workflow {
         consensus_chunks_ch,
         file(params.pdb_zip_file)
     )
-
+    // foldseek must wait for all chopped files in a single collected form
+    //chopped_pdbs_collected = chopped_pdb_ch.collect()
+    //chopped_pdbs_collected = chopped_pdb_ch.buffer(size: params.chunk_size, remainder: true)
+    
     //Generate MD5 hashes for domains added a new file and script_ch
     md5_individual_ch = create_md5(
         chopped_pdb_ch.flatten().collate(params.light_chunk_size),
@@ -261,22 +264,33 @@ workflow {
     // PHASE 6: Run foldseek
     // =========================================
 
-    // foldseek_create_db(chopped_pdb_ch)
+    // Create the query DB from the chopped pdbs
+    //foldseek_create_db(chopped_pdbs_collected)
+    foldseek_create_db(chopped_pdb_ch.flatten().collate(params.light_chunk_size),)
 
-    // // Define the target (CATH) database using config: params.target_db
-    // ch_target_db = Channel.fromPath(params.target_db)
+    // Define the target (CATH) database using config: params.target_db - .flatten()
+    ch_target_db = Channel.fromPath(params.target_db)
+    // Run foldseek search on the output of process create_foldseek_db and the CATH database
+    foldseek_run_foldseek(foldseek_create_db.out.query_db_dir, ch_target_db)
 
-    // // Run foldseek search on the output of process create_foldseek_db and the CATH database
-    // foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
+    // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
+    //foldseek_run_convertalis(foldseek_create_db.out.query_db_dir, ch_target_db, foldseek_run_foldseek.out.result_db_dir)
+    foldseek_run_convertalis(foldseek_run_foldseek.out.search_results, ch_target_db)
 
-    // // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
-    // foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
-
-    // // Parse output - first create a channel from the location of the python script
-    // ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
-
-    // // Now pass the convertalis .m8 and the python script as intput to the parsing process
-    // foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
+    // Parse output - first create a channel from the location of the python script
+    ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
+    ch_lookup_file = Channel.fromPath(params.lookup_file, checkIfExists: true)
+    
+    // Now pass the convertalis .m8 and the python script as intput to the parsing process
+    foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_lookup_file, ch_parser_script)
+    foldseek_ch = foldseek_process_results.out.foldseek_parsed_results
+        .collectFile(
+        name: 'foldseek_parsed_results.tsv',
+        keepHeader: true,
+        skip: 1,
+        sort: true,
+        storeDir: "${params.results_dir}"
+        )
 
     // =========================================
     // PHASE 8: Final Assembly
@@ -305,6 +319,7 @@ workflow {
         globularity_ch,
         plddt_with_md5_ch,
         taxonomy_ch,
+        foldseek_ch,
     )
 
 

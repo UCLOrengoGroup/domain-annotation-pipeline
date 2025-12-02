@@ -1,28 +1,23 @@
 process foldseek_run_convertalis {
-
+    tag "chunk_${task.index}"
     publishDir "results/convertalis", mode: 'copy'
     
     input:
-    path query_db
-    path target_db
-    path result_db_dir
+    tuple path(query_db_dir), path(result_db_dir)
+    each path(target_db)
+    //path result_db_dir
 
     output:
-    path "foldseek_output.m8", emit: m8_output
-    path "versions.yml", emit: versions
+    path "foldseek_output_${task.index}.m8", emit: m8_output
 
     script:
     """
     foldseek convertalis \\
-        ${query_db} \\
-        ${target_db} \\
-        foldseek_output_db \\
-        foldseek_output.m8 \\
+        ${query_db_dir}/query_db \\
+        ${target_db}/cath_v4_4_0_s95_db \\
+        ${result_db_dir}/foldseek_output_db \\
+        foldseek_output_${task.index}.m8 \\
         --format-output "query,target,fident,evalue,qlen,tlen,qtmscore,ttmscore,qcov,tcov"
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        foldseek: \$(foldseek version | head -n1 | sed 's/foldseek //')
-    END_VERSIONS
+    
     """
 }

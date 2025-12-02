@@ -1,23 +1,20 @@
 process foldseek_create_db {
+    tag "chunk_${task.index}"
     publishDir "results", mode: 'copy'
     
     input:
     path pdb_files
 
     output:
-    path "database_dir/query_db", emit: query_db
-    path "versions.yml", emit: versions
+    path "database_dir_${task.index}", emit: query_db_dir
 
     script:
     """
-    mkdir -p database_dir
+    mkdir -p input_pdbs
+    cp ${pdb_files} input_pdbs/
+    mkdir -p database_dir_${task.index}
     foldseek createdb \\
-        ${pdb_files} \\
-        database_dir/query_db
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        foldseek: \$(foldseek version | head -n1 | sed 's/foldseek //')
-    END_VERSIONS
+        input_pdbs \\
+        database_dir_${task.index}/query_db
     """
     }

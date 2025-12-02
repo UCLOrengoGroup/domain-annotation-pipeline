@@ -8,6 +8,7 @@ process collect_results_final {
     file 'domain_globularity.tsv'
     file 'plddt_with_md5.tsv'
     file 'all_taxonomy.tsv'
+    file 'foldseek_parsed_results.tsv'
 
     output:
     file 'final_results.tsv'
@@ -19,6 +20,7 @@ process collect_results_final {
         -g domain_globularity.tsv \
         -p plddt_with_md5.tsv \
         -x all_taxonomy.tsv \
+        -f foldseek_parsed_results.tsv \
         -o final_results.tsv
     """
 }

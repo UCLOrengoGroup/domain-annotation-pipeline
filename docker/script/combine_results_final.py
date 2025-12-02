@@ -7,6 +7,7 @@
 
 import pandas as pd
 import argparse
+import numpy as np
 
 def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_path, output_path):
     # Read input files
@@ -72,6 +73,37 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
     merged = merged.drop(columns=['uniprot_core', 'join_key'], errors='ignore')
     print("Columns in merged:", merged.columns.tolist())
 
+    # Add calculation of Q-score here
+    if 'foldseek_evalue' in merged.columns:
+        # Convert necessary fields back to numeric datatypes
+        merged['avg_plddt'] = pd.to_numeric(merged['avg_plddt']) #, errors="coerce")
+        merged['foldseek_query_cov'] = pd.to_numeric(merged['foldseek_query_cov']) #, errors="coerce")
+        merged['foldseek_target_cov'] = pd.to_numeric(merged['foldseek_target_cov']) #, errors="coerce")
+        merged['foldseek_evalue'] = pd.to_numeric(merged['foldseek_evalue']) #, errors="coerce")
+        merged['packing_density'] = pd.to_numeric(merged['packing_density'])
+        merged['normed_radius_gyration'] = pd.to_numeric(merged['normed_radius_gyration'])
+        # re-scale plddt to 0-1
+        plddt = merged['avg_plddt']/100
+        # calculate consensus marker
+        Consensus = np.where((merged['consensus_level']== "high"), 1.0, 0.5)
+        # calculate globularity marker
+        globularity = np.where((merged['packing_density'] >= 10.333) & (merged['normed_radius_gyration'] < 0.356), 1.0, 0.0)
+        # calculate an EV value
+        factor = np.log(0.5) / 0.01
+        evalue = merged['foldseek_evalue']
+        ev_raw = np.exp(factor * evalue.fillna(0))
+        ev = np.where(evalue.notna(), np.maximum(ev_raw, 0.5), 0.5)
+        # calculate the minimum qcov, tcov value
+        min_cov = np.minimum(merged['foldseek_query_cov'].fillna(0), merged['foldseek_target_cov'].fillna(0))
+        # calculate the final: Q-score
+        merged['Q_score'] = round(100 * (
+            4 * min_cov
+            + Consensus
+            + globularity
+            + plddt
+            + ev
+        ) / 8.0, 2)
+
     # Reorder columns to match expected output
     final_cols = [
         'uniprot_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain',
@@ -84,9 +116,10 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         'cath_label',
         'foldseek_match_type',
         'foldseek_query_cov',
-        'foldseek_target_cov'
+        'foldseek_target_cov',
+        'Q_score'
     ]
-
+    
     # Only keep columns that exist in the merged DataFrame
     final_cols = [col for col in final_cols if col in merged.columns]
 

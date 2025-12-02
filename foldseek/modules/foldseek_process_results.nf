@@ -1,20 +1,17 @@
 process foldseek_process_results {
-    publishDir "results/processed", mode: 'copy'
+    tag "chunk_${task.index}"
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
     path m8_file
-    path parser_script
+    each path(lookup_file)
+    each path(parser_script)
 
     output:
-    path "parsed_results.txt", emit: parsed_results
-    path "versions.yml", emit: versions
+    path "foldseek_parsed_results_${task.index}.tsv", emit: foldseek_parsed_results
 
     script:
     """
-    python3 ${parser_script} -i ${m8_file} -o parsed_results.txt
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python3 --version | sed 's/Python //')
-    END_VERSIONS
+    python3 ${parser_script} -i ${m8_file} -c ${lookup_file} -o foldseek_parsed_results_${task.index}.tsv
     """
 }

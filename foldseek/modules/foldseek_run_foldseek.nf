@@ -1,35 +1,31 @@
 process foldseek_run_foldseek {
+    tag "chunk_${task.index}"
     publishDir "results", mode: 'copy'
     
     input:
-    path query_db
-    path target_db
+    path query_db_dir
+    each path(target_db)
 
     output:
-    path "result_db_dir/foldseek_output_db", emit: result_db
-    path "versions.yml", emit: versions
+    tuple path(query_db_dir), path("result_db_dir_${task.index}"), emit: search_results
 
     script:
     """
     mkdir -p tmp_foldseek
-    mkdir -p result_db_dir
+    mkdir -p result_db_dir_${task.index}
     foldseek search \\
-        ${query_db} \\
-        ${target_db} \\
-        result_db_dir/foldseek_output_db \\
+        ${query_db_dir}/query_db \\
+        ${target_db}/cath_v4_4_0_s95_db \\
+        result_db_dir_${task.index}/foldseek_output_db \\
         tmp_foldseek \\
         --cov-mode 5 \\
         --alignment-type 2 \\
-        -e 0.108662 \\
+        -e 0.476641 \\
         -s 10 \\
-        -c 0.366757 \\
+        -c 0.459063 \\
         -a
     
     rm -rf tmp_foldseek
-    
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        foldseek: \$(foldseek version | head -n1 | sed 's/foldseek //')
-    END_VERSIONS
+
     """
 }
