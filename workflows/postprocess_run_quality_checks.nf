@@ -16,22 +16,17 @@ nextflow.enable.dsl = 2
 // Output directory
 params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
-params.base_code_dir = '/SAN/orengolab/bfvd/code'
-params.run_quality_checks_script = "${params.base_code_dir}/domain-annotation-pipeline/docker/scripts/run_quality_checks.py"
-params.chopped_pdb_dir = "${params.base_code_dir}/2025_09_03.post_processing/example_pdbs"
-params.dom_path = "${params.base_code_dir}/dom/dom"
-params.dom_qual_path = "${params.base_code_dir}/domqual/pytorch_foldclass_pred_dir.py"
-params.chunk_size = 100
+// params.chunk_size = 10000
+// params.all_chopped_pdbs_zip = "${params.results_dir}/all_chopped_pdbs.zip"
+params.chunk_size = 5
+params.all_chopped_pdbs_zip = "${baseDir}/../assets/bfvd/test_bfvd.zip"
+
+include { run_domain_quality_from_zip } from '../modules/run_domain_quality_from_zip.nf'
+
 
 def validateParameters() {
-    if (!file(params.chopped_pdb_dir).exists()) {
-        error "Chopped PDB directory does not exist: ${params.chopped_pdb_dir}"
-    }
-    if (!file(params.dom_path).exists()) {
-        error "Domain path does not exist: ${params.dom_path}"
-    }
-    if (!file(params.dom_qual_path).exists()) {
-        error "Domain quality path does not exist: ${params.dom_qual_path}"
+    if (!file(params.all_chopped_pdbs_zip).exists()) {
+        error "Chopped PDB zip file does not exist: ${params.all_chopped_pdbs_zip}"
     }
     log.info(
         """
@@ -39,7 +34,7 @@ def validateParameters() {
     Postprocess Pipeline
     ==============================================
     Project name        : ${params.project_name}
-    PDB dir             : ${params.chopped_pdb_dir}
+    PDB zip file        : ${params.all_chopped_pdbs_zip}
     Main chunk size     : ${params.chunk_size}
     Work dir            : ${params.work_dir}
     Results dir         : ${params.results_dir}
@@ -49,19 +44,24 @@ def validateParameters() {
     )
 }
 
-process run_quality_checks {
+process files_from_zip {
+    label 'local'
+
+    container 'domain-annotation-pipeline-ted-tools'
 
     input:
-    path "pdb/*.pdb"
+    path(pdb_zip)
 
     output:
-    path "quality.csv"
+    path('pdb_list.txt')
 
     script:
     """
-    python3 ${params.run_quality_checks_script} -d pdb/ -o quality.csv --dom-path ${params.dom_path} --dom-qual-path ${params.dom_qual_path}
+    set -e
+    zipinfo -1 ${pdb_zip} > pdb_list.txt
     """
 }
+
 
 // ===============================================
 // MAIN WORKFLOW
@@ -71,13 +71,44 @@ workflow {
 
     validateParameters()
 
-    // get PDBs from chopped PDB directory
+    // get PDB zip
     // chunk into chunk_size
-    chopped_pdb_ch = Channel.fromPath("${params.chopped_pdb_dir}/*.pdb")
-        .buffer(size: params.chunk_size, remainder: true)
+    chopped_pdb_zip_ch = Channel.value( file("${params.all_chopped_pdbs_zip}") )
 
-    quality_results_ch = run_quality_checks(chopped_pdb_ch)
-    quality_summary_ch = quality_results_ch.flatten().collect()
+    chopped_pdb_zip_ch = chopped_pdb_zip_ch.map { it -> println "Chopped PDB zip: ${it}"; it }
 
-    quality_summary_ch.view()
+    all_files_ch = files_from_zip(chopped_pdb_zip_ch)
+
+    // log.info "All chopped PDB filenames: ${all_files_ch.size()} files"
+
+    chunked_files_ch = all_files_ch
+        .collectFile(
+            name: 'all_chopped_filenames.txt',
+            newLine: true,
+            storeDir: "${params.results_dir}/intermediate",
+        )
+        .splitText(by: params.chunk_size, file: true)
+        .toList()
+        .flatMap { List chunk_files ->
+            // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
+            chunk_files.withIndex().collect { cf, idx ->
+                [ idx, cf ]
+            }
+        }
+
+    // chunked_files_ch = chunked_files_ch.map { it -> println "Chunked IDs: ${it[0]} with ${it[1].size()} files:\n ${it[1]}"; it }
+
+    quality_results_ch = run_domain_quality_from_zip(chunked_files_ch, chopped_pdb_zip_ch)
+
+    // quality_results_ch = quality_results_ch.map { it -> println "Domain quality result chunk: ${it[0]} -> ${it[1]}"; it }
+
+    collected_quality_ch = quality_results_ch.collectFile(
+        name: 'postprocess_all_domain_quality.csv',
+        keepHeader: true,
+        skip: 1, 
+        storeDir: params.results_dir,
+        sort: { it -> it[0] } // sort by chunk id
+    ) { it -> file(it[1]) } // use file name to collect
+
+    collected_quality_ch.map { it -> println "Collected domain quality results: ${it}" }
 }
