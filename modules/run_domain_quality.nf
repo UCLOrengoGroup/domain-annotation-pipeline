@@ -12,5 +12,6 @@ process run_domain_quality {
     """
     ${params.domain_quality_script_setup}
     ${params.domain_quality_script} -d chopped_pdbs/ -o domain_quality.csv
+    perl -i.bak -pe 's/\\r\\n/\\n/g' domain_quality.csv
     """
 }
