@@ -294,6 +294,8 @@ workflow {
 
     collected_domain_quality_ch = domain_quality_ch.collectFile(
         name: "all_domain_quality.csv",
+        keepHeader: true,
+        skip: 1,
         storeDir: params.results_dir,
         sort: { it -> it[0] } // sort by chunk id
     ) { it -> it[1] } // use file name to collect
