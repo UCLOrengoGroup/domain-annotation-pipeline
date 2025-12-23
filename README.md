@@ -28,6 +28,7 @@ docker compose build
 ## Running the workflow
 
 The following runs the `debug` mode, which uses test data included in this repository.
+Note: either docker or singularity must be supplied as one the the profile arguments.
 
 ```
 nextflow run workflows/annotate.nf -profile debug,docker
@@ -69,7 +70,8 @@ Pass these parameters to nextflow:
 ```bash
 nextflow run workflows/annotate.nf \
     --pdb_zip_file pdb_files.zip \
-    --uniprot_csv_file ids.txt
+    --uniprot_csv_file ids.txt \
+    -profile debug,docker
 ```
 
 ## Running on HPC
