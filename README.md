@@ -73,6 +73,16 @@ nextflow run workflows/annotate.nf \
     --uniprot_csv_file ids.txt \
     -profile debug,docker
 ```
+Also useful to note:
+The output directory can be controlled with the ```--project_name``` parameter. 
+The three chunk size parameters control how many IDs are processed concurrently at different stages of the workflow:
+
+```bash
+--chunk_size
+--light_chunk_size
+--heavy_chunk_size
+```
+The parameter ```--heavy_chunk_size``` is used for the run_ted_segmentation process and should be set with maximum memory limits in mind.
 
 ## Running on HPC
 
