@@ -241,7 +241,7 @@ workflow {
     consensus_chunks_ch = collected_consensus_ch
         .splitText(
             by: params.light_chunk_size, 
-            file: "${params.results_dir}/consensus_chunks"
+            file: "${params.results_dir}/consensus_chunks/consensus_chunks"
         )
         .toList()
         .flatMap { List chunk_files ->
