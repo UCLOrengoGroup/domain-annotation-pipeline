@@ -1,5 +1,4 @@
 process foldseek_run_convertalis {
-    tag "chunk_${id}"
     publishDir "results/convertalis", mode: 'copy'
     
     input:

@@ -1,5 +1,4 @@
 process foldseek_create_db {
-    tag "chunk_${id}"
     publishDir "results", mode: 'copy'
     
     input:

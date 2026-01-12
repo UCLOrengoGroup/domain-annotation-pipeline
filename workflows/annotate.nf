@@ -143,12 +143,6 @@ workflow {
     // =========================================
     // PHASE 0: Setup Foldseek Assets
     // =========================================
-    // old code
-    //if (params.fetch_foldseek_assets && params.auto_fetch_foldseek_assets) {
-    //    fetch_foldseek_assets(
-    //        params.foldseek_assets_dir,
-    //        params.foldseek_db_url,
-    //        params.foldseek_lookup_url)}
     if (params.fetch_foldseek_assets && params.auto_fetch_foldseek_assets) {
         // Download missing assets - process will check and only download if needed
         fetch_foldseek_assets()

@@ -1,5 +1,4 @@
 process foldseek_run_foldseek {
-    tag "chunk_${id}"
     publishDir "results", mode: 'copy'
     
     input:
@@ -8,6 +7,8 @@ process foldseek_run_foldseek {
 
     output:
     tuple val(id), path(query_db_dir), path("result_db_dir"), emit: search_results
+    //0.476641
+    //0.459063
 
     script:
     """
@@ -20,9 +21,9 @@ process foldseek_run_foldseek {
         tmp_foldseek \\
         --cov-mode 5 \\
         --alignment-type 2 \\
-        -e 0.476641 \\
+        -e ${params.T_EVALUE_THRESHOLD} \\
         -s 10 \\
-        -c 0.459063 \\
+        -c ${params.H_COVERAGE_THRESHOLD} \\
         -a
     
     rm -rf tmp_foldseek

@@ -1,5 +1,4 @@
 process foldseek_process_results {
-    tag "chunk_${id}"
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
