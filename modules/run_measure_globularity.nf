@@ -7,10 +7,13 @@ process run_measure_globularity {
     tuple val(id), path("pdb/*") //pdb_dir
 
     output:
-    tuple val(id), path("domain_globularity.tsv")
-    
+    tuple val(id), path("domain_globularity.tsv") 
+
+    // added an intermediate tmp file and dos2unix to recognise end of lines correctly.
     script:
     """
-    ${params.globularity_script} --pdb_dir ./pdb --domain_globularity domain_globularity.tsv
+    ${params.globularity_script} --pdb_dir ./pdb --domain_globularity domain_globularity_tmp.tsv
+    dos2unix domain_globularity_tmp.tsv > domain_globularity.tsv || tr -d '\\r' < domain_globularity_tmp.tsv > domain_globularity.tsv
     """
+    
 }
