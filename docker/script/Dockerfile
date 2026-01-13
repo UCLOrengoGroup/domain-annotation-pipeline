@@ -13,6 +13,6 @@ COPY requirements.txt requirements.txt
 
 RUN pip install --upgrade pip wheel && pip install -r requirements.txt
 
-COPY ./*.py .
+COPY ./*.py ./
 
 CMD ["/bin/bash"]

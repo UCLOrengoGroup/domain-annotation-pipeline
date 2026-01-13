@@ -4,12 +4,15 @@
 # 13/6/25 For BFVD: dropped all the construct_model_id and construct_af_domain_id functions.
 # The pLDDT match is now done with md5.
 # 20/8/25 added domain id to the join along with md5 to prevent duplication for identical domains.
+# 1/12/25 added domain quality data merge
 
 import pandas as pd
 import argparse
 import numpy as np
 
-def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_path, output_path):
+QUALITY_COLNAMES=['PDB_ID', 'Chain_ID', 'Sequence_MD5', 'Dom_Domain_Count', 'DomQual']
+QUALITY_DTYPES={'PDB_ID': str, 'Chain_ID': str, 'Sequence_MD5': str, 'Dom_Domain_Count': str, 'DomQual': float}
+def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_path, taxonomy_path, output_path):
     # Read input files
     transform_df = pd.read_csv(transform_path, sep='\t', dtype=str)
     glob_df = pd.read_csv(globularity_path, sep='\t', dtype=str)
@@ -18,6 +21,13 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         names=['plddt_id', 'avg_plddt', 'md5'],
         dtype={'plddt_id': str, 'md5': str}
     )
+    quality_df = pd.read_csv(quality_path,
+                             dtype=QUALITY_DTYPES,)
+
+    quality_df['md5'] = quality_df['Sequence_MD5']
+    quality_df['domqual'] = quality_df['DomQual']
+    quality_df['dom_single_domain'] = quality_df['Dom_Domain_Count']
+    quality_df['join_key'] = quality_df['PDB_ID'] + "_" + quality_df['md5']
 
     # Strip whitespace
     transform_df['md5_domain'] = transform_df['md5_domain'].str.strip()
@@ -41,6 +51,9 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
     )
     merged = merged.merge(
         plddt_df[['join_key', 'avg_plddt']], on='join_key', how='left'
+    )
+    merged = merged.merge(
+        quality_df[['join_key', 'domqual', 'dom_single_domain']], on='join_key', how='left'
     )
 
     # Extract uniprot_id core for taxonomy merge
@@ -85,7 +98,7 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         # re-scale plddt to 0-1
         plddt = merged['avg_plddt']/100
         # calculate consensus marker
-        Consensus = np.where((merged['consensus_level']== "high"), 1.0, 0.5)
+        consensus = np.where((merged['consensus_level']== "high"), 1.0, 0.5)
         # calculate globularity marker
         globularity = np.where((merged['packing_density'] >= 10.333) & (merged['normed_radius_gyration'] < 0.356), 1.0, 0.0)
         # calculate an EV value
@@ -98,7 +111,7 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         # calculate the final: Q-score
         merged['Q_score'] = round(100 * (
             4 * min_cov
-            + Consensus
+            + consensus
             + globularity
             + plddt
             + ev
@@ -110,6 +123,7 @@ def run(transform_path, globularity_path, plddt_path, foldseek_path, taxonomy_pa
         'num_segments', 'num_helix_strand_turn', 'num_helix', 'num_strand', 'num_helix_strand',
         'num_turn', 'packing_density', 'normed_radius_gyration', 'avg_plddt',
         'proteome_id', 'tax_common_name', 'tax_scientific_name', 'tax_lineage', 
+        'domqual', 'dom_single_domain',
         'foldseek_match_id',
         'foldseek_evalue',
         'foldseek_tmscore',
@@ -131,9 +145,10 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--transform', required=True)
     parser.add_argument('-g', '--globularity', required=True)
     parser.add_argument('-p', '--plddt', required=True)
+    parser.add_argument('-q', '--quality', required=True)
     parser.add_argument('-f', '--foldseek', required=False)
     parser.add_argument('-x', '--taxonomy', required=False)
     parser.add_argument('-o', '--output', required=True)
     args = parser.parse_args()
 
-    run(args.transform, args.globularity, args.plddt, args.foldseek, args.taxonomy, args.output)
+    run(args.transform, args.globularity, args.plddt, args.quality, args.foldseek, args.taxonomy, args.output)
