@@ -1,4 +1,6 @@
 process foldseek_process_results {
+    label 'sge_low'
+    container 'domain-annotation-pipeline-script' 
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:

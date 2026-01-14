@@ -1,4 +1,6 @@
 process foldseek_run_convertalis {
+    label 'sge_low'
+    container 'domain-annotation-pipeline-foldseek'
     publishDir "results/convertalis", mode: 'copy'
     
     input:

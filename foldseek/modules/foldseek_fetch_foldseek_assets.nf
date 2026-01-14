@@ -1,10 +1,6 @@
 process fetch_foldseek_assets {
+    label 'sge_low'
     storeDir "${params.foldseek_assets_dir}"
-
-    //input:
-    //val assets_dir
-    //val db_url
-    //val lookup_url
     
     output:
     path "foldseekdb", emit: target_db

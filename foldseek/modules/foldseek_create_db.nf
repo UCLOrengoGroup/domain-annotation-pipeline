@@ -1,4 +1,6 @@
 process foldseek_create_db {
+    label 'sge_low'
+    container 'domain-annotation-pipeline-foldseek'
     publishDir "results", mode: 'copy'
     
     input:

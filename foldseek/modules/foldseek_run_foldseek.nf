@@ -1,4 +1,6 @@
 process foldseek_run_foldseek {
+    label 'sge_low'
+    container 'domain-annotation-pipeline-foldseek'
     publishDir "results", mode: 'copy'
     
     input:
@@ -7,8 +9,6 @@ process foldseek_run_foldseek {
 
     output:
     tuple val(id), path(query_db_dir), path("result_db_dir"), emit: search_results
-    //0.476641
-    //0.459063
 
     script:
     """
