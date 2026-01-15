@@ -128,6 +128,13 @@ def validateParameters() {
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
     Debug mode          : ${params.debug}
+    ----------------------------------------------
+    Foldseek Configuration Information
+    ----------------------------------------------
+    Target database URL : ${params.foldseek_db_url.tokenize('/')[-1]}
+    Lookup file URL     : ${params.foldseek_lookup_url.tokenize('/')[-1]}
+    Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
+    Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
     ==============================================
     """.stripIndent()
     )
@@ -144,8 +151,8 @@ workflow {
     // =========================================
     // PHASE 0: Setup Foldseek Assets
     // =========================================
-    if (params.fetch_foldseek_assets && params.auto_fetch_foldseek_assets) {
-        // Download missing assets - process will check and only download if needed
+    if (params.auto_fetch_foldseek_assets) {
+        // Download missing assets - process will check for missing or URL change and download as required
         fetch_foldseek_assets()
         ch_target_db   = fetch_foldseek_assets.out.target_db
         ch_lookup_file = fetch_foldseek_assets.out.lookup_file
