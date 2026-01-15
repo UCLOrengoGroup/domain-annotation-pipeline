@@ -11,11 +11,9 @@ process foldseek_create_db {
 
     script:
     """
-    mkdir -p input_pdbs
-    cp ${pdb_files} input_pdbs/
     mkdir -p database_dir
     ${params.foldseek_exec} createdb \\
-        input_pdbs \\
+        . \\
         database_dir/query_db
     """
     }
