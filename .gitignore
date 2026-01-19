@@ -126,13 +126,4 @@ assets/af_ids_1000.txt
 assets/uniprot_ids_100.csv
 assets/uniprot_1000.txt
 assets/bfvd.zip
-foldseek/assets/DB/cath_ssg5_fs_db
-foldseek/assets/DB/cath_ssg5_fs_db.index
-foldseek/assets/DB/cath_ssg5_fs_db.lookup
-foldseek/assets/DB/cath_ssg5_fs_db.source
-foldseek/assets/DB/cath_ssg5_fs_db_ca
-foldseek/assets/DB/cath_ssg5_fs_db_ca.index
-foldseek/assets/DB/cath_ssg5_fs_db_h
-foldseek/assets/DB/cath_ssg5_fs_db_h.index
-foldseek/assets/DB/cath_ssg5_fs_db_ss
-foldseek/assets/DB/cath_ssg5_fs_db_ss.index
+foldseek/assets/
