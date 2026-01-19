@@ -154,8 +154,9 @@ workflow {
     if (params.auto_fetch_foldseek_assets) {
         // Download missing assets - process will check for missing or URL change and download as required
         fetch_foldseek_assets()
-        ch_target_db   = fetch_foldseek_assets.out.target_db
-        ch_lookup_file = fetch_foldseek_assets.out.lookup_file
+        // Convert storeDir outputs to value channels with explicit absolute paths
+        ch_target_db   = Channel.value(file("${params.cache_dir}/foldseekdb"))
+        ch_lookup_file = Channel.value(file("${params.cache_dir}/CathDomainList.S95.v4.4.0"))
     } else {
         // Use existing files directly
         if (!file(params.target_db).exists()) {
@@ -164,8 +165,8 @@ workflow {
         if (!file(params.lookup_file).exists()) {
             error("Foldseek lookup_file not found: ${params.lookup_file}")
         }
-        ch_target_db = Channel.value(params.target_db)
-        ch_lookup_file = Channel.value(params.lookup_file)
+        ch_target_db = Channel.value(file(params.target_db))
+        ch_lookup_file = Channel.value(file(params.lookup_file))
     }
 
     file("${params.results_dir}/consensus_chunks").mkdirs()
@@ -372,8 +373,8 @@ workflow {
     fs_m8_ch = foldseek_run_convertalis(fs_search_ch, ch_target_db)
 
     // Parse output - first create a channel from the location of the python and look_up scripts
-    ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
-    //ch_lookup_file = Channel.fromPath(params.lookup_file), checkIfExists: true) - already exists in Phase 0
+    ch_parser_script = Channel.value(file(params.parser_script))
+    //ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
     
     // Now pass the convertalis .m8 and python script as intputs to the parsing process
     fs_parsed_ch = foldseek_process_results(fs_m8_ch, ch_lookup_file, ch_parser_script)
