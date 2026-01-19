@@ -5,7 +5,7 @@ process foldseek_run_foldseek {
     
     input:
     tuple val(id), path(query_db_dir)
-    each path(target_db)
+    path(target_db)
 
     output:
     tuple val(id), path(query_db_dir), path("result_db_dir"), emit: search_results

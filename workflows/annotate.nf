@@ -158,8 +158,14 @@ workflow {
         ch_lookup_file = fetch_foldseek_assets.out.lookup_file
     } else {
         // Use existing files directly
-        ch_target_db = Channel.fromPath(params.target_db, checkIfExists: true)
-        ch_lookup_file = Channel.fromPath(params.lookup_file, checkIfExists: true)
+        if (!file(params.target_db).exists()) {
+            error("Foldseek target_db file not found: ${params.target_db}")
+        }
+        if (!file(params.lookup_file).exists()) {
+            error("Foldseek lookup_file not found: ${params.lookup_file}")
+        }
+        ch_target_db = Channel.value(params.target_db)
+        ch_lookup_file = Channel.value(params.lookup_file)
     }
 
     file("${params.results_dir}/consensus_chunks").mkdirs()

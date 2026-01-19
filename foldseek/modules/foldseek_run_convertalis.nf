@@ -5,7 +5,7 @@ process foldseek_run_convertalis {
     
     input:
     tuple val(id), path(query_db_dir), path(result_db_dir)
-    each path(target_db)
+    path(target_db)
 
     output:
     tuple val(id), path("foldseek_output.m8"), emit: m8_output

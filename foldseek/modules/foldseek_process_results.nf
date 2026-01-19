@@ -5,8 +5,8 @@ process foldseek_process_results {
 
     input:
     tuple val(id), path(m8_file)
-    each path(lookup_file)
-    each path(parser_script)
+    path(lookup_file)
+    path(parser_script)
 
     output:
     tuple val(id), path("foldseek_parsed_results.tsv"), emit: foldseek_parsed_results
