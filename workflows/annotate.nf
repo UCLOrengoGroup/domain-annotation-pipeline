@@ -152,13 +152,15 @@ workflow {
     // PHASE 0: Setup Foldseek Assets
     // =========================================
     if (params.auto_fetch_foldseek_assets) {
-        // Download missing assets - process will check for missing or URL change and download as required
+        // Download foldseek assets: storeDir + fetch_foldseek_assets checks for missing files or change in URL and downloads if required
         fetch_foldseek_assets()
-        // Convert storeDir outputs to value channels with explicit absolute paths
-        ch_target_db   = Channel.value(file("${params.cache_dir}/foldseekdb"))
-        ch_lookup_file = Channel.value(file("${params.cache_dir}/CathDomainList.S95.v4.4.0"))
+        // Use process outputs - Nextflow ensures fetch completes before downstream processes start
+        ch_target_db = fetch_foldseek_assets.out.target_db
+        ch_lookup_file = fetch_foldseek_assets.out.lookup_file
+
     } else {
-        // Use existing files directly
+        // Manual mode - specifies custom CATH database file locations
+        // Usage: set --auto_fetch_foldseek_assets to false and --target_db /path/to/db --lookup_file /path/to/lookup
         if (!file(params.target_db).exists()) {
             error("Foldseek target_db file not found: ${params.target_db}")
         }
