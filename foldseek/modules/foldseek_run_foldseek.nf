@@ -16,7 +16,7 @@ process foldseek_run_foldseek {
     mkdir -p result_db_dir
     ${params.foldseek_exec} search \\
         ${query_db_dir}/query_db \\
-        ${target_db}/cath_v4_4_0_s95_db \\
+        ${target_db}/${params.foldseek_db_name} \\
         result_db_dir/foldseek_output_db \\
         tmp_foldseek \\
         --cov-mode 5 \\

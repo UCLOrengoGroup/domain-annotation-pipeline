@@ -14,7 +14,7 @@ process foldseek_run_convertalis {
     """
     ${params.foldseek_exec} convertalis \\
         ${query_db_dir}/query_db \\
-        ${target_db}/cath_v4_4_0_s95_db \\
+        ${target_db}/${params.foldseek_db_name} \\
         ${result_db_dir}/foldseek_output_db \\
         foldseek_output.m8 \\
         --format-output "query,target,fident,evalue,qlen,tlen,qtmscore,ttmscore,qcov,tcov"
