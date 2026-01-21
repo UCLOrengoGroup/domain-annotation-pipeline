@@ -63,6 +63,7 @@ include { collect_results_final } from '../modules/collect_results_add_metadata.
 include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
 
 // Foldseek modules
+include { fetch_foldseek_assets } from '../foldseek/modules/foldseek_fetch_foldseek_assets.nf'
 include { foldseek_create_db } from '../foldseek/modules/foldseek_create_db.nf'
 include { foldseek_run_foldseek } from '../foldseek/modules/foldseek_run_foldseek.nf'
 include { foldseek_run_convertalis } from '../foldseek/modules/foldseek_run_convertalis.nf'
@@ -103,7 +104,15 @@ def validateParameters() {
     if (!params.pdb_zip_file || !file(params.pdb_zip_file).exists()) {
         error("PDB ZIP file not found: ${params.pdb_zip_file}")
     }
+    // Foldseek asset existence check
+    def db_exists     = params.target_db   && file(params.target_db).exists() // Check existence of target_db
+    def lookup_exists = params.lookup_file && file(params.lookup_file).exists() // Check existence of lookup_file
+    params.fetch_foldseek_assets = !(db_exists && lookup_exists) // Decide whether assets must be fetched
 
+    // Foldseek-specific validation
+    if (!params.parser_script || !file(params.parser_script).exists()) {
+        error("Foldseek parser_script not found: ${params.parser_script}")
+    }
     log.info(
         """
     ==============================================
@@ -119,6 +128,13 @@ def validateParameters() {
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
     Debug mode          : ${params.debug}
+    ----------------------------------------------
+    Foldseek Configuration Information
+    ----------------------------------------------
+    Target database URL : ${params.foldseek_db_url.tokenize('/')[-1]}
+    Lookup file URL     : ${params.foldseek_lookup_url.tokenize('/')[-1]}
+    Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
+    Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
     ==============================================
     """.stripIndent()
     )
@@ -129,8 +145,32 @@ def validateParameters() {
 // ===============================================
 
 workflow {
-
+    
     validateParameters()
+    
+    // =========================================
+    // PHASE 0: Setup Foldseek Assets
+    // =========================================
+    if (params.auto_fetch_foldseek_assets) {
+        // Download foldseek assets: storeDir + fetch_foldseek_assets checks for missing files or change in URL and downloads if required
+        fetch_foldseek_assets()
+        // Use process outputs - Nextflow ensures fetch completes before downstream processes start
+        ch_target_db = fetch_foldseek_assets.out.target_db
+        ch_lookup_file = fetch_foldseek_assets.out.lookup_file
+
+    } else {
+        // Manual mode - specifies custom CATH database file locations
+        // Usage: set --auto_fetch_foldseek_assets to false and --target_db /path/to/db --lookup_file /path/to/lookup
+        if (!file(params.target_db).exists()) {
+            error("Foldseek target_db file not found: ${params.target_db}")
+        }
+        if (!file(params.lookup_file).exists()) {
+            error("Foldseek lookup_file not found: ${params.lookup_file}")
+        }
+        ch_target_db = Channel.value(file(params.target_db))
+        ch_lookup_file = Channel.value(file(params.lookup_file))
+    }
+
     file("${params.results_dir}/consensus_chunks").mkdirs()
 
     // =========================================
@@ -256,12 +296,13 @@ workflow {
         consensus_chunks_ch,
         file(params.pdb_zip_file)
     )
-
     // Generate MD5 hashes for domains added a new file and script_ch
     md5_chunks_ch = create_md5(chopped_pdb_ch)
     collected_md5_ch = md5_chunks_ch
         .collectFile(
             name: "all_md5.tsv",
+            keepHeader: true, // This was added to remove mid-file headers but there was a problem with end of lines
+            skip: 1,          // see the create_md5 process for details.
             storeDir: params.results_dir,
             sort: { it -> it[0] } // sort by chunk id
         ) { it -> it[1] } // use file name to collect
@@ -275,6 +316,8 @@ workflow {
     stride_summaries_ch = summarise_stride(stride_results_ch)
     collected_stride_summaries_ch = stride_summaries_ch.collectFile(
         name: "all_stride_summaries.tsv",
+        keepHeader: true,
+        skip: 1,
         storeDir: params.results_dir,
         sort: { it -> it[0] } // sort by chunk id
     ) { it -> it[1] } // use file name to collect
@@ -285,6 +328,8 @@ workflow {
     // no flatten as only a single file per chunk
     collected_globularity_ch = globularity_ch.collectFile(
         name: "all_domain_globularity.tsv",
+        keepHeader: true,
+        skip: 1,
         storeDir: params.results_dir,
         sort: { it -> it[0] } // sort by chunk id
     ) { it -> it[1] } // use file name to collect
@@ -317,25 +362,36 @@ workflow {
     // PHASE 6: Run foldseek
     // =========================================
 
-    // foldseek_create_db(chopped_pdb_ch)
+    // Create the query DB from the chopped pdbs channel
+    foldseek_create_db(chopped_pdb_ch) // New - run stright off chopped_pdb chunked output
 
-    // // Define the target (CATH) database using config: params.target_db
-    // ch_target_db = Channel.fromPath(params.target_db)
+    // Define the target (CATH) database channel
+    //ch_target_db = Channel.fromPath(params.target_db) - already exists in Phase 0
+    
+    // Run foldseek search on the output of process create_foldseek_db and the CATH database
+    fs_search_ch = foldseek_run_foldseek(foldseek_create_db.out.query_db_dir, ch_target_db)
+    
+    // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
+    fs_m8_ch = foldseek_run_convertalis(fs_search_ch, ch_target_db)
 
-    // // Run foldseek search on the output of process create_foldseek_db and the CATH database
-    // foldseek_run_foldseek(foldseek_create_db.out.query_db, ch_target_db)
-
-    // // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
-    // foldseek_run_convertalis(foldseek_create_db.out.query_db, ch_target_db, foldseek_run_foldseek.out.result_db)
-
-    // // Parse output - first create a channel from the location of the python script
-    // ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
-
-    // // Now pass the convertalis .m8 and the python script as intput to the parsing process
-    // foldseek_process_results(foldseek_run_convertalis.out.m8_output, ch_parser_script)
+    // Parse output - first create a channel from the location of the python and look_up scripts
+    ch_parser_script = Channel.value(file(params.parser_script))
+    //ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
+    
+    // Now pass the convertalis .m8 and python script as intputs to the parsing process
+    fs_parsed_ch = foldseek_process_results(fs_m8_ch, ch_lookup_file, ch_parser_script)
+    
+    // Finally combine results together with a similar collectFile statement as used above
+    foldseek_ch = fs_parsed_ch.collectFile( 
+        name: 'foldseek_parsed_results.tsv',
+        keepHeader: true,
+        skip: 1,
+        storeDir: params.results_dir,
+        sort: { it -> it[0] }
+    ) { it -> it[1] }
 
     // =========================================
-    // PHASE 8: Final Assembly
+    // PHASE 7: Final Assembly
     // =========================================
 
     // Transform consensus with structure data
@@ -353,6 +409,7 @@ workflow {
         collected_chainsaw_ch,
         collected_merizo_ch,
         collected_unidoc_ch,
+        
     )
 
     // Generate final comprehensive results
@@ -368,10 +425,11 @@ workflow {
         collected_plddt_with_md5_ch,
         collected_domain_quality_ch,
         collected_taxonomy_ch,
+        foldseek_ch,
     )
 
     // =========================================
-    // PHASE 9: Output Generation
+    // PHASE 8: Output Generation
     // =========================================
 
     // Ensure final outputs are saved

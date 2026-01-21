@@ -10,6 +10,7 @@ process collect_results_final {
     file 'plddt_with_md5.tsv'
     file 'domain_quality.csv'
     file 'all_taxonomy.tsv'
+    file 'foldseek_parsed_results.tsv'
 
     output:
     file 'final_results.tsv'
@@ -22,6 +23,7 @@ process collect_results_final {
         -p plddt_with_md5.tsv \
         -q domain_quality.csv \
         -x all_taxonomy.tsv \
+        -f foldseek_parsed_results.tsv \
         -o final_results.tsv
     """
 }

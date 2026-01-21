@@ -84,6 +84,14 @@ The three chunk size parameters control how many IDs are processed concurrently 
 ```
 The parameter ```--heavy_chunk_size``` is used for the run_ted_segmentation process and should be set with maximum memory limits in mind.
 
+## Inclusion of Foldseek
+
+The pipeline now runs ```Foldseek``` on output domains automatically.
+
+It will download the CATH databases required (currently V4.4.0 s95) to this folder ```../foldseek/assets/<url hash>```.
+
+If the database URL is changed or the Foldseek assets are missing or deleted, please run the pipeline without -resume to ensure correct download behaviour.
+
 ## Running on HPC
 
 ## Install (with singularity)

@@ -1,20 +1,18 @@
 process foldseek_process_results {
-    publishDir "results/processed", mode: 'copy'
+    label 'sge_low'
+    container 'domain-annotation-pipeline-script' 
+    publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    path m8_file
-    path parser_script
+    tuple val(id), path(m8_file)
+    path(lookup_file)
+    path(parser_script)
 
     output:
-    path "parsed_results.txt", emit: parsed_results
-    path "versions.yml", emit: versions
+    tuple val(id), path("foldseek_parsed_results.tsv"), emit: foldseek_parsed_results
 
     script:
     """
-    python3 ${parser_script} -i ${m8_file} -o parsed_results.txt
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: \$(python3 --version | sed 's/Python //')
-    END_VERSIONS
+    python3 ${parser_script} -i ${m8_file} -c ${lookup_file} -o foldseek_parsed_results.tsv
     """
 }

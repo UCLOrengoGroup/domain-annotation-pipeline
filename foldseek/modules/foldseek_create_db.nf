@@ -1,23 +1,19 @@
 process foldseek_create_db {
+    label 'sge_low'
+    container 'domain-annotation-pipeline-foldseek'
     publishDir "results", mode: 'copy'
     
     input:
-    path pdb_files
+    tuple val(id), path(pdb_files)
 
     output:
-    path "database_dir/query_db", emit: query_db
-    path "versions.yml", emit: versions
+    tuple val(id), path("database_dir"), emit: query_db_dir
 
     script:
     """
     mkdir -p database_dir
-    foldseek createdb \\
-        ${pdb_files} \\
+    ${params.foldseek_exec} createdb \\
+        . \\
         database_dir/query_db
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        foldseek: \$(foldseek version | head -n1 | sed 's/foldseek //')
-    END_VERSIONS
     """
     }
