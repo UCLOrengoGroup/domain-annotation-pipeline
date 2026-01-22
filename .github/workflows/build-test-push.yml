@@ -6,7 +6,10 @@ on:
     branches:
       - main
       - add-docker-action
-
+permissions:
+  contents: read
+  packages: write
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,7 +41,7 @@ jobs:
           # normalize owner and branch to lowercase, sanitize branch for tag
           OWNER_LOWER=$(echo "${GH_OWNER}" | tr '[:upper:]' '[:lower:]')
           BRANCH_TAG=$(echo "${BRANCH_NAME:-unknown}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
-          services=(cath-af-cli script ted-tools)
+          services=(cath-af-cli script ted-tools foldseek)
           for service in "${services[@]}"; do
             echo "Building and pushing ${service} for linux/amd64..."
             IMAGE_BASE=ghcr.io/${OWNER_LOWER}/domain-annotation-pipeline-${service}

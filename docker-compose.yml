@@ -11,3 +11,7 @@ services:
   ted-tools:
     image: domain-annotation-pipeline-ted-tools
     build: docker/ted-tools
+
+  foldseek:
+    image: domain-annotation-pipeline-foldseek
+    build: docker/foldseek

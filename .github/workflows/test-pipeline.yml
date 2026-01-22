@@ -1,0 +1,39 @@
+# Runs an autotest of the pipeline 
+name: Pipeline test (30 TED test IDs)
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java (for Nextflow)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/nextflow
+          nextflow -version
+
+      - name: Run pipeline (docker,git_actions_test)
+        env:
+          NXF_ANSI_LOG: "false"
+        run: |
+          set -euxo pipefail
+          rm -rf work .nextflow* results/git_actions_test || true
+          nextflow run workflows/annotate.nf -profile docker,git_actions_test
+
+      - name: Compare final_results.tsv to expected
+        run: |
+          set -euxo pipefail
+          diff -u assets/test_ids/final_results.tsv results/git_actions_test/final_results.tsv
+
