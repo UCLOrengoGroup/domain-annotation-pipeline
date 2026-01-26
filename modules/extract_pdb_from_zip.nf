@@ -1,6 +1,6 @@
 process extract_pdb_from_zip {
     label 'sge_low'
-    container 'domain-annotation-pipeline-pdb-tools'
+    container 'domain-annotation-pipeline-ted-tools'
 
     input:
     tuple( val(id), path(id_file) )
