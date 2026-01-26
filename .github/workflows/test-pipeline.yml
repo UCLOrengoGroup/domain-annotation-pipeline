@@ -24,6 +24,11 @@ jobs:
           sudo mv nextflow /usr/local/bin/nextflow
           nextflow -version
 
+      - name: Build docker images for tests (temporary until GHCR default)
+        run: |
+          docker compose version
+          docker compose build
+
       - name: Run pipeline (docker,git_actions_test)
         env:
           NXF_ANSI_LOG: "false"
