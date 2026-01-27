@@ -2,7 +2,7 @@ process fetch_foldseek_assets {
     label 'sge_low'
     // Use storeDir for local, publishDir for CI
     storeDir params.ci_mode ? null : "${params.cache_dir}" // storeDir "${params.cache_dir}"
-    publishDir params.ci_mode ? "${params.cache_dir}" : null, mode: 'copy', enabled: params.ci_mode
+    publishDir params.ci_mode ? "${params.cache_dir}" : "${params.cache_dir}", mode: 'copy', enabled: params.ci_mode
     
     output:
     path "foldseekdb", emit: target_db
