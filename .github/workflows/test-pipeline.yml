@@ -40,5 +40,6 @@ jobs:
       - name: Compare final_results.tsv to expected
         run: |
           set -euxo pipefail
-          diff -U 0 <(cut -f1-18,21-28 assets/test_ids/final_results.tsv | tail -n +2 | sort) <(cut -f1-18,21-28 results/git_actions_test/final_results.tsv | tail -n +2 | sort)
+          diff -U 0 <(tail -n +2 assets/test_ids/final_results.tsv | sort) <(tail -n +2 results/git_actions_test/final_results.tsv | sort)
+#          diff -U 0 <(cut -f1-18,21-28 assets/test_ids/final_results.tsv | tail -n +2 | sort) <(cut -f1-18,21-28 results/git_actions_test/final_results.tsv | tail -n +2 | sort)
 
