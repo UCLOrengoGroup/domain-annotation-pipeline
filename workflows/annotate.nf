@@ -28,20 +28,20 @@ include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb } from '../modules/filter_pdb.nf'
 
-// Domain prediction modules
+// Domain prediction modules - processes unused
 // include { run_chainsaw } from '../modules/run_chainsaw.nf'
 // include { run_merizo } from '../modules/run_merizo.nf'
 // include { run_unidoc } from '../modules/run_unidoc.nf'
 include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 
-// Filtering and consensus modules
-include { run_filter_domains } from '../modules/run_filter_domains.nf'
-include { run_filter_domains_reformatted as run_filter_domains_reformatted_unidoc } from '../modules/run_filter_domains_reformatted.nf'
-include { run_filter_domains_reformatted as run_filter_domains_reformatted_merizo } from '../modules/run_filter_domains_reformatted.nf'
-include { convert_merizo_results } from '../modules/convert_merizo_results.nf'
-include { convert_unidoc_results } from '../modules/convert_unidoc_results.nf'
-include { run_get_consensus } from '../modules/run_get_consensus.nf'
-include { run_filter_consensus } from '../modules/run_filter_consensus.nf'
+// Filtering and consensus modules - these are all unused as ted_segmentation takes care of all of this funtionality.
+//include { run_filter_domains } from '../modules/run_filter_domains.nf'
+//include { run_filter_domains_reformatted as run_filter_domains_reformatted_unidoc } from '../modules/run_filter_domains_reformatted.nf'
+//include { run_filter_domains_reformatted as run_filter_domains_reformatted_merizo } from '../modules/run_filter_domains_reformatted.nf'
+//include { convert_merizo_results } from '../modules/convert_merizo_results.nf'
+//include { convert_unidoc_results } from '../modules/convert_unidoc_results.nf'
+//include { run_get_consensus } from '../modules/run_get_consensus.nf'
+//include { run_filter_consensus } from '../modules/run_filter_consensus.nf'
 
 // Post-processing modules
 include { chop_pdb } from '../modules/chop_pdb.nf'
