@@ -1,7 +1,7 @@
 // filter pdb files to only include those with > 25 residues 
 process filter_pdb {
     label 'sge_low'
-    container 'domain-annotation-pipeline-pdb-tools'
+    container 'domain-annotation-pipeline-script'
 
     input:
     tuple( val(id), path("*") )
