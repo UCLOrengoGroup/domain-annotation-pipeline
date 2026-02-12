@@ -11,7 +11,10 @@ process run_domain_quality {
     script:
     """
     ${params.domain_quality_script_setup}
-    ${params.domain_quality_script} -d chopped_pdbs/ -o domain_quality.csv
-    perl -i.bak -pe 's/\\r\\n/\\n/g' domain_quality.csv
+    ${params.domain_quality_script} -d chopped_pdbs/ -o domain_quality.unsorted.csv
+    perl -i.bak -pe 's/\\r\\n/\\n/g' domain_quality.unsorted.csv
+
+    head -n 1 domain_quality.unsorted.csv > domain_quality.csv
+    tail -n +2 domain_quality.unsorted.csv | sort -t, -k1,1 >> domain_quality.csv
     """
 }

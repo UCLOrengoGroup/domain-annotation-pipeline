@@ -12,6 +12,8 @@ process create_md5 {
     script:
     """
     cath-af-cli pdb-to-md5 -d ./pdb -o output_${id}_tmp.tsv
-    dos2unix output_${id}_tmp.tsv > output_${id}.tsv || tr -d '\\r' < output_${id}_tmp.tsv > output_${id}.tsv
+    dos2unix -n output_${id}_tmp.tsv output_${id}.unsorted.tsv || tr -d '\\r' < output_${id}_tmp.tsv > output_${id}.unsorted.tsv
+    head -n 1 output_${id}.unsorted.tsv > output_${id}.tsv
+    tail -n +2 output_${id}.unsorted.tsv | sort >> output_${id}.tsv
     """
 }

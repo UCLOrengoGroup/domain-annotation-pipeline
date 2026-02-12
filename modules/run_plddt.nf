@@ -11,6 +11,7 @@ process run_plddt {
 
     script:
     """
-    ${params.plddt_script} ./pdb -o domain_avg_plddt.tsv
+    ${params.plddt_script} ./pdb -o domain_avg_plddt.unsorted.tsv
+    sort domain_avg_plddt.unsorted.tsv > domain_avg_plddt.tsv
     """
 }

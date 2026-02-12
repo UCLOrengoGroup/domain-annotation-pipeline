@@ -60,6 +60,7 @@ def run(merizo_file, unidoc_file, chainsaw_file, output_file):
     # merge results
     result_df = merizo_df.merge(unidoc_df, on="af_chain_id", how="outer")
     result_df = result_df.merge(chainsaw_df, on="af_chain_id", how="outer")
+    result_df = result_df.sort_values("af_chain_id") # New line to ensure deterministic sorting
 
     # format output
     result_df = result_df[OUTPUT_COLS.keys()].rename(columns=OUTPUT_COLS)
