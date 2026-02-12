@@ -13,7 +13,8 @@ process run_measure_globularity {
     script:
     """
     ${params.globularity_script} --pdb_dir ./pdb --domain_globularity domain_globularity_tmp.tsv
-    dos2unix domain_globularity_tmp.tsv > domain_globularity.tsv || tr -d '\\r' < domain_globularity_tmp.tsv > domain_globularity.tsv
+    dos2unix -n domain_globularity_tmp.tsv domain_globularity.unsorted.tsv || tr -d '\\r' < domain_globularity_tmp.tsv > domain_globularity.unsorted.tsv
+    head -n 1 domain_globularity.unsorted.tsv > domain_globularity.tsv
+    tail -n +2 domain_globularity.unsorted.tsv | sort >> domain_globularity.tsv
     """
-    
 }

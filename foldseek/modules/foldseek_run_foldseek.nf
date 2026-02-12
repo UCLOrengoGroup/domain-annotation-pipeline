@@ -1,7 +1,6 @@
 process foldseek_run_foldseek {
     label 'sge_low'
     container 'domain-annotation-pipeline-foldseek'
-    publishDir "results", mode: 'copy'
     
     input:
     tuple val(id), path(query_db_dir)
