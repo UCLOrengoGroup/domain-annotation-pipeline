@@ -10,10 +10,6 @@ process run_ted_segmentation {
     tuple val(chunk_id), path('output/chopping_merizo_sorted.txt'), emit: merizo
     tuple val(chunk_id), path('output/chopping_unidoc_sorted.txt'), emit: unidoc
     tuple val(chunk_id), path('output/consensus_sorted.tsv'), emit: consensus
-    tuple val(chunk_id), path('output/chopping_chainsaw.log'), emit: chainsaw_log
-    tuple val(chunk_id), path('output/chopping_merizo.log'), emit: merizo_log
-    tuple val(chunk_id), path('output/chopping_unidoc.log'), emit: unidoc_log
-    tuple val(chunk_id), path('output/consensus.log'), emit: consensus_log
     tuple val(chunk_id), path('output/consensus.tsv.changed.txt'), emit: consensus_changed
 
     script:

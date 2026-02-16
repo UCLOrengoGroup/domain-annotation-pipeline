@@ -8,7 +8,7 @@ process summarise_stride {
 
     output:
     tuple val(id), path("stride_batch_${id}.summary")
-    //batch_id=\$(date +%s%N | cut -b1-13) remove timestamp as non-cache friendly
+    
     script:
     """
     ${params.stride_summary_script} -o stride_batch_${id}.unsorted.summary -d . --suffix .stride
