@@ -7,11 +7,13 @@ process summarise_stride {
     tuple val(id), path(stride_files)
 
     output:
-    tuple val(id), path("stride_batch_*.summary")
-
+    tuple val(id), path("stride_batch_${id}.summary")
+    
     script:
     """
-    batch_id=\$(date +%s%N | cut -b1-13)
-    ${params.stride_summary_script} -o stride_batch_\${batch_id}.summary -d . --suffix .stride
+    ${params.stride_summary_script} -o stride_batch_${id}.unsorted.summary -d . --suffix .stride
+    
+    head -n 1 stride_batch_${id}.unsorted.summary > stride_batch_${id}.summary
+    tail -n +2 stride_batch_${id}.unsorted.summary | sort >> stride_batch_${id}.summary
     """
 }

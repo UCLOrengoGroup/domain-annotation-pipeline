@@ -131,8 +131,8 @@ def validateParameters() {
     ----------------------------------------------
     Foldseek Configuration Information
     ----------------------------------------------
-    Target database URL : ${params.foldseek_db_url.tokenize('/')[-1]}
-    Lookup file URL     : ${params.foldseek_lookup_url.tokenize('/')[-1]}
+    Target database     : ${params.foldseek_db_url.tokenize('/')[-1]}
+    Lookup file         : ${params.foldseek_lookup_url.tokenize('/')[-1]}
     Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
     Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
     ==============================================
@@ -207,13 +207,16 @@ workflow {
 
     // Get taxonomic data
     uniprot_data_ch = get_uniprot_data(chunked_af_ids_ch)
-    collected_taxonomy_ch = uniprot_data_ch.collectFile(
-        name: 'all_taxonomy.tsv',
-        keepHeader: true,
-        newLine: true,
-        storeDir: params.results_dir,
-        sort: { it -> it[0] } // sort by chunk id
-    ) { it -> it[1] } // use file name to collect
+    collected_taxonomy_ch = uniprot_data_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile(
+            name: 'all_taxonomy.tsv',
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] } // use file name to collect
 
     // af_ids_ch.view { "af_ids_ch: " + it }
     // chunked_af_ids_ch.view { "chunked_af_ids_ch: " + it }
@@ -238,13 +241,14 @@ workflow {
     // required for caching, but waits for all PDBs first
     heavy_chunk_ch = filtered_pdb_ch
         .flatten()
-        .toSortedList { it.toString() } // sort PDB paths deterministically
+        .toSortedList { it.name } // to sort PDBs deterministically we need it.name not it.toString() (hashed paths)
         .flatMap { List allFiles ->
             def chunks = []
-            def step = params.heavy_chunk_size as int
+            def step = params.heavy_chunk_size as int 
             for (int i = 0; i < allFiles.size(); i += step) {
                 def end = Math.min(i + step, allFiles.size())
-                chunks << allFiles.subList(i, end)
+                def heavy_chunk_id = (i / step) as int
+                chunks << [heavy_chunk_id, allFiles.subList(i, end)] // new line above plus [heavy_chunk_id...]
             }
             return chunks
         }
@@ -255,23 +259,42 @@ workflow {
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
-    // collect the result for the chainsaw output
-    collected_chainsaw_ch = segmentation_ch.chainsaw.collectFile(
-        name: 'domain_assignments.chainsaw.tsv',
-        storeDir: params.results_dir,
-    )
-    collected_merizo_ch = segmentation_ch.merizo.collectFile(
-        name: 'domain_assignments.merizo.tsv',
-        storeDir: params.results_dir,
-    )
-    collected_unidoc_ch = segmentation_ch.unidoc.collectFile(
-        name: 'domain_assignments.unidoc.tsv',
-        storeDir: params.results_dir,
-    )
-    collected_consensus_ch = segmentation_ch.consensus.collectFile(
-        name: 'domain_assignments.consensus.tsv',
-        storeDir: params.results_dir,
-    )
+    // collect the result for the chainsaw output - now added sorting to each to help cache performance.
+    collected_chainsaw_ch = segmentation_ch.chainsaw
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .collectFile(
+            name: 'domain_assignments.chainsaw.tsv',
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
+
+    collected_merizo_ch = segmentation_ch.merizo
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .collectFile(
+            name: 'domain_assignments.merizo.tsv',
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
+
+    collected_unidoc_ch = segmentation_ch.unidoc
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .collectFile(
+            name: 'domain_assignments.unidoc.tsv',
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
+
+    collected_consensus_ch = segmentation_ch.consensus
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .collectFile(
+            name: 'domain_assignments.consensus.tsv',
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
 
     // =========================================
     // PHASE 4: Post-Consensus Processing
@@ -280,7 +303,7 @@ workflow {
     // Split consensus file into chunks for parallel processing using native Nextflow
     consensus_chunks_ch = collected_consensus_ch
         .splitText(
-            by: params.light_chunk_size, 
+            by: params.light_chunk_size,
             file: "${params.results_dir}/consensus_chunks/consensus_chunks"
         )
         .toList()
@@ -296,16 +319,18 @@ workflow {
         consensus_chunks_ch,
         file(params.pdb_zip_file)
     )
-    // Generate MD5 hashes for domains added a new file and script_ch
+    // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
     collected_md5_ch = md5_chunks_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
         .collectFile(
             name: "all_md5.tsv",
-            keepHeader: true, // This was added to remove mid-file headers but there was a problem with end of lines
-            skip: 1,          // see the create_md5 process for details.
+            keepHeader: true,
+            skip: 1,
+            sort: false,
             storeDir: params.results_dir,
-            sort: { it -> it[0] } // sort by chunk id
-        ) { it -> it[1] } // use file name to collect
+        ) { it[1] }
 
     // =========================================
     // PHASE 5: Structure Analysis
@@ -314,49 +339,60 @@ workflow {
     // Run STRIDE analysis
     stride_results_ch = run_stride(chopped_pdb_ch)    
     stride_summaries_ch = summarise_stride(stride_results_ch)
-    collected_stride_summaries_ch = stride_summaries_ch.collectFile(
-        name: "all_stride_summaries.tsv",
-        keepHeader: true,
-        skip: 1,
-        storeDir: params.results_dir,
-        sort: { it -> it[0] } // sort by chunk id
-    ) { it -> it[1] } // use file name to collect
+    collected_stride_summaries_ch = stride_summaries_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile(
+            name: "all_stride_summaries.tsv",
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] } // use file name to collect
     
     // Run globularity analysis
     globularity_ch = run_measure_globularity(chopped_pdb_ch)
     // globularity_ch.view { "globularity_ch: " + it }
     // no flatten as only a single file per chunk
-    collected_globularity_ch = globularity_ch.collectFile(
-        name: "all_domain_globularity.tsv",
-        keepHeader: true,
-        skip: 1,
-        storeDir: params.results_dir,
-        sort: { it -> it[0] } // sort by chunk id
-    ) { it -> it[1] } // use file name to collect
+    collected_globularity_ch = globularity_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile(
+            name: "all_domain_globularity.tsv",
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,            
+        ) { it[1] } // use file name to collect
 
     // chopped_pdb_ch.view { "chopped_pdb_ch: " + it }
     domain_quality_ch = run_domain_quality(chopped_pdb_ch)
 
-    collected_domain_quality_ch = domain_quality_ch.collectFile(
-        name: "all_domain_quality.csv",
-        keepHeader: true,
-        skip: 1,
-        storeDir: params.results_dir,
-        sort: { it -> it[0] } // sort by chunk id
-    ) { it -> it[1] } // use file name to collect
+    collected_domain_quality_ch = domain_quality_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile(
+            name: "all_domain_quality.csv",
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] } // use file name to collect
 
     // Run pLDDT analysis
     plddt_ch = run_plddt(chopped_pdb_ch)
     // plddt_ch.view { "plddt_ch: " + it }
     // no flatten as only a single file per chunk
-    collected_plddt_ch = plddt_ch.collectFile(
-        name: "all_plddt.tsv",
-        storeDir: params.results_dir,
-        sort: { it -> it[0] } // sort by chunk id
-    ) { it -> it[1] } // use file name to collect
+    collected_plddt_ch = plddt_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile(
+            name: "all_plddt.tsv",
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] } // use file name to collect
 
     collected_plddt_with_md5_ch = join_plddt_md5(collected_plddt_ch, collected_md5_ch)
-
 
     // =========================================
     // PHASE 6: Run foldseek
@@ -382,13 +418,16 @@ workflow {
     fs_parsed_ch = foldseek_process_results(fs_m8_ch, ch_lookup_file, ch_parser_script)
     
     // Finally combine results together with a similar collectFile statement as used above
-    foldseek_ch = fs_parsed_ch.collectFile( 
-        name: 'foldseek_parsed_results.tsv',
-        keepHeader: true,
-        skip: 1,
-        storeDir: params.results_dir,
-        sort: { it -> it[0] }
-    ) { it -> it[1] }
+    foldseek_ch = fs_parsed_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile( 
+            name: 'foldseek_parsed_results.tsv',
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
 
     // =========================================
     // PHASE 7: Final Assembly

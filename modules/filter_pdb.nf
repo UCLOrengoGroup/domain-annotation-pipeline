@@ -1,4 +1,4 @@
-// filter pdb files to only include those with > 25 residues 
+// filter pdb files to only include those with > 25 residues. 10-Feb-26 added sort statement to for loop.
 process filter_pdb {
     label 'sge_low'
     container 'domain-annotation-pipeline-script'
@@ -13,7 +13,7 @@ process filter_pdb {
     script:
     """
     mkdir filtered_pdbs
-    for pdb_file in *.pdb; do
+    for pdb_file in \$(ls *.pdb | sort); do
 
         pdb_wc \$pdb_file > pdb_info.txt
 

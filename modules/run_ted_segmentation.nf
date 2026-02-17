@@ -3,22 +3,19 @@ process run_ted_segmentation {
     container 'domain-annotation-pipeline-ted-tools'
 
     input:
-    path 'pdb/*'
+    tuple val(chunk_id), path('pdb/*')
 
     output:    
-    path 'output/chopping_chainsaw.txt', emit: chainsaw
-    path 'output/chopping_merizo.txt', emit: merizo
-    path 'output/chopping_unidoc.txt', emit: unidoc
-    path 'output/consensus.tsv', emit: consensus
-    path 'output/chopping_chainsaw.log', emit: chainsaw_log
-    path 'output/chopping_merizo.log', emit: merizo_log
-    path 'output/chopping_unidoc.log', emit: unidoc_log
-    path 'output/consensus.log', emit: consensus_log
-    path 'output/consensus.tsv.changed.txt', emit: consensus_changed
+    tuple val(chunk_id), path('output/chopping_chainsaw_sorted.txt'), emit: chainsaw
+    tuple val(chunk_id), path('output/chopping_merizo_sorted.txt'), emit: merizo
+    tuple val(chunk_id), path('output/chopping_unidoc_sorted.txt'), emit: unidoc
+    tuple val(chunk_id), path('output/consensus_sorted.tsv'), emit: consensus
+    tuple val(chunk_id), path('output/consensus.tsv.changed.txt'), emit: consensus_changed
 
     script:
     """
     ${params.run_segmentation_script_setup}
+    
     which python3
     python3 -c "import torch; print('CUDA available:', torch.cuda.is_available())"
     set -x
@@ -30,6 +27,11 @@ process run_ted_segmentation {
     nvidia-smi -L || true
     env | sort
     ${params.run_segmentation_script} -i ./pdb -o ./output
+    
+    sort output/chopping_chainsaw.txt > output/chopping_chainsaw_sorted.txt
+    sort output/chopping_merizo.txt > output/chopping_merizo_sorted.txt
+    sort output/chopping_unidoc.txt > output/chopping_unidoc_sorted.txt
+    sort output/consensus.tsv > output/consensus_sorted.tsv
     """
 
 
