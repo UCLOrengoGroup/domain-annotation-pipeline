@@ -24,9 +24,8 @@ params.publish_mode = 'copy'
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
 include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
-//can delete line - unused process.
-include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
-include { filter_pdb } from '../modules/filter_pdb.nf'
+// include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
+include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 
 // Domain prediction modules - processes unused
 // include { run_chainsaw } from '../modules/run_chainsaw.nf'
@@ -171,41 +170,45 @@ workflow {
         ch_lookup_file = Channel.value(file(params.lookup_file))
     }
 
-    file("${params.results_dir}/consensus_chunks").mkdirs()
-
     // =========================================
     // PHASE 1: Data Preparation
     // =========================================
 
-    // Create UniProt ID channel
+    // Create a subfolder in the results directory for the light_chunk_size debugging files
+    file("${params.results_dir}/consensus_chunks").mkdirs()
+    
+    // Create a channed of UniProt IDs from the csv file - added toSortedList to ensure consistent ordering.
     uniprot_ids_ch = Channel.fromPath(params.uniprot_csv_file, checkIfExists: true)
         .splitText()
         .map { it.trim() }
         .filter { it != ''}
         .unique()
+        .toSortedList()
+        .flatMap { it }
 
     // Apply debug limit if enabled
     if (params.debug && params.max_entries) {
         uniprot_ids_ch = uniprot_ids_ch.take(params.max_entries)
     }
 
-    // Create chunked AF IDs for processing
+    // Create chunked IDs via chuck_size parameter for processing. First create a file - then chunk it.
     chunked_af_ids_ch = uniprot_ids_ch
         .collectFile(
-            name: 'all_af_ids.txt',
+            name: 'all_af_ids.txt', // Note: this file contains all ids extracted from the csv file.
             newLine: true,
-            storeDir: "${params.results_dir}/intermediate",
+            sort: { it },           // ← Added this line to sort items before writing
+            storeDir: "${params.results_dir}/intermediate", // and can be found in this folder.
         )
-        .splitText(by: params.chunk_size, file: true)
-        .toList()
+        .splitText(by: params.chunk_size, file: true) // chunks into all_af_ids.0.txt, all_af_ids.1.txt etc.
+        .toSortedList { it.name }
         .flatMap { List chunk_files ->
             // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
             chunk_files.withIndex().collect { cf, idx ->
-                [ idx, cf ]
+                [ idx, cf ] // adds an index and combines in a tuple, e.g. [0, all_af_ids.0.txt]
             }
         }
 
-    // Get taxonomic data
+    // Get taxonomic data using the chunked data channel
     uniprot_data_ch = get_uniprot_data(chunked_af_ids_ch)
     collected_taxonomy_ch = uniprot_data_ch
         .toSortedList { it -> it[0] }
@@ -216,50 +219,53 @@ workflow {
             skip: 1,
             sort: false,
             storeDir: params.results_dir,
-        ) { it[1] } // use file name to collect
-
-    // af_ids_ch.view { "af_ids_ch: " + it }
-    // chunked_af_ids_ch.view { "chunked_af_ids_ch: " + it }
-
-    // Extract and filter PDB files
-    // pass only the ID file path channel (af_ids_ch) to the extractor so it receives a path
-    unfiltered_pdb_ch = extract_pdb_from_zip(chunked_af_ids_ch, file(params.pdb_zip_file))
-    // unfiltered_pdb_ch = extract_pdb_from_zip(af_ids_ch, file(params.pdb_zip_file))
-    filtered_pdb_ch = filter_pdb(unfiltered_pdb_ch, params.min_chain_residues)
-
-    // TODO: currently the rest of the workflow uses channel without chunk index
-    //       we should feed, this through to all subsequent steps for better
-    //       tracking / debugging / caching
-    af_ids_ch = chunked_af_ids_ch.map { it -> it[1] }
-    filtered_pdb_ch = filtered_pdb_ch.map { it -> it[1] }
-
+        ) { it[1] }
+    
+    // Run filter_pdb_from_zip on the chunked data channel (does not extract from zip just creates filtered lists)
+    filtered_ids_ch = filter_pdb_from_zip(chunked_af_ids_ch, file(params.pdb_zip_file), params.min_chain_residues)
+    
     // =========================================
     // PHASE 2: Domain Prediction
     // =========================================
 
-    // deterministic chunking: collect & sort, then chunk
-    // required for caching, but waits for all PDBs first
-    heavy_chunk_ch = filtered_pdb_ch
-        .flatten()
-        .toSortedList { it.name } // to sort PDBs deterministically we need it.name not it.toString() (hashed paths)
-        .flatMap { List allFiles ->
-            def chunks = []
-            def step = params.heavy_chunk_size as int 
-            for (int i = 0; i < allFiles.size(); i += step) {
-                def end = Math.min(i + step, allFiles.size())
-                def heavy_chunk_id = (i / step) as int
-                chunks << [heavy_chunk_id, allFiles.subList(i, end)] // new line above plus [heavy_chunk_id...]
-            }
-            return chunks
+    // Rechunk for ted_segmentation using heavy_chunk_size. First create an ordered file, then chunk with heavy_chunk_size
+    heavy_chunk_ch = filtered_ids_ch 
+        .toSortedList { it[0] } 
+        .flatMap { it } 
+        .map { it[1] }
+        .toList()
+        .flatMap { files ->                // Process the ordered list
+            files.collect { it.text }      // Read each file's content in order
         }
-
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
+        .collectFile( 
+            name: 'chunk_size_chunks.txt', // Note: this file contains the chunks from chunked_af_ids_ch. 
+            newLine: true,
+            sort: { it },
+            storeDir: "${params.results_dir}/intermediate", ) 
+            .splitText(by: params.heavy_chunk_size, file: true) // Now split this file into heavy_chunk_size chunks.
+            .toSortedList { it.name } 
+            .flatMap { List chunk_files -> 
+                chunk_files.withIndex().collect { cf, idx -> [ idx, cf ] } 
+            }
+    // Create a debug listing showing heavy_chunk_size grouping 
+    heavy_chunk_ch 
+        .map { it[1] } // take the heavy chunk file 
+        .toSortedList { it.name } // ensure chunk files are in numeric order 
+        .flatMap { it } // turn list back to stream 
+        .collectFile( 
+            name: 'heavy_chunk_size_chunks.txt', // Note: this file conatins heavy_chunk_ch chunks 
+            newLine: true, 
+            storeDir: "${params.results_dir}/intermediate", 
+        ) { f -> "----- ${f.name} -----\n" + f.text.trim() + "\n" }    
+    
+    // Finally run the ted_segmentation which now includes the extract from zip code
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch, file(params.pdb_zip_file))
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
-    // collect the result for the chainsaw output - now added sorting to each to help cache performance.
+    // collect the results for chainsaw, merizo and unidoc output - now added sorting to each to help cache performance.
     collected_chainsaw_ch = segmentation_ch.chainsaw
         .toSortedList { it -> it[0] }
         .flatMap { it }
@@ -287,26 +293,30 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
+    // collect the results for the consensus output - note: this channel drives the rest of the workflow.
+    // TODO: current behaviour (storeDir) writes to a permanent file in results. Enhancement: update to use a cached work directory.
     collected_consensus_ch = segmentation_ch.consensus
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
             name: 'domain_assignments.consensus.tsv',
             sort: false,
-            storeDir: params.results_dir,
+            storeDir: params.results_dir,  // To use with a process, remove storeDir
         ) { it[1] }
 
     // =========================================
     // PHASE 4: Post-Consensus Processing
     // =========================================
 
-    // Split consensus file into chunks for parallel processing using native Nextflow
+    // Split consensus file into chunks by light_chunk_size for parallel processing
+    // TODO: chunks are written from the storeDir file created above. Changes may not be reflected in the consensus_chunks.
+    // Accidental deletion of the consensus_chunks directory will result in pipeline failure.
     consensus_chunks_ch = collected_consensus_ch
         .splitText(
             by: params.light_chunk_size,
-            file: "${params.results_dir}/consensus_chunks/consensus_chunks"
+            file: "${params.results_dir}/consensus_chunks/consensus_chunks" // To use with a process change to just "consensus_chunks"
         )
-        .toList()
+        .toSortedList {it.name }  // make sorting deterministic
         .flatMap { List chunk_files ->
             // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
             chunk_files.withIndex().collect { cf, idx ->
@@ -401,9 +411,6 @@ workflow {
     // Create the query DB from the chopped pdbs channel
     foldseek_create_db(chopped_pdb_ch) // New - run stright off chopped_pdb chunked output
 
-    // Define the target (CATH) database channel
-    //ch_target_db = Channel.fromPath(params.target_db) - already exists in Phase 0
-    
     // Run foldseek search on the output of process create_foldseek_db and the CATH database
     fs_search_ch = foldseek_run_foldseek(foldseek_create_db.out.query_db_dir, ch_target_db)
     
@@ -440,23 +447,19 @@ workflow {
         collected_stride_summaries_ch,
     )
 
-    // Generate AF domain IDs
-    // af_domain_ids_ch = run_AF_domain_id(transformed_consensus_ch)
-
     // Collect intermediate results
     intermediate_results_ch = collect_results(
         collected_chainsaw_ch,
         collected_merizo_ch,
-        collected_unidoc_ch,
-        
+        collected_unidoc_ch,    
     )
 
-    // Generate final comprehensive results
+    // This hard codes combine_results_final.py as the input to the collect_results_final process. 
     collect_results_script_ch = Channel.fromPath(
-        "${workflow.projectDir}/../docker/script/combine_results_final.py", 
+        "${workflow.projectDir}/../docker/script/combine_results_final.py", // this becomes input:combine_script
         checkIfExists: true
     )
-    collect_results_script_ch.view { "collect_results_script_ch: " + it }
+    // Now collect the final results
     final_results_ch = collect_results_final(
         collect_results_script_ch,
         transformed_consensus_ch,
@@ -467,19 +470,16 @@ workflow {
         foldseek_ch,
     )
 
-    // =========================================
-    // PHASE 8: Output Generation
-    // =========================================
+    // ==========================================
+    // PHASE 8: Completion and output Information
+    // ==========================================
 
-    // Ensure final outputs are saved
+    // Remove duplicate final output file and log the location of final_results.tsv to screen
     final_results_ch
-        .map { file ->
-            def output_path = "${params.results_dir}/final_domain_annotations.tsv"
-            file.copyTo(output_path)
+        .map { def output_path = "${params.results_dir}/final_results.tsv"
             log.info("Final results written to: ${output_path}")
             return output_path
         }
-        .view { "Final output: ${it}" }
 
     // Create completion marker
     final_results_ch
