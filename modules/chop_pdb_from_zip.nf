@@ -8,7 +8,7 @@ process chop_pdb_from_zip {
     path pdb_zip
 
     output:
-    tuple val(id), path("${id}_chopped_pdbs.tar.gz") //path('chopped_pdbs/*.pdb')
+    tuple val(id), path("${id}_chopped_pdbs.tar.gz")
     
     script:
     """

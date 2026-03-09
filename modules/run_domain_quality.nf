@@ -3,7 +3,7 @@ process run_domain_quality {
     container 'domain-annotation-pipeline-ted-tools'
 
     input:
-    tuple val(id), path(chopped_pdb_tar_file) //path("chopped_pdbs/*")
+    tuple val(id), path(chopped_pdb_tar_file)
 
     output:
     tuple val(id), path("domain_quality.csv")
@@ -18,5 +18,6 @@ process run_domain_quality {
 
     head -n 1 domain_quality.unsorted.csv > domain_quality.csv
     tail -n +2 domain_quality.unsorted.csv | sort -t, -k1,1 >> domain_quality.csv
+    rm -rf pdb
     """
 }

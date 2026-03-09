@@ -4,7 +4,7 @@ process run_measure_globularity {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    tuple val(id), path(chopped_pdb_tar_file) //path("pdb/*")
+    tuple val(id), path(chopped_pdb_tar_file)
 
     output:
     tuple val(id), path("domain_globularity.tsv") 
@@ -18,5 +18,6 @@ process run_measure_globularity {
     dos2unix -n domain_globularity_tmp.tsv domain_globularity.unsorted.tsv || tr -d '\\r' < domain_globularity_tmp.tsv > domain_globularity.unsorted.tsv
     head -n 1 domain_globularity.unsorted.tsv > domain_globularity.tsv
     tail -n +2 domain_globularity.unsorted.tsv | sort >> domain_globularity.tsv
+    rm -rf pdb
     """
 }

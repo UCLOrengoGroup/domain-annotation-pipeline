@@ -3,7 +3,7 @@ process create_md5 {
     container 'domain-annotation-pipeline-cath-af-cli'
 
     input:
-    tuple val(id), path(chopped_pdb_tar_file) //path("pdb/*")
+    tuple val(id), path(chopped_pdb_tar_file)
     
     output:
     tuple val(id), path("output_${id}.tsv") 
@@ -17,5 +17,6 @@ process create_md5 {
     dos2unix -n output_${id}_tmp.tsv output_${id}.unsorted.tsv || tr -d '\\r' < output_${id}_tmp.tsv > output_${id}.unsorted.tsv
     head -n 1 output_${id}.unsorted.tsv > output_${id}.tsv
     tail -n +2 output_${id}.unsorted.tsv | sort >> output_${id}.tsv
+    rm -rf pdb
     """
 }
