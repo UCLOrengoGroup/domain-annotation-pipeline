@@ -4,7 +4,7 @@ process run_stride {
     publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug // only publish if run in debug mode
 
     input:
-    tuple val(id), path(chopped_pdb_tar_file) //path('*')
+    tuple val(id), path(chopped_pdb_tar_file)
 
     output:
     tuple val(id), path('*.stride')
@@ -22,5 +22,7 @@ process run_stride {
         }
     done
     cd ..
+    find . -maxdepth 1 -name '*.stride.err' -size 0 -delete
+    rm -rf pdb
     """
 }

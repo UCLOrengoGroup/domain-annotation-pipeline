@@ -4,7 +4,7 @@ process run_plddt {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
-    tuple val(id), path(chopped_pdb_tar_file) //path("pdb/*")
+    tuple val(id), path(chopped_pdb_tar_file)
 
     output:
     tuple val(id), path("domain_avg_plddt.tsv")
@@ -15,5 +15,6 @@ process run_plddt {
     tar -xzf ${chopped_pdb_tar_file} -C pdb
     ${params.plddt_script} ./pdb -o domain_avg_plddt.unsorted.tsv
     sort domain_avg_plddt.unsorted.tsv > domain_avg_plddt.tsv
+    rm -rf pdb
     """
 }

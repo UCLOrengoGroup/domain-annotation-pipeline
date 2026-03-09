@@ -196,7 +196,7 @@ workflow {
         .collectFile(
             name: 'all_af_ids.txt', // Note: this file contains all ids extracted from the csv file.
             newLine: true,
-            sort: { it },           // ← Added this line to sort items before writing
+            sort: { it },           // Added this line to sort items before writing
             storeDir: "${params.results_dir}/intermediate", // and can be found in this folder.
         )
         .splitText(by: params.chunk_size, file: true) // chunks into all_af_ids.0.txt, all_af_ids.1.txt etc.
