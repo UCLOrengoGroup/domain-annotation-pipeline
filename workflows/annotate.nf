@@ -47,7 +47,7 @@ include { chop_pdb } from '../modules/chop_pdb.nf'
 include { chop_pdb_from_zip } from '../modules/chop_pdb_from_zip.nf'
 include { create_md5 } from '../modules/create_domain_md5.nf'
 include { run_stride } from '../modules/run_stride.nf'
-include { summarise_stride } from '../modules/summarise_stride.nf'
+//include { summarise_stride } from '../modules/summarise_stride.nf'
 include { transform_consensus } from '../modules/transform.nf'
 
 // Analysis modules
@@ -347,8 +347,14 @@ workflow {
     // =========================================
 
     // Run STRIDE analysis
-    stride_results_ch = run_stride(chopped_pdb_ch)    
-    stride_summaries_ch = summarise_stride(stride_results_ch)
+    //stride_results_ch = run_stride(chopped_pdb_ch)    
+    //stride_summaries_ch = summarise_stride(stride_results_ch)
+    stride_summary_script_ch = file(
+        "${workflow.projectDir}/../docker/script/create_stride_summary.py", // this becomes input:stride_summary_script
+        checkIfExists: true)
+    
+    stride_summaries_ch = run_stride(chopped_pdb_ch, stride_summary_script_ch)
+
     collected_stride_summaries_ch = stride_summaries_ch
         .toSortedList { it -> it[0] }
         .flatMap{ it }
