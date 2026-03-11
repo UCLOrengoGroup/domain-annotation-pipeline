@@ -39,6 +39,9 @@ process run_ted_segmentation {
     sort output/chopping_merizo.txt > output/chopping_merizo_sorted.txt
     sort output/chopping_unidoc.txt > output/chopping_unidoc_sorted.txt
     sort output/consensus.tsv > output/consensus_sorted.tsv
+    
+    # ---------- Clean up filtered set ----------
+    rm -rf filtered_pdbs
     """
 
     stub:
