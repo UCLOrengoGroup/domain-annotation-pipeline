@@ -23,7 +23,7 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
+// include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 // include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 
@@ -43,7 +43,7 @@ include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 //include { run_filter_consensus } from '../modules/run_filter_consensus.nf'
 
 // Post-processing modules
-include { chop_pdb } from '../modules/chop_pdb.nf'
+//include { chop_pdb } from '../modules/chop_pdb.nf'
 include { chop_pdb_from_zip } from '../modules/chop_pdb_from_zip.nf'
 include { create_md5 } from '../modules/create_domain_md5.nf'
 include { run_stride } from '../modules/run_stride.nf'
@@ -59,7 +59,7 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 // Final collection modules
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
-include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+//include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
 
 // Foldseek modules
 include { fetch_foldseek_assets } from '../foldseek/modules/foldseek_fetch_foldseek_assets.nf'
