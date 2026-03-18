@@ -18,7 +18,7 @@ OUTPUT_COLUMNS = [
     'qcov',
     'tcov',
 ]
-WRITTEN_HEADERS = False
+# WRITTEN_HEADERS = False
 
 @click.command()
 @click.option('--input', '-i', 'input_file', required=True, type=click.Path(exists=True),
@@ -32,6 +32,7 @@ def process_foldseek(input_file, cath_domain_file, output_file):
     domain_lookup = parse_cath_domain_list(cath_domain_file)
 
     with open(input_file, 'r') as infile, open(output_file, 'w') as outfile:
+        outfile.write("\t".join(OUTPUT_COLUMNS) + "\n") # Added to always write headers
         current_query_hits = []
         current_query_id = None
 
@@ -137,10 +138,10 @@ def determine_best_hit(hits):
     return None
 
 def write_best_hit(outfile, query_id, best_hit):
-    global WRITTEN_HEADERS
-    if WRITTEN_HEADERS is False:
-        outfile.write("\t".join(OUTPUT_COLUMNS) + "\n")
-        WRITTEN_HEADERS = True
+    #global WRITTEN_HEADERS
+    #if WRITTEN_HEADERS is False:
+    #    outfile.write("\t".join(OUTPUT_COLUMNS) + "\n")
+    #    WRITTEN_HEADERS = True
     best_hit['query_id'] = query_id
     outfile.write(
         "\t".join([str(best_hit[colname]) for colname in OUTPUT_COLUMNS]) + "\n"
