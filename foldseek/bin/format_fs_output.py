@@ -18,7 +18,6 @@ OUTPUT_COLUMNS = [
     'qcov',
     'tcov',
 ]
-# WRITTEN_HEADERS = False
 
 @click.command()
 @click.option('--input', '-i', 'input_file', required=True, type=click.Path(exists=True),
@@ -138,10 +137,6 @@ def determine_best_hit(hits):
     return None
 
 def write_best_hit(outfile, query_id, best_hit):
-    #global WRITTEN_HEADERS
-    #if WRITTEN_HEADERS is False:
-    #    outfile.write("\t".join(OUTPUT_COLUMNS) + "\n")
-    #    WRITTEN_HEADERS = True
     best_hit['query_id'] = query_id
     outfile.write(
         "\t".join([str(best_hit[colname]) for colname in OUTPUT_COLUMNS]) + "\n"
