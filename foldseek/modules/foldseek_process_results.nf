@@ -14,8 +14,11 @@ process foldseek_process_results {
     script:
     """
     python3 ${parser_script} -i ${m8_file} -c ${lookup_file} -o foldseek_parsed_results.unsorted.tsv
-    
-    head -n 1 foldseek_parsed_results.unsorted.tsv > foldseek_parsed_results.tsv
-    tail -n +2 foldseek_parsed_results.unsorted.tsv | sort >> foldseek_parsed_results.tsv
+    if [ ! -s foldseek_parsed_results.unsorted.tsv ]; then
+        printf "query_id\ttarget_id\tevalue\ttmscore\tcode\ttype\tqcov\ttcov\nNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\n" > foldseek_parsed_results.tsv
+    else
+        head -n 1 foldseek_parsed_results.unsorted.tsv > foldseek_parsed_results.tsv
+        tail -n +2 foldseek_parsed_results.unsorted.tsv | sort >> foldseek_parsed_results.tsv
+    fi
     """
 }
