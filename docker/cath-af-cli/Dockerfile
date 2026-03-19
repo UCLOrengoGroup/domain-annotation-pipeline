@@ -6,6 +6,7 @@ RUN apt-get update && \
     build-essential \
     cmake \
     git \
+    unzip \
     wget \
     procps \
     zlib1g-dev \
@@ -15,8 +16,9 @@ RUN apt-get update && \
 # Install STRIDE
 RUN mkdir -p /opt/stride && \
     cd /opt/stride && \
-    wget --no-check-certificate https://webclu.bio.wzw.tum.de/stride/stride.tar.gz && \
-    tar -zxf stride.tar.gz && \
+    wget https://github.com/heiniglab/stride/archive/refs/heads/main.zip && \
+    unzip main.zip && \
+    cd stride-main && \
     make && \
     cp stride /usr/local/bin/stride
 

@@ -235,7 +235,7 @@ workflow {
         .map { it[1] }
         .toList()
         .flatMap { files ->                // Process the ordered list
-            files.collect { it.text }      // Read each file's content in order
+            files.collect { it.text.trim() }      // Read each file's content in order
         }
         .collectFile( 
             name: 'chunk_size_chunks.txt', // Note: this file contains the chunks from chunked_af_ids_ch. 
