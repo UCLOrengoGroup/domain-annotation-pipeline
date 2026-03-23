@@ -218,8 +218,18 @@ def fetch_uniprot_batch(accessions):
     Returns list of dicts with keys:
       accession, proteome_id, tax_common_name, tax_scientific_name, tax_lineage
     """
+    def blank_row(acc):
+        return {
+            "accession": acc,
+            "proteome_id": "",
+            "tax_common_name": "",
+            "tax_scientific_name": "",
+            "tax_lineage": "",
+        }
+
     original_ids = [a.strip() for a in accessions if a.strip()]
     ids = clean_accessions(original_ids)
+    ids_set = set(ids)
     print(f"[INFO] Processing batch of {len(original_ids)} input IDs")
     print(f"[INFO] Valid UniProt-like IDs in batch: {len(ids)}")
     rows = []
@@ -227,14 +237,7 @@ def fetch_uniprot_batch(accessions):
     # If there are no valid UniProt-like IDs, return blank rows for all original IDs
     if not ids:
         print("[INFO] No valid UniProt accessions in this batch; writing blank rows.")
-        for acc in original_ids:
-            rows.append({
-                "accession": acc,
-                "proteome_id": "",
-                "tax_common_name": "",
-                "tax_scientific_name": "",
-                "tax_lineage": "",
-            })
+        rows.extend(blank_row(acc) for acc in original_ids)
         return rows
     # Submit mapping job with retry logic
     max_submit_retries = 3
@@ -249,50 +252,24 @@ def fetch_uniprot_batch(accessions):
                 time.sleep(2 ** submit_attempt)
             else:
                 print("[ERROR]   Skipping this batch due to repeated failures.")
-                for acc in original_ids:
-                    rows.append({
-                        "accession": acc,
-                        "proteome_id": "",
-                        "tax_common_name": "",
-                        "tax_scientific_name": "",
-                        "tax_lineage": "",
-                    })
+                rows.extend(blank_row(acc) for acc in original_ids)
                 return rows
     else:
         # If we exited the loop without setting job_id, skip batch
         print("[ERROR]   Could not obtain job_id, writing blank rows for this batch.")
-        for acc in original_ids:
-            rows.append({
-                "accession": acc,
-                "proteome_id": "",
-                "tax_common_name": "",
-                "tax_scientific_name": "",
-                "tax_lineage": "",
-            })
+        rows.extend(blank_row(acc) for acc in original_ids)
         return rows
     tsv_text = download_mapping_results(job_id)
     mapped = parse_mapping_tsv(tsv_text)
 
     for acc in original_ids:
         # Non-UniProt-like IDs get blank rows
-        if acc not in ids:
-            rows.append({
-                "accession": acc,
-                "proteome_id": "",
-                "tax_common_name": "",
-                "tax_scientific_name": "",
-                "tax_lineage": "",
-            })
+        if acc not in ids_set:
+            rows.append(blank_row(acc))
             continue
         entry = mapped.get(acc)
         if entry is None:
-            rows.append({
-                "accession": acc,
-                "proteome_id": "",
-                "tax_common_name": "",
-                "tax_scientific_name": "",
-                "tax_lineage": "",
-            })
+            rows.append(blank_row(acc))
             continue
 
         tax_id = entry["tax_id"]
@@ -324,7 +301,7 @@ def fetch_uniprot_batch(accessions):
             "proteome_id": proteome_id,
             "tax_common_name": tax_common_name,
             "tax_scientific_name": tax_scientific_name,
-            "tax_lineage": lineage.replace(";", ";"),
+            "tax_lineage": lineage,
         })
 
     return rows
