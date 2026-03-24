@@ -1,7 +1,7 @@
 process run_measure_globularity {
     label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
-    publishDir "${params.results_dir}" , mode: 'copy'
+    publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug
 
     input:
     tuple val(id), path(chopped_pdb_tar_file)
