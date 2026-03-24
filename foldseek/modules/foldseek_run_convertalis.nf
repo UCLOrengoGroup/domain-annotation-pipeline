@@ -1,7 +1,7 @@
 process foldseek_run_convertalis {
     label 'sge_low'
     container 'domain-annotation-pipeline-foldseek'
-    publishDir "results/convertalis", mode: 'copy'
+    publishDir "results/convertalis", mode: 'copy', enabled: params.debug
     
     input:
     tuple val(id), path(query_db_dir), path(result_db_dir)
