@@ -1,0 +1,30 @@
+Bootstrap: docker
+From: python:3.10
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        vim wget gzip tar git \
+        && apt-get autoremove -yqq --purge \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Set working directory
+    mkdir -p /opt/app
+    cd /opt/app
+
+    # Download and extract UniDoc
+    wget --no-check-certificate http://yanglab.qd.sdu.edu.cn/UniDoc/download/UniDoc.tgz
+    tar xvf UniDoc.tgz
+
+    # Move to UniDoc directory
+    cd /opt/app/UniDoc
+
+    # Move executables to current directory
+    cp bin/* . && rm -rf bin
+
+%environment
+    # Set the PATH to include the current directory
+    export PATH="/opt/app/UniDoc:$PATH"
+
+%runscript
+    exec /bin/bash
