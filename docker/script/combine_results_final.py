@@ -12,6 +12,8 @@ import numpy as np
 
 QUALITY_COLNAMES=['PDB_ID', 'Chain_ID', 'Sequence_MD5', 'Dom_Domain_Count', 'DomQual']
 QUALITY_DTYPES={'PDB_ID': str, 'Chain_ID': str, 'Sequence_MD5': str, 'Dom_Domain_Count': str, 'DomQual': float}
+UNIPROT_ID_RE = r'([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})'
+
 def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_path, taxonomy_path, output_path):
     # Read input files
     transform_df = pd.read_csv(transform_path, sep='\t', dtype=str)
@@ -57,7 +59,7 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
     )
 
     # Extract uniprot_id core for taxonomy merge
-    merged['uniprot_core'] = merged['uniprot_id'].str.extract(r'([A-Z0-9]{6,})')
+    merged['uniprot_core'] = merged['uniprot_id'].str.extract(UNIPROT_ID_RE)
     
     # Merge foldseek data if provided
     if foldseek_path:
@@ -80,7 +82,7 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
     if taxonomy_path:
         tax_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
         # tax_df = tax_df.rename(columns={'accession': 'uniprot_core'})
-        tax_df['uniprot_core'] = tax_df['accession'].str.extract(r'([A-Z0-9]{6,})') # New line to match uniprot_core correctly.
+        tax_df['uniprot_core'] = tax_df['accession'].str.extract(UNIPROT_ID_RE) # New line to match uniprot_core correctly.
         merged = merged.merge(tax_df, on='uniprot_core', how='left')
 
     # Drop internal join columns
