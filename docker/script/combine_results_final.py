@@ -76,10 +76,11 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
         # TODO: Change uniprot_id to model_id in (transformed consensus) everywhere else.
         merged = merged.merge(fs_df, left_on='uniprot_id', right_on='model_id', how='left')
     
-    # Merge taxonomy if provided
+    # Merge taxonomy if provided - updated tax_df['accession'] to undergo the same uniprot core extraction before rename.
     if taxonomy_path:
         tax_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
-        tax_df = tax_df.rename(columns={'accession': 'uniprot_core'})
+        # tax_df = tax_df.rename(columns={'accession': 'uniprot_core'})
+        tax_df['uniprot_core'] = tax_df['accession'].str.extract(r'([A-Z0-9]{6,})') # New line to match uniprot_core correctly.
         merged = merged.merge(tax_df, on='uniprot_core', how='left')
 
     # Drop internal join columns

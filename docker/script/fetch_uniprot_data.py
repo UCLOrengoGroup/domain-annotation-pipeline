@@ -28,12 +28,19 @@ retries = Retry(
 )
 session.mount("https://", HTTPAdapter(max_retries=retries))
 
+def normalise_afdb_id(s: str) -> str:
+    s = s.strip()
+    s = re.sub(r'\.(pdb|cif)(\.gz)?$', '', s, flags=re.IGNORECASE)
+    m = re.match(r'^AF-(.+)-F\d+(?:-model_v\d+)?$', s)
+    if m:
+        return m.group(1)
+    return s
 
 def clean_accessions(accessions):
     """Strip whitespace, drop obvious headers/garbage, keep only valid-looking accessions."""
     clean = []
     for a in accessions:
-        a = a.strip()
+        a = normalise_afdb_id(a) # a = a.strip()
         if not a:
             continue
         if a.lower() in {"uniprot_id", "accession", "id"}:
@@ -263,11 +270,12 @@ def fetch_uniprot_batch(accessions):
     mapped = parse_mapping_tsv(tsv_text)
 
     for acc in original_ids:
+        lookup = normalise_afdb_id(acc)
         # Non-UniProt-like IDs get blank rows
-        if acc not in ids_set:
+        if lookup not in ids_set:
             rows.append(blank_row(acc))
             continue
-        entry = mapped.get(acc)
+        entry = mapped.get(lookup)
         if entry is None:
             rows.append(blank_row(acc))
             continue
