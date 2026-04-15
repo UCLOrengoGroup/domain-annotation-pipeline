@@ -12,6 +12,11 @@ import numpy as np
 
 QUALITY_COLNAMES=['PDB_ID', 'Chain_ID', 'Sequence_MD5', 'Dom_Domain_Count', 'DomQual']
 QUALITY_DTYPES={'PDB_ID': str, 'Chain_ID': str, 'Sequence_MD5': str, 'Dom_Domain_Count': str, 'DomQual': float}
+DOMAIN_SUFFIX_RE = r'_(?:TED)?[0-9]+$'
+
+def strip_domain_suffix(series: pd.Series) -> pd.Series:
+    """Removes a trailing domain suffix like _01 or _TED01 from IDs."""
+    return series.str.replace(DOMAIN_SUFFIX_RE, '', regex=True)
 
 def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_path, taxonomy_path, output_path):
     # Read input files
@@ -58,7 +63,8 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
     )
 
     # Extract uniprot_id core for taxonomy merge
-    merged['uniprot_core'] = merged['uniprot_id'].str.replace(r'_\d+$', '', regex=True)
+    #merged['chain_core_id'] = merged['uniprot_id'].str.replace(r'_\d+$', '', regex=True)
+    merged['chain_core_id'] = strip_domain_suffix(merged['uniprot_id'])
     
     # Merge foldseek data if provided
     if foldseek_path:
@@ -80,11 +86,11 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
     # Merge taxonomy if provided - updated tax_df['accession'] to undergo the same uniprot core extraction before rename.
     if taxonomy_path:
         tax_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
-        tax_df = tax_df.rename(columns={'accession': 'uniprot_core'})
-        merged = merged.merge(tax_df, on='uniprot_core', how='left')
+        tax_df = tax_df.rename(columns={'accession': 'chain_core_id'})
+        merged = merged.merge(tax_df, on='chain_core_id', how='left')
 
     # Drop internal join columns
-    merged = merged.drop(columns=['uniprot_core', 'join_key'], errors='ignore')
+    merged = merged.drop(columns=['chain_core_id', 'join_key'], errors='ignore')
     print("Columns in merged:", merged.columns.tolist())
 
     # Add calculation of Q-score here
