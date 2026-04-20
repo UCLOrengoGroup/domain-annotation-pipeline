@@ -119,7 +119,6 @@ work/
 .nextflow.log*
 
 # local build dir
-tools/
 domain_assignments*.tsv
 assets/bfvd.tar.gz
 assets/af_ids_1000.txt
