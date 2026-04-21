@@ -23,14 +23,12 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
+include { prepare_pdb_file } from '../modules/prepare_pdb_file.nf'
 // include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 // include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 
-// Domain prediction modules - processes unused
-// include { run_chainsaw } from '../modules/run_chainsaw.nf'
-// include { run_merizo } from '../modules/run_merizo.nf'
-// include { run_unidoc } from '../modules/run_unidoc.nf'
+// Domain prediction modules
 include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 
 // Filtering and consensus modules - these are all unused as ted_segmentation takes care of all of this funtionality.
@@ -88,7 +86,7 @@ def validateParameters() {
     }
 
     if (!params.uniprot_csv_file || !params.pdb_zip_file) {
-        error("Both UniProt CSV file and PDB ZIP file must be specified.")
+        error("Both UniProt CSV file and input ZIP file must be specified.")
     }
 
     // Ensure results directory exists
@@ -101,7 +99,7 @@ def validateParameters() {
         error("UniProt CSV file not found: ${params.uniprot_csv_file}")
     }
     if (!params.pdb_zip_file || !file(params.pdb_zip_file).exists()) {
-        error("PDB ZIP file not found: ${params.pdb_zip_file}")
+        error("Input ZIP file not found: ${params.pdb_zip_file}")
     }
     // Foldseek asset existence check
     def db_exists     = params.target_db   && file(params.target_db).exists() // Check existence of target_db
@@ -119,7 +117,7 @@ def validateParameters() {
     ==============================================
     Project name        : ${params.project_name}
     UniProt CSV file    : ${params.uniprot_csv_file}
-    PDB ZIP file        : ${params.pdb_zip_file}
+    Input ZIP file      : ${params.pdb_zip_file}
     Main chunk size     : ${params.chunk_size}
     Light chunk size    : ${params.light_chunk_size}
     Heavy chunk size    : ${params.heavy_chunk_size}
@@ -221,8 +219,17 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
     
+    // Determine which ZIP archive downstream should use.
+    // If cif_mode is enabled, first convert the input CIF.GZ ZIP to a PDB ZIP. If not continue with PDB ZIP file.
+    input_zip_ch = Channel.value(file(params.pdb_zip_file))
+
+    if (params.cif_mode) {
+        pdb_zip_ch = prepare_pdb_file(input_zip_ch)
+    } else {
+        pdb_zip_ch = input_zip_ch
+    }
     // Run filter_pdb_from_zip on the chunked data channel (does not extract from zip just creates filtered lists)
-    filtered_ids_ch = filter_pdb_from_zip(chunked_af_ids_ch, file(params.pdb_zip_file), params.min_chain_residues)
+    filtered_ids_ch = filter_pdb_from_zip(chunked_af_ids_ch, pdb_zip_ch, params.min_chain_residues)
     
     // =========================================
     // PHASE 2: Domain Prediction
@@ -259,7 +266,7 @@ workflow {
         ) { f -> "----- ${f.name} -----\n" + f.text.trim() + "\n" }    
     
     // Finally run the ted_segmentation which now includes the extract from zip code
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch, file(params.pdb_zip_file))
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch, pdb_zip_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
@@ -327,7 +334,7 @@ workflow {
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly
     chopped_pdb_ch = chop_pdb_from_zip(
         consensus_chunks_ch,
-        file(params.pdb_zip_file)
+        pdb_zip_ch
     )
     // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
