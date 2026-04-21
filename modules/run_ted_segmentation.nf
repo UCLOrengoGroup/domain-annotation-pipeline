@@ -47,6 +47,49 @@ process run_ted_segmentation {
     stub:
     """
     echo "Stub process for run_ted_segmentation"
-    rsync -av /launchDir/fixtures/debug/run_ted_segmentation/ ./
+    mkdir -p output
+
+    # Copy the 5 template output files from the repo fixture folder
+    cp "${workflow.projectDir}/../assets/stub_run/chopping_chainsaw_sorted.txt" output/
+    cp "${workflow.projectDir}/../assets/stub_run/chopping_merizo_sorted.txt" output/
+    cp "${workflow.projectDir}/../assets/stub_run/chopping_unidoc_sorted.txt" output/
+    cp "${workflow.projectDir}/../assets/stub_run/consensus_sorted.tsv" output/
+    cp "${workflow.projectDir}/../assets/stub_run/consensus.tsv.changed.txt" output/
+
+    # Expand each template file so that every synthetic ID in filtered_id_file
+    # gets the row of its base/template ID, but with column 1 replaced by the synthetic ID
+    for f in chopping_chainsaw_sorted.txt chopping_merizo_sorted.txt chopping_unidoc_sorted.txt consensus_sorted.tsv; do
+        awk -F '\\t' '
+            BEGIN { OFS = FS }
+
+            # Read template rows into a lookup keyed by base ID
+            NR == FNR {
+                template[\$1] = \$0
+                next
+            }
+
+            # For each synthetic ID in the chunk input file
+            {
+                synthetic_id = \$1
+                base_id = synthetic_id
+
+                # Remove synthetic suffix like -0, -1, ... -9
+                sub(/-[0-9]+\$/, "", base_id)
+
+                row = template[base_id]
+
+                if (row == "") {
+                    print "ERROR: missing template row for " base_id > "/dev/stderr"
+                    exit 1
+                }
+
+                # Replace first field with the synthetic ID
+                sub(/^[^\\t]+/, synthetic_id, row)
+                print row
+            }
+        ' "output/\${f}" "${filtered_id_file}" > "output/\${f}.tmp"
+
+        mv "output/\${f}.tmp" "output/\${f}"
+    done
     """
 }
