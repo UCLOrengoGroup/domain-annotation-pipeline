@@ -24,7 +24,14 @@ with zipfile.ZipFile(input_zip, "r") as zin, zipfile.ZipFile(output_zip, "w", co
             with zin.open(member) as src, open(cif_path, "wb") as dst:
                 shutil.copyfileobj(src, dst)                
             # Convert one file                
-            structure = gemmi.read_structure(str(cif_path))
-            structure.write_pdb(str(pdb_path))
-            # Add converted pdb to output zip
-            zout.write(pdb_path, arcname=pdb_name)
+            try:
+                structure = gemmi.read_structure(str(cif_path))
+                structure.write_pdb(str(pdb_path))
+                # Add converted pdb to output zip
+                zout.write(pdb_path, arcname=pdb_name)
+            except Exception as e:
+                print(
+                    f"WARNING: Failed to convert CIF '{name}' to PDB. Only AFDB-style monomer CIFs are supported ({e}).",
+                    file=sys.stderr
+                )
+                continue
