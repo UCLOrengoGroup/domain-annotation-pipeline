@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: python:3.10-slim-buster
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        vim wget gzip tar git g++ make \
+        && apt-get autoremove -yqq --purge \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+    
+    cd /opt
+    git clone https://github.com/JudeWells/chainsaw
+    pip install --upgrade pip wheel
+    pip install -r /opt/chainsaw/requirements.txt
+
+    cd /opt/chainsaw/stride
+    tar -zxvf stride.tgz
+    make
+
+    chmod +x /opt/chainsaw/get_predictions.py
+
+%environment
+    export PATH="/opt/chainsaw:$PATH"
+
+%runscript
+    exec /bin/bash
