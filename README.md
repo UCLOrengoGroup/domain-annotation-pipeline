@@ -109,7 +109,7 @@ export NXF_OPTS='-Xms3g -Xmx3g'
 export PATH=/share/apps/jdk-20.0.2/bin:$PATH
 export LD_LIBRARY_PATH=/share/apps/jdk-20.0.2/lib:$LD_LIBRARY_PATH
 export JAVA_HOME=/share/apps/jdk-20.0.2
-export PATH=/share/apps/genomics/nextflow-local-23.04.2:$PATH
+export PATH=/share/apps/genomics/nextflow-local-25.10.3:$PATH
 ```
 
 Create a cache directory for NextFlow (not entirely necessary but will prevent warnings).
