@@ -1,5 +1,7 @@
 click
 pandas
 biopython
+gemmi
+msgpack
 requests
 pdb-tools
