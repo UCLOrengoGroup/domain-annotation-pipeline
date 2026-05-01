@@ -6,7 +6,7 @@ from urllib.parse import quote
 import requests
 
 
-DEFAULT_EBI_BASE_URL = "https://alphafold.ebi.ac.uk/files"
+DEFAULT_AFDB_BASE_URL = "https://alphafold.ebi.ac.uk/files"
 
 
 def iter_ids(path: Path):
@@ -33,7 +33,7 @@ def write_log_row(handle, row: tuple[str, str, str, str, str, str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Download AlphaFold BCIF files and package them into a zip.")
     parser.add_argument("--id-file", required=True, help="File with one AlphaFold ID per line")
-    parser.add_argument("--base-url", default=DEFAULT_EBI_BASE_URL, help="Base URL for AlphaFold BCIF downloads")
+    parser.add_argument("--base-url", default=DEFAULT_AFDB_BASE_URL, help="Base URL for AlphaFold BCIF downloads")
     parser.add_argument("--out-bcif-zip", required=True, help="Output zip file for downloaded BCIF files")
     args = parser.parse_args()
 
