@@ -32,21 +32,11 @@ nextflow.enable.dsl = 2
 // PARAMETERS
 // ===============================================
 params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
-if (!params.containsKey('publish_mode') || params.publish_mode == null) params.publish_mode = 'copy'
 
-// Inputs
-if (!params.containsKey('af_ids_file')) params.af_ids_file = null  // required: list of AFDB IDs (one per line)
-if (!params.containsKey('bcif_zip_file')) params.bcif_zip_file = null  // optional: zip containing .bcif members
-if (!params.containsKey('af_base_url') || params.af_base_url == null) params.af_base_url = 'https://alphafold.ebi.ac.uk/files'
-if (!params.containsKey('prep_chunk_size') || params.prep_chunk_size == null) params.prep_chunk_size = 100000
-
-// Script is staged into the task work dir so you can edit it without rebuilding containers
-if (!params.containsKey('bcif_download_script') || params.bcif_download_script == null) params.bcif_download_script = "${baseDir}/../docker/script/download_bcif_from_ebi.py"
-if (!params.containsKey('bcif_zip_converter_script') || params.bcif_zip_converter_script == null) params.bcif_zip_converter_script = "${baseDir}/../docker/script/make_pdb_zip.py"
-
-include { normalise_af_ids; ids_from_bcif_zip; download_bcif_from_ebi; prepare_pdb_from_af_bcif } from '../modules/prepare_af_pdb_zip.nf'
+include { normalise_af_ids; ids_from_bcif_zip; download_bcif_from_afdb; prepare_pdb_from_af_bcif } from '../modules/prepare_af_pdb_zip.nf'
 
 workflow {
+    int prep_chunk_size = (params.prep_chunk_size as Integer)
 
     if (!params.project_name) {
         error("Project name must be specified (use --project_name)")
@@ -56,7 +46,7 @@ workflow {
         error("AF IDs file must be specified (use --af_ids_file)")
     }
 
-    if (!params.prep_chunk_size || params.prep_chunk_size <= 0) {
+    if (prep_chunk_size <= 0) {
         error("Prep chunk size must be a positive integer (use --prep_chunk_size)")
     }
 
@@ -69,6 +59,7 @@ workflow {
 
     af_ids_ch = normalise_af_ids(channel.value(file(params.af_ids_file)))
     converter_script_ch = channel.value(file(params.bcif_zip_converter_script))
+    download_script_ch = channel.value(file(params.bcif_download_script))
 
     // Use either user-provided BCIF zip, or download from AlphaFold DB
     if (params.bcif_zip_file) {
@@ -84,16 +75,15 @@ workflow {
         prepare_pdb_from_af_bcif(prepare_input_ch, converter_script_ch)
     } else {
         chunked_af_ids_ch = af_ids_ch
-            .splitText(by: params.prep_chunk_size, file: true)
+            .splitText(by: prep_chunk_size, file: true)
             .toSortedList { chunkFile -> chunkFile.name }
             .flatMap { List chunkFiles ->
                 chunkFiles.withIndex().collect { cf, idx ->
                     [String.format('chunk_%06d', idx), cf]
                 }
             }
-
-        download_script_ch = channel.value(file(params.bcif_download_script))
-        downloads_ch = download_bcif_from_ebi(chunked_af_ids_ch, download_script_ch, params.af_base_url.replaceAll('/+$',''))
+        
+        downloads_ch = download_bcif_from_afdb(chunked_af_ids_ch, download_script_ch, params.af_base_url.replaceAll('/+$',''))
 
         prepare_input_ch = downloads_ch.map { chunk_id, bcif_zip, downloaded_ids, _failed_ids, _prep_summary, _download_log ->
             [chunk_id, bcif_zip, downloaded_ids]
