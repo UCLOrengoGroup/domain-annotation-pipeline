@@ -1,6 +1,6 @@
 /*
  * Convert a zip of AlphaFold BinaryCIF (.bcif) files into two zip files:
- * - one zip containing text CIF (.cif)
+ * - one zip containing gzip-compressed CIF files (.cif.gz)
  * - one zip containing PDB (.pdb)
  *
  * The conversion can be limited by providing a list file of AFDB IDs (one per line).

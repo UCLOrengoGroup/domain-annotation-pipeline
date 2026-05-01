@@ -1,8 +1,8 @@
 import argparse
+import gzip
 import importlib
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -68,6 +68,15 @@ def _run_molstar_bcif_to_cif(bcif_path: Path, cif_path: Path) -> None:
         raise RuntimeError("molstar_bcif_to_cif_missing_or_empty")
 
 
+def _gzip_file(src: Path, dst: Path) -> None:
+    with src.open("rb") as src_handle, gzip.open(dst, "wb") as dst_handle:
+        while True:
+            chunk = src_handle.read(1024 * 1024)
+            if not chunk:
+                break
+            dst_handle.write(chunk)
+
+
 def _count_atoms(structure) -> int:
     return sum(model.count_atom_sites() for model in structure)
 
@@ -126,7 +135,7 @@ def _select_members(all_members: list[str], requested: list[str] | None) -> list
 def _convert_one_bcif(
     bcif_path: Path,
     working_cif_path: Path,
-    cif_path: Path | None,
+    cif_gz_path: Path | None,
     pdb_path: Path | None,
     structure_id: str,
 ) -> None:
@@ -142,8 +151,8 @@ def _convert_one_bcif(
     if atom_count <= 0:
         raise RuntimeError("converted_structure_has_no_atoms")
 
-    if cif_path is not None:
-        shutil.copyfile(working_cif_path, cif_path)
+    if cif_gz_path is not None:
+        _gzip_file(working_cif_path, cif_gz_path)
 
     if pdb_path is not None:
         structure.write_pdb(str(pdb_path))
@@ -152,7 +161,7 @@ def _convert_one_bcif(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Convert a zip of .bcif files into two zips: one containing .cif files and one containing .pdb files."
+            "Convert a zip of .bcif files into two zips: one containing .cif.gz files and one containing .pdb files."
         )
     )
     parser.add_argument("--bcif-zip", required=True, help="Input zip containing .bcif files")
@@ -164,7 +173,7 @@ def main() -> int:
             "Lines may be either 'AF-...-model_vN' or 'AF-...-model_vN.bcif' or full zip member names."
         ),
     )
-    parser.add_argument("--out-cif-zip", required=False, help="Output zip containing .cif files")
+    parser.add_argument("--out-cif-zip", required=False, help="Output zip containing .cif.gz files")
     parser.add_argument("--out-pdb-zip", required=False, help="Output zip containing .pdb files")
     args = parser.parse_args()
 
@@ -211,7 +220,7 @@ def main() -> int:
                 base = Path(member).name
                 stem = base[:-5]  # drop .bcif
 
-                cif_name = _safe_arcname(stem, ".cif") if cif_z is not None else None
+                cif_name = _safe_arcname(stem, ".cif.gz") if cif_z is not None else None
                 pdb_name = _safe_arcname(stem, ".pdb") if pdb_z is not None else None
 
                 try:

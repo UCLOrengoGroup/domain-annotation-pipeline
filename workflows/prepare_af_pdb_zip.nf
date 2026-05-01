@@ -24,7 +24,7 @@ nextflow.enable.dsl = 2
  * Chunk-scoped archive outputs are published under:
  *   results/<project_name>/prepared/chunks/
  *   - <chunk_id>.bcif_files.zip
- *   - <chunk_id>.cif_files.zip
+ *   - <chunk_id>.cif_files.zip (containing .cif.gz members)
  *   - <chunk_id>.pdb_files.zip
  */
 
