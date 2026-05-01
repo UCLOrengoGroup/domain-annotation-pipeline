@@ -8,15 +8,15 @@
 
 nextflow.enable.dsl = 2
 
-process download_bcif_from_ebi {
+process download_bcif_from_afdb {
     label 'sge_low'
-  tag "$chunk_id"
+    tag "$chunk_id"
     container 'domain-annotation-pipeline-script'
-  publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
+    publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
-  tuple val(chunk_id), path(afdb_ids_file)
-    path download_script
+    tuple val(chunk_id), path(afdb_ids_file)
+  path download_script
     val base_url
 
     output:
@@ -94,7 +94,7 @@ process prepare_pdb_from_af_bcif {
 
     input:
     tuple val(chunk_id), path(bcif_zip), path(afdb_ids_file)
-    path converter_script
+  path converter_script
 
     output:
     tuple val(chunk_id), path("${chunk_id}.cif_files.zip"), path("${chunk_id}.pdb_files.zip")
