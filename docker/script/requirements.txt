@@ -5,3 +5,4 @@ gemmi
 msgpack
 requests
 pdb-tools
+gemmi
