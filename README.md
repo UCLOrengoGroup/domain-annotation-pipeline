@@ -72,6 +72,36 @@ nextflow run workflows/annotate.nf \
     --pdb_zip_file pdb_files.zip \
     --uniprot_csv_file ids.txt \
     -profile debug,docker
+
+### Preparing data from AlphaFold DB (BinaryCIF -> PDB zip)
+
+If you only have AlphaFold DB accessions, you can generate the required PDB zip with:
+
+Your IDs file should contain full AlphaFold DB IDs like `AF-O15552-F1-model_v6` (one per line).
+
+```bash
+nextflow run workflows/prepare_af_pdb_zip.nf \
+    --project_name my_af_prep \
+    --af_ids_file fixtures/cbif/afdb_ids.txt \
+    -profile docker
+```
+
+Outputs are written to:
+
+- `results/my_af_prep/prepared/pdb_files.zip` (root-level `<ID>.pdb` entries)
+- `results/my_af_prep/prepared/af_ids.txt` (sorted+unique)
+- `results/my_af_prep/prepared/failed_ids.txt` (IDs that could not be prepared)
+- `results/my_af_prep/prepared/prep_summary.txt` (counts)
+
+You can then run the main workflow using the generated files:
+
+```bash
+nextflow run workflows/annotate.nf \
+    --pdb_zip_file results/my_af_prep/prepared/pdb_files.zip \
+    --uniprot_csv_file results/my_af_prep/prepared/af_ids.txt \
+    --project_name my_annotation_run \
+    -profile docker
+```
 ```
 Also useful to note:
 The output directory can be controlled with the ```--project_name``` parameter. 
