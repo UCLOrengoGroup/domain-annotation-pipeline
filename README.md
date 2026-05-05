@@ -122,6 +122,27 @@ It will download the CATH databases required (currently V4.4.0 s95) to this fold
 
 If the database URL is changed or the Foldseek assets are missing or deleted, please run the pipeline without -resume to ensure correct download behaviour.
 
+## Testing without annotating (stub run)
+
+The pipeline can be run in dummy (stub) mode, in which it will use synthetic chain ids to assign precomputed domain boundaries.
+The run_ted_segmentation and get_uniprot processes will run stub code rather than production code. This feature allows users to 
+test pipeline parameters without using excess compute time.
+To run this feature, suffix the normal run comman with 
+```bash
+-stub_run
+```
+For the stub run to work, check that the following files are located in ```../assets/stub_run```:
+```bash
+chopping_chainsaw_sorted.txt
+chopping_merizo_sorted.txt
+chopping_unidoc_sorted.txt
+consensus_sorted.tsv
+consensus.tsv.changed.txt
+ted_stub_chain_ids.csv
+ted_stub_chain_ids.zip 
+```
+The default files are currently set up to run a test set of 50 chain ids, producing a final results output of 100 domains.
+
 ## Running on HPC
 
 ## Install (with singularity)
