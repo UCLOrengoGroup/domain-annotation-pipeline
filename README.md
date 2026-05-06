@@ -72,6 +72,7 @@ nextflow run workflows/annotate.nf \
     --pdb_zip_file pdb_files.zip \
     --uniprot_csv_file ids.txt \
     -profile debug,docker
+```
 
 ### Preparing data from AlphaFold DB (BinaryCIF -> PDB zip)
 
