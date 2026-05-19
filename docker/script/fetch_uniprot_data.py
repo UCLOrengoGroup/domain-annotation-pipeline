@@ -36,20 +36,25 @@ def normalise_afdb_id(s: str) -> str:
         return m.group(1)
     return s
 
-def clean_accessions(accessions):
+def clean_accessions(original_ids):
     """Strip whitespace, drop obvious headers/garbage, keep only valid-looking accessions."""
     clean = []
-    for a in accessions:
-        a = normalise_afdb_id(a) # a = a.strip()
-        if not a:
+    for orig_id in original_ids:
+        orig_id = normalise_afdb_id(orig_id) # a = a.strip()
+        if not orig_id:
             continue
-        if a.lower() in {"uniprot_id", "accession", "id"}:
+        if orig_id.lower() in {"uniprot_id", "accession", "id"}:
             continue
-        if not UNIPROT_ACC_RE.match(a):
+
+        id_match = UNIPROT_ACC_RE.match(orig_id)
+
+        if id_match:
+            clean_id = id_match.group(0)
+            clean.append(clean_id)
+        else:
             # Debug only if you like:
-            print(f"[WARN] Skipping invalid accession candidate: {a!r}")
+            print(f"[WARN] Skipping invalid accession candidate: {orig_id!r}")
             continue
-        clean.append(a)
 
     return clean
 
@@ -398,12 +403,9 @@ if __name__ == "__main__":
             accessions = [line.strip() for line in f if line.strip()]
     elif args.accession:
         accessions = [a.strip() for a in args.accession.split(',') if a.strip()]
-        # Validate each accession
-        invalid = [a for a in accessions if not UNIPROT_ACC_RE.match(a)]
-        if invalid:
-            print(f"Error: The following accessions are not valid UniProt accessions: {', '.join(invalid)}")
-            exit(1)
     else:
         accessions = []
+
+    accessions = clean_accessions(accessions)
 
     run(accessions, args.output, batch_size=args.batch_size)
