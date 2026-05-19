@@ -17,7 +17,7 @@ API_URL = "https://rest.uniprot.org"
 POLLING_INTERVAL = 3  # seconds
 
 # UniProt accession-ish regex (classic + extended)
-UNIPROT_ACC_RE = re.compile(r'^[A-Z0-9]{6,10}$')
+UNIPROT_ACC_RE = re.compile(r'^[A-NR-Z][0-9][A-Z0-9]{3}[0-9]|^[OPQ][0-9][A-Z0-9]{3}[0-9]|^[A-Z0-9]{1,2}[0-9][A-Z0-9]{2}[0-9]{3}')
 
 # Session with retries on transient errors
 session = requests.Session()
@@ -393,16 +393,13 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=1000, help='Batch size for UniProt queries (default: 1000)')
     args = parser.parse_args()
 
-    import re
-    uniprot_pattern = re.compile(r'^[A-NR-Z][0-9][A-Z0-9]{3}[0-9]$|^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-Z0-9]{1,2}[0-9][A-Z0-9]{2}[0-9]{3}$')
-
     if args.input:
         with open(args.input) as f:
             accessions = [line.strip() for line in f if line.strip()]
     elif args.accession:
         accessions = [a.strip() for a in args.accession.split(',') if a.strip()]
         # Validate each accession
-        invalid = [a for a in accessions if not uniprot_pattern.match(a)]
+        invalid = [a for a in accessions if not UNIPROT_ACC_RE.match(a)]
         if invalid:
             print(f"Error: The following accessions are not valid UniProt accessions: {', '.join(invalid)}")
             exit(1)
