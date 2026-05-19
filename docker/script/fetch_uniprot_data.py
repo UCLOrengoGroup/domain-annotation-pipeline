@@ -408,4 +408,8 @@ if __name__ == "__main__":
 
     accessions = clean_accessions(accessions)
 
+    if not accessions:
+        print("[ERROR] No valid UniProt accessions provided.")
+        exit(1)
+
     run(accessions, args.output, batch_size=args.batch_size)
