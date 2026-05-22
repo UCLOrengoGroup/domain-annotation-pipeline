@@ -66,6 +66,9 @@ include { foldseek_run_foldseek } from '../foldseek/modules/foldseek_run_foldsee
 include { foldseek_run_convertalis } from '../foldseek/modules/foldseek_run_convertalis.nf'
 include { foldseek_process_results } from '../foldseek/modules/foldseek_process_results.nf'
 
+// contrasted modules
+include { fetch_contrasted_assets } from '../modules/contrasted_fetch_db_assets.nf'
+include { contrasted_run_annotate } from '../modules/contrasted_run_annotate.nf'
 
 // ===============================================
 // HELPER FUNCTIONS
@@ -132,6 +135,10 @@ def validateParameters() {
     Lookup file         : ${params.foldseek_lookup_url.tokenize('/')[-1]}
     Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
     Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
+    ----------------------------------------------
+    Contrasted Configuration Information
+    ----------------------------------------------
+    Reference database  : ${params.conted_db_url.tokenize('/')[-1]}
     ==============================================
     """.stripIndent()
     )
@@ -448,9 +455,29 @@ workflow {
             sort: false,
             storeDir: params.results_dir,
         ) { it[1] }
-
     // =========================================
-    // PHASE 7: Final Assembly
+    // PHASE 7: Run contrasted
+    // =========================================
+    // Derive channels from the predefined parameters
+    conted_db_ch   = Channel.value(file(params.conted_db_path))
+    conted_list_ch = Channel.value(file(params.conted_list_path))
+
+    // Run contrasted-annotate on the output of the crate_md5 process 
+    contrast_ch = contrasted_run_annotate(md5_chunks_ch, conted_db_ch, conted_list_ch)
+    
+    // Combine results from each chunk together
+    cont_collect_ch = contrast_ch
+        .toSortedList { it -> it[0] }
+        .flatMap{ it }
+        .collectFile( 
+            name: 'contrasted_results.tsv',
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: params.results_dir,
+        ) { it[1] }
+    // =========================================
+    // PHASE 8: Final Assembly
     // =========================================
 
     // Transform consensus with structure data
@@ -484,7 +511,7 @@ workflow {
     )
 
     // ==========================================
-    // PHASE 8: Completion and output Information
+    // PHASE 9: Completion and output Information
     // ==========================================
 
     // Remove duplicate final output file and log the location of final_results.tsv to screen
