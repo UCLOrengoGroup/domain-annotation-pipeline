@@ -3,14 +3,13 @@ process run_ted_segmentation {
     container 'domain-annotation-pipeline-ted-tools'
 
     input:
-    tuple val(chunk_id), path(filtered_id_file)
-    path(pdb_zip)
+    tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip))
 
     output:    
     tuple val(chunk_id), path('output/chopping_chainsaw_sorted.txt'), emit: chainsaw
     tuple val(chunk_id), path('output/chopping_merizo_sorted.txt'), emit: merizo
     tuple val(chunk_id), path('output/chopping_unidoc_sorted.txt'), emit: unidoc
-    tuple val(chunk_id), path('output/consensus_sorted.tsv'), emit: consensus
+    tuple val(chunk_id), path('output/consensus_sorted.tsv'), path(pdb_zip), emit: consensus
     tuple val(chunk_id), path('output/consensus.tsv.changed.txt'), emit: consensus_changed
 
     script:

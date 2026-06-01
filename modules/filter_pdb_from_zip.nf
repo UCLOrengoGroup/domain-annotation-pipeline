@@ -4,12 +4,11 @@ process filter_pdb_from_zip {
     container 'domain-annotation-pipeline-script'
 
     input:
-    tuple( val(chunk_id), path(id_file) )
-    path pdb_zip
+    tuple(val(chunk_id), path(id_file), path(pdb_zip))
     val min_residues
 
     output:
-    tuple( val(chunk_id), path('filtered_ids.txt'))
+    tuple(val(chunk_id), path('filtered_ids.txt'), path(pdb_zip))
 
     script:
     """
