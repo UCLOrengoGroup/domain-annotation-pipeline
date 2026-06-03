@@ -27,7 +27,8 @@ include { prepare_pdb_file } from '../modules/prepare_pdb_file.nf'
 // include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 // include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
-// New process to transform all_af_ids.txt (now id and zip) into chunk files within zips (uses params.chunk_by_zip_script)
+// New process to create and transform an input mapping (id and zip) into chunk files within zips
+include { create_input_from_zip } from '../modules/create_input_from_zip.nf'
 include { chunk_by_zip } from '../modules/chunk_by_zipfile.nf'
 include { heavy_chunk_by_zip } from '../modules/heavy_chunk_by_zipfile.nf'
 // Domain prediction modules
@@ -87,8 +88,8 @@ def validateParameters() {
         params.max_entries = 10
     }
 
-    if (!params.uniprot_csv_file || !params.pdb_zip_file) {
-        error("Both UniProt CSV file and input ZIP file must be specified.")
+    if (!params.input_zip_dir) {
+        error("UniProt TSV file may be omitted but input ZIP directory must be specified.")
     }
 
     // Ensure results directory exists
@@ -97,11 +98,8 @@ def validateParameters() {
     }
 
     // Validate required parameters
-    if (!params.uniprot_csv_file || !file(params.uniprot_csv_file).exists()) {
-        error("UniProt CSV file not found: ${params.uniprot_csv_file}")
-    }
-    if (!params.pdb_zip_file || !file(params.pdb_zip_file).exists()) {
-        error("Input ZIP file not found: ${params.pdb_zip_file}")
+    if (!params.input_zip_dir || !file(params.input_zip_dir).exists()) {
+        error("Input ZIP directory not found: ${params.input_zip_dir}")
     }
     // Foldseek asset existence check
     def db_exists     = params.target_db   && file(params.target_db).exists() // Check existence of target_db
@@ -118,8 +116,8 @@ def validateParameters() {
     Domain Annotation Pipeline
     ==============================================
     Project name        : ${params.project_name}
-    UniProt CSV file    : ${params.uniprot_csv_file}
-    Input ZIP file      : ${params.pdb_zip_file}
+    UniProt TSV file    : ${params.uniprot_tsv_file ?: 'N/A'}
+    Input ZIP folder    : ${params.input_zip_dir}
     Main chunk size     : ${params.chunk_size}
     Light chunk size    : ${params.light_chunk_size}
     Heavy chunk size    : ${params.heavy_chunk_size}
@@ -177,65 +175,67 @@ workflow {
     // Create a subfolder in the results directory for the light_chunk_size debugging files
     file("${params.results_dir}/consensus_chunks").mkdirs()
     
-    // Alternative modes for the channel from the csv with UniProt IDs and zip file depending on the multi_zip param (true = multi)
-    if (params.multi_zip) {
-        // Mode 1: CSV has two columns (id,zip); use the zip file from the column 2 (multi_zip=true)
-        zip_id_ch = Channel.fromPath(params.uniprot_csv_file, checkIfExists: true) // Create a channel from the uniprot_csv_file
-            .splitCsv()                                                        // Split into individual values by row
-            .map { row -> tuple(row[0].trim(), file(row[1].trim())) }          // Assign the id from col 1 and the zip file from col 2
-            .filter { id, zip -> id != '' }                                    // Filter blank id rows
-            .unique()                                                          // Remove duplicates
-            .toSortedList { a, b ->                                            // Sort by id for deterministic order
-                a[0] <=> b[0]
-            }
-            .flatMap { it }                                                    // Flatten into a list to stream into the channel
+    // A TSV file (two columns: id <TAB> zip_name) may be specified at runtime with param --uniprot_tsv_file to list ids and zip names.
+    if (params.uniprot_tsv_file) {
+        input_mapping_ch = Channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
     } else {
-        // Mode 2: CSV has one id column; attach the same zip file to every ID using params.uniprot_csv_file (multi_zip=false)
-        zip_id_ch = Channel.fromPath(params.uniprot_csv_file, checkIfExists: true) // Create a channel from the uniprot_csv_file
-            .splitCsv()                                                        // Use .splitCsv rather than .splitText
-            .map { row -> tuple(row[0].trim(), file(params.pdb_zip_file)) }    // Assign id from csv col1 and zip from params.pdb_zip_file
-            .filter { id, zip -> id != '' }                                    // Filter blank id rows
-            .unique()                                                          // Remove duplicates
-            .toSortedList { a, b ->                                            // Sort by id for deterministic ordering
-                a[0] <=> b[0]
-            }
-            .flatMap { it }                                                    // Flatten into a list to stream into the channel
-    }                                                                          // Resultant zip_id_ch is [id, zip_file]
+    // If not, create the ids and zip file channel directly from the zips in --input_zip_dir (mandatory runtime input).
+        input_mapping_ch = create_input_from_zip(params.input_zip_dir)
+    }
+    // Check that the resultant file has the correct format
+    input_mapping_ch = input_mapping_ch.map { f ->
+        f.readLines().take(100).eachWithIndex { line, idx ->
+            def cols = line.split('\t')
+            if (cols.size() != 2)
+                error("Invalid input mapping: line ${idx+1} does not contain 2 tab-separated columns")
+            if (!cols[1].endsWith('.zip'))
+                error("Invalid input mapping: line ${idx+1} zip name must end with .zip") }
+        return f
+    }
+    // If so, it will be used to create a subset of the pdb/zip_name in the zip_file_dir directory for that run
+    zip_id_ch = input_mapping_ch                                    // Create a channel from the input
+        .splitCsv(sep: '\t')                                        // Split into individual values by row
+        .map { row -> tuple(row[0].trim(), row[1].trim()) }         // Assign the id from col 1 and the zip file from col 2
+        .filter { id, zip_name -> id != '' && zip_name != '' }      // Filter blank id rows
+        .unique()                                                   // Remove duplicates
+        .toSortedList { a, b -> a[0] <=> b[0] }                     // Sort by id for deterministic order
+        .flatMap { it }                                             // Flatten into a list to stream into the channel
+    // Resultant zip_id_ch is [id, zip_name]
     
     // Apply debug limit if enabled
     if (params.debug && params.max_entries) {
         zip_id_ch = zip_id_ch.take(params.max_entries)
     }
 
-    // Now create a file, still called all_af_ids.txt, but which now contains two columns: [id, zip].
-    all_af_ids_ch = zip_id_ch
+    // Now create a file called all_ids_mapping.txt which contains two columns: [id, zip_name].
+    all_ids_mapping_ch = zip_id_ch
         .map { id, zip -> "${id}\t${zip}" }
         .collectFile(
-            name: 'all_af_ids.txt',
+            name: 'all_ids_mapping.txt',
             newLine: true,
             sort: true,
             storeDir: "${params.results_dir}/intermediate"
         )
     
-    // New process chunk_by_zip splits all_af_ids.txt into chunk_size chunks within zips and assignes a 3-part tuple [id, chunk_file, zip_file].
-    zip_chunks = chunk_by_zip(all_af_ids_ch, params.chunk_size)
+    // New process chunk_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips and assignes a 3-part tuple [chunk_id, chunk_file, zip_name].
+    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size)
 
-    // Recreate the original chunked_af_ids_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
-    chunked_af_ids_ch = zip_chunks.chunk_mapping
+    // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
+    chunked_ids_mapping_ch = zip_chunks.chunk_mapping
     .splitCsv(header: true, sep: '\t')
     .map { row ->
         tuple(
             row.chunk_id as int,
             file(row.chunk_file),
-            file(row.zip_file)
+            row.zip_name
         )
     }
-    // As a branch channel, create a 2-part tuple channel [id, chunk_file] just for get_uniprot_data
-    chunked_tax_ids_ch = chunked_af_ids_ch
-        .map { chunk_id, id_file, zip_file ->
+    // As a branch channel, create a 2-part tuple channel [chunk_id, chunk_file] just for get_uniprot_data
+    chunked_tax_ids_ch = chunked_ids_mapping_ch
+        .map { chunk_id, id_file, zip_name ->
         tuple(chunk_id, id_file) }
 
-    // Get taxonomic data using the new chunked_tax_ids_ch which only has [id, chunk_file]
+    // Get taxonomic data using the new chunked_tax_ids_ch which only has [chunk_id, chunk_file]
     uniprot_data_ch = get_uniprot_data(chunked_tax_ids_ch)
     collected_taxonomy_ch = uniprot_data_ch
         .toSortedList { it -> it[0] }
@@ -259,19 +259,19 @@ workflow {
     //    pdb_zip_ch = input_zip_ch
     //}
     // Run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists) - removed pdb_zip_ch.
-    filtered_ids_ch = filter_pdb_from_zip(chunked_af_ids_ch, params.min_chain_residues)
+    filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.input_zip_dir, params.min_chain_residues)
     
     // =========================================
     // PHASE 2: Domain Prediction
     // =========================================
 
-    // Rechunk for ted_segmentation using heavy_chunk_size. First, take the filtered output and return to 2-part tuple [chunk_id, zip_file]
+    // Rechunk for ted_segmentation using heavy_chunk_size. First, take the filtered output and return to 2-part tuple [chunk_id <tab> zip_name]
     filtered_two_part_ch = filtered_ids_ch
-        .flatMap { chunk_id, filtered_file, zip_file ->
+        .flatMap { chunk_id, filtered_file, zip_name ->
             filtered_file.text
                 .readLines()
                 .findAll { it.trim() }
-                .collect { id -> "${id.trim()}\t${zip_file}" }
+                .collect { id -> "${id.trim()}\t${zip_name}" }
         }
         .collectFile(
             name: 'filtered_af_ids.txt', // Write the chunks to an output file
@@ -280,18 +280,18 @@ workflow {
             storeDir: "${params.results_dir}/intermediate"
         )
 
-    // Use process heavy_chunk_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips and re-assignes the 3-part tuple [chunk_id, chunk_file, zip_file].
+    // Use process heavy_chunk_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips and re-assignes the 3-part tuple [chunk_id, chunk_file, zip_name].
     heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size)
     
     // Create heavy_chunk_ch as a channel from the process aoutput
     heavy_chunk_ch = heavy_chunks.chunk_mapping
     .splitCsv(header: true, sep: '\t')
     .map { row ->
-        tuple(row.chunk_id as int, file(row.chunk_file), file(row.zip_file))
+        tuple(row.chunk_id as int, file(row.chunk_file), row.zip_name)
     }
     
     // Finally run the ted_segmentation which now includes the extract from zip code. Again removed pdb_zip_ch.
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch, params.input_zip_dir)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
@@ -333,7 +333,7 @@ workflow {
         .collectFile(
             name: 'domain_assignments.consensus.tsv',
             sort: false,
-            storeDir: params.results_dir,  // To use with a process, remove storeDir
+            storeDir: params.results_dir,
         ) { it[1] }
 
     // =========================================
@@ -345,7 +345,7 @@ workflow {
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
     // Chop pdbs now runs on heavy_chunk size to preserve the chunking within zip file
-    chopped_pdb_ch = chop_pdb_from_zip(consensus_for_chopping_ch)
+    chopped_pdb_ch = chop_pdb_from_zip(consensus_for_chopping_ch, params.input_zip_dir)
     
     // The light_chunk_size channel for lighter downstream processes is no longer created
     //chopped_chunks_ch = chopped_pdb_ch

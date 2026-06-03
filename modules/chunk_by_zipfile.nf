@@ -4,7 +4,7 @@ process chunk_by_zip {
     publishDir "${params.results_dir}/intermediate", mode: 'copy' //, enabled: params.debug // only publish if run in debug mode
     
     input:
-    path all_af_ids_file
+    path all_ids_mapping_file
     val chunk_size
 
     output:
@@ -17,9 +17,9 @@ process chunk_by_zip {
     mkdir -p chunks
 
     python3 ${params.chunk_by_zip_script} \
-    ${all_af_ids_file} \
-    ${chunk_size} \
-    \$PWD/chunks \
-    chunk_mapping.tsv
+        --input_file ${all_ids_mapping_file} \
+        --chunk_size ${chunk_size} \
+        --outdir \$PWD/chunks \
+        --file_list chunk_mapping.tsv
     """
 }

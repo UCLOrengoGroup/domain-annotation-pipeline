@@ -4,14 +4,16 @@ process filter_pdb_from_zip {
     container 'domain-annotation-pipeline-script'
 
     input:
-    tuple(val(chunk_id), path(id_file), path(pdb_zip))
+    tuple(val(chunk_id), path(id_file), val(zip_name))
+    path input_zip_dir
     val min_residues
 
     output:
-    tuple(val(chunk_id), path('filtered_ids.txt'), path(pdb_zip))
+    tuple(val(chunk_id), path('filtered_ids.txt'), val(zip_name))
 
     script:
     """
+    pdb_zip="${input_zip_dir}/${zip_name}"
     : > filtered_ids.txt
 
     # Call each chain name in the id_file (e.g. A0A001) chain_id
@@ -21,7 +23,7 @@ process filter_pdb_from_zip {
         
         # stream the data from the zip to pdb_wc file rather than unzipping 
         read model_count chain_count residue_count < <(
-          unzip -p ${pdb_zip} "\$fname" 2>/dev/null | pdb_wc - 2>/dev/null | awk '
+          unzip -p \$pdb_zip "\$fname" 2>/dev/null | pdb_wc - 2>/dev/null | awk '
             /^No\\. models:/   {m=\$3}
             /^No\\. chains:/   {c=\$3}
             /^No\\. residues:/ {r=\$3}

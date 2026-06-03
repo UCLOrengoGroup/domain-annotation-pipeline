@@ -17,9 +17,9 @@ process heavy_chunk_by_zip {
     mkdir -p heavy_chunks
 
     python3 ${params.chunk_by_zip_script} \
-    ${filtered_af_ids_file} \
-    ${heavy_chunk_size} \
-    \$PWD/heavy_chunks \
-    heavy_chunk_mapping.tsv
+        --input_file ${filtered_af_ids_file} \
+        --chunk_size ${heavy_chunk_size} \
+        --outdir \$PWD/heavy_chunks \
+        --file_list heavy_chunk_mapping.tsv
     """
 }
