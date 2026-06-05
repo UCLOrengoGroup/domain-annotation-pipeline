@@ -31,6 +31,7 @@ include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 include { create_input_from_zip } from '../modules/create_input_from_zip.nf'
 include { chunk_by_zip } from '../modules/chunk_by_zipfile.nf'
 include { heavy_chunk_by_zip } from '../modules/heavy_chunk_by_zipfile.nf'
+include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
 // Domain prediction modules
 include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
 
@@ -341,26 +342,35 @@ workflow {
     // =========================================
     // TODO: chunks are written from the storeDir file created above. Changes may not be reflected in the consensus_chunks.
     // Accidental deletion of the consensus_chunks directory will result in pipeline failure.
-    consensus_for_chopping_ch = segmentation_ch.consensus
+    // Reassign light_chunk_size channel for lighter downstream processes using [consensus_file, zip_name]
+    consensus_chunks_ch = segmentation_ch.consensus
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .flatMap { chunk_id, consensus_file, zip_name ->
+            consensus_file.text
+                .readLines()
+                .findAll { it.trim() }
+                .collect { row -> "${row}\t${zip_name}" }
+        }
+    .collectFile(
+        name: 'consensus_with_zip.tsv',
+        newLine: true,
+        sort: false,
+        //storeDir: "${params.results_dir}/consensus_chunks"
+    )
+    // Call the process to make sure this file is chunked within zip.
+    light_chunks = light_chunk_consensus_by_zip(consensus_chunks_ch, params.light_chunk_size)
+    
+    // Create light_chunk_ch as a channel from light_chunk_consensus_by_zip aoutput
+    light_chunk_ch = light_chunks.light_chunk_mapping
+    .splitCsv(header: true, sep: '\t')
+    .map { row ->
+        tuple(row.chunk_id, file(row.chunk_file), row.zip_name)
+    }
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
-    // Chop pdbs now runs on heavy_chunk size to preserve the chunking within zip file
-    chopped_pdb_ch = chop_pdb_from_zip(consensus_for_chopping_ch, params.input_zip_dir)
-    
-    // The light_chunk_size channel for lighter downstream processes is no longer created
-    //chopped_chunks_ch = chopped_pdb_ch
-    //    .splitText(
-    //        by: params.light_chunk_size,
-    //        file: "${params.results_dir}/consensus_chunks/consensus_chunks" // To use with a process change to just "consensus_chunks"
-    //    )
-    //    .toSortedList {it.name }  // make sorting deterministic
-    //    .flatMap { List chunk_files ->
-    //        // Emit a tuple (id, path) where id is the chunk index and path is the chunk file
-    //        chunk_files.withIndex().collect { cf, idx ->
-    //            [ idx, cf ]
-    //        }
-    //    }
-    
+    chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch, params.input_zip_dir)
+        
     // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
     collected_md5_ch = md5_chunks_ch
