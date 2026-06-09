@@ -11,7 +11,6 @@ nextflow.enable.dsl = 2
 process download_bcif_from_afdb {
     label 'sge_low'
     tag "$chunk_id"
-    container 'domain-annotation-pipeline-script'
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
@@ -33,10 +32,18 @@ process download_bcif_from_afdb {
     """
     set -euo pipefail
 
+    echo "Disk usage before:"
+    echo space:  `df -h .`
+    echo inodes: `df -hi .`
+
     python3 "${download_script}" \
       --id-file "${afdb_ids_file}" \
       --base-url "${base_url}" \
       --out-bcif-zip bcif_files.zip
+
+    echo "Disk usage after download:"
+    echo space:  `df -h .`
+    echo inodes: `df -hi .`
 
     mv bcif_files.zip "${chunk_id}.bcif_files.zip"
     mv downloaded_ids.txt "${chunk_id}.downloaded_ids.txt"
@@ -48,7 +55,6 @@ process download_bcif_from_afdb {
 
 process normalise_af_ids {
     label 'sge_low'
-    container 'domain-annotation-pipeline-script'
     publishDir "${params.results_dir}/prepared", mode: (params.publish_mode ?: 'copy')
 
     input:
@@ -66,7 +72,6 @@ process normalise_af_ids {
 process ids_from_bcif_zip {
     label 'sge_low'
     tag "$chunk_id"
-    container 'domain-annotation-pipeline-script'
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
@@ -89,7 +94,6 @@ process ids_from_bcif_zip {
 process prepare_pdb_from_af_bcif {
     label 'sge_low'
     tag "$chunk_id"
-    container 'domain-annotation-pipeline-script'
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
