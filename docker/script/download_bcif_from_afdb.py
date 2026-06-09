@@ -1,4 +1,5 @@
 import argparse
+import io
 import zipfile
 from pathlib import Path
 from urllib.parse import quote
@@ -43,7 +44,8 @@ def main() -> int:
 
     downloaded: list[str] = []
     failed: list[str] = []
-    with Path("download_log.tsv").open("w", buffering=1) as log_handle:
+    with Path("download_log.tsv").open("w", buffering=1) as log_handle, \
+         zipfile.ZipFile(out_bcif_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         log_handle.write("af_id\turl\thttp_status\tbytes\tresult\terror\n")
         log_handle.flush()
 
@@ -55,8 +57,6 @@ def main() -> int:
                 write_log_row(log_handle, (af_id, url, "-", "0", "invalid_id", "ID contains '/'"))
                 continue
 
-            out = Path(f"{af_id}.bcif")
-
             try:
                 with requests.get(
                     url,
@@ -65,24 +65,23 @@ def main() -> int:
                     headers={"User-Agent": "domain-annotation-pipeline/prepare_af_pdb_zip"},
                 ) as response:
                     response.raise_for_status()
-                    with out.open("wb") as handle:
-                        for chunk in response.iter_content(chunk_size=1024 * 1024):
-                            if chunk:
-                                handle.write(chunk)
-
+                    buf = io.BytesIO()
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            buf.write(chunk)
                     status_code = str(response.status_code)
 
-                if not out.exists() or out.stat().st_size == 0:
-                    out.unlink(missing_ok=True)
+                n_bytes = buf.tell()
+                if n_bytes == 0:
                     failed.append(af_id)
                     write_log_row(log_handle, (af_id, url, status_code, "0", "empty_file", "downloaded file was empty"))
                     continue
 
+                archive.writestr(f"{af_id}.bcif", buf.getvalue())
                 downloaded.append(af_id)
-                write_log_row(log_handle, (af_id, url, status_code, str(out.stat().st_size), "downloaded", "-"))
+                write_log_row(log_handle, (af_id, url, status_code, str(n_bytes), "downloaded", "-"))
 
             except Exception as exc:
-                out.unlink(missing_ok=True)
                 failed.append(af_id)
                 status_code, error_text = format_error(exc)
                 write_log_row(log_handle, (af_id, url, status_code, "0", "failed", error_text))
@@ -93,12 +92,6 @@ def main() -> int:
 
     if not downloaded:
         raise SystemExit("No BCIF files downloaded successfully")
-
-    with zipfile.ZipFile(out_bcif_zip, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for af_id in downloaded:
-            bcif_path = Path(f"{af_id}.bcif")
-            if bcif_path.exists() and bcif_path.stat().st_size > 0:
-                archive.write(bcif_path, arcname=bcif_path.name)
 
     return 0
 
