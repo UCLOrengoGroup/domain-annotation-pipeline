@@ -1,0 +1,6 @@
+af_id	url	http_status	bytes	result	error
+AF-P31946-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-P31946-F1-model_v6.bcif	200	134868	downloaded	-
+AF-P42574-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-P42574-F1-model_v6.bcif	200	143541	downloaded	-
+AF-Q5VST6-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q5VST6-F1-model_v6.bcif	200	146007	downloaded	-
+AF-Q6P2I7-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q6P2I7-F1-model_v6.bcif	200	143212	downloaded	-
+AF-Q6P9F5-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q6P9F5-F1-model_v6.bcif	200	140210	downloaded	-
