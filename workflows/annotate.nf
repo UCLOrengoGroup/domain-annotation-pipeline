@@ -218,8 +218,8 @@ workflow {
             storeDir: "${params.results_dir}/intermediate"
         )
     
-    // New process chunk_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips and assignes a 3-part tuple [chunk_id, chunk_file, zip_name].
-    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size)
+    // chunk_ids_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips, assigning a 3-part tuple [chunk_id, chunk_file, zip_name].
+    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, 'chunks', file(params.chunk_by_zip_script))
 
     // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
     chunked_ids_mapping_ch = zip_chunks.chunk_mapping
@@ -228,7 +228,7 @@ workflow {
         tuple(
             row.chunk_id as int,
             file(row.chunk_file),
-            row.zip_name
+            file("${params.input_zip_dir}/${row.zip_name}")
         )
     }
     // As a branch channel, create a 2-part tuple channel [chunk_id, chunk_file] just for get_uniprot_data
@@ -260,7 +260,7 @@ workflow {
     //    pdb_zip_ch = input_zip_ch
     //}
     // Run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists) - removed pdb_zip_ch.
-    filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.input_zip_dir, params.min_chain_residues)
+    filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues)
     
     // =========================================
     // PHASE 2: Domain Prediction
@@ -281,18 +281,18 @@ workflow {
             storeDir: "${params.results_dir}/intermediate"
         )
 
-    // Use process heavy_chunk_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips and re-assignes the 3-part tuple [chunk_id, chunk_file, zip_name].
-    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size)
+    // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
+    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, 'heavy_chunks', file(params.chunk_by_zip_script))
     
-    // Create heavy_chunk_ch as a channel from the process aoutput
+    // Create heavy_chunk_ch as a channel from the process output
     heavy_chunk_ch = heavy_chunks.chunk_mapping
     .splitCsv(header: true, sep: '\t')
     .map { row ->
-        tuple(row.chunk_id as int, file(row.chunk_file), row.zip_name)
+        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
     }
     
     // Finally run the ted_segmentation which now includes the extract from zip code. Again removed pdb_zip_ch.
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch, params.input_zip_dir)
+    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
@@ -359,17 +359,17 @@ workflow {
         //storeDir: "${params.results_dir}/consensus_chunks"
     )
     // Call the process to make sure this file is chunked within zip.
-    light_chunks = light_chunk_consensus_by_zip(consensus_chunks_ch, params.light_chunk_size)
+    light_chunks = light_chunk_consensus_by_zip(consensus_chunks_ch, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
     
-    // Create light_chunk_ch as a channel from light_chunk_consensus_by_zip aoutput
+    // Create light_chunk_ch as a channel from light_chunk_consensus_by_zip output
     light_chunk_ch = light_chunks.light_chunk_mapping
     .splitCsv(header: true, sep: '\t')
     .map { row ->
-        tuple(row.chunk_id, file(row.chunk_file), row.zip_name)
+        tuple(row.chunk_id, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
     }
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
-    chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch, params.input_zip_dir)
+    chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch)
         
     // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
