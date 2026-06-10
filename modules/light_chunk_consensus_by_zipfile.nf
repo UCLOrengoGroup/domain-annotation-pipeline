@@ -5,18 +5,18 @@ process light_chunk_consensus_by_zip {
     
     input:
     path consensus_file
-    val light_chunk_size
+    val  light_chunk_size
+    path script
 
     output:
     path "light_chunk_mapping.tsv", emit: light_chunk_mapping
-    path "light_chunks", emit: chunk_dir
 
 
     script:
     """
     mkdir -p light_chunks
 
-    python3 ${params.light_chunk_consensus_by_zip_script} \
+    python3 ${script} \
         --consensus_file ${consensus_file} \
         --chunk_size ${light_chunk_size} \
         --outdir \$PWD/light_chunks \

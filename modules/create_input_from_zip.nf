@@ -5,13 +5,14 @@ process create_input_from_zip {
     
     input:
     path input_zip_dir
+    path script
 
     output:
     path "input_mapping.tsv"
 
     script:
     """
-    python3 ${params.create_input_from_zip_script} \
+    python3 ${script} \\
         --input_zip_dir ${input_zip_dir} \
         --output input_mapping.tsv
     """
