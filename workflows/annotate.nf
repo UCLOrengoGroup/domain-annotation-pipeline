@@ -23,14 +23,13 @@ params.publish_mode = 'copy'
 
 // Data preparation modules
 include { get_uniprot_data } from '../modules/get_uniprot.nf'
-include { prepare_pdb_file } from '../modules/prepare_pdb_file.nf'
 // include { collect_taxonomy } from '../modules/collect_taxonomy.nf'
 // include { extract_pdb_from_zip } from '../modules/extract_pdb_from_zip.nf'
 include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 // New process to create and transform an input mapping (id and zip) into chunk files within zips
 include { create_input_from_zip } from '../modules/create_input_from_zip.nf'
-include { chunk_by_zip } from '../modules/chunk_by_zipfile.nf'
-include { heavy_chunk_by_zip } from '../modules/heavy_chunk_by_zipfile.nf'
+include { chunk_ids_by_zip as chunk_by_zip        } from '../modules/chunk_by_zipfile.nf'
+include { chunk_ids_by_zip as heavy_chunk_by_zip  } from '../modules/chunk_by_zipfile.nf'
 include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
 // Domain prediction modules
 include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
@@ -90,7 +89,7 @@ def validateParameters() {
     }
 
     if (!params.input_zip_dir) {
-        error("UniProt TSV file may be omitted but input ZIP directory must be specified.")
+        error("--input_zip_dir must be specified.")
     }
 
     // Ensure results directory exists
@@ -101,6 +100,20 @@ def validateParameters() {
     // Validate required parameters
     if (!params.input_zip_dir || !file(params.input_zip_dir).exists()) {
         error("Input ZIP directory not found: ${params.input_zip_dir}")
+    }
+    // Validate optional uniprot_tsv_file format (first 100 lines)
+    if (params.uniprot_tsv_file) {
+        def mappingFile = file(params.uniprot_tsv_file)
+        if (!mappingFile.exists()) {
+            error("UniProt TSV file not found: ${params.uniprot_tsv_file}")
+        }
+        mappingFile.readLines().take(100).eachWithIndex { line, idx ->
+            def cols = line.split('\t')
+            if (cols.size() != 2)
+                error("Invalid TSV mapping: line ${idx + 1} does not have 2 tab-separated columns")
+            if (!cols[1].endsWith('.zip'))
+                error("Invalid TSV mapping: line ${idx + 1} zip name must end with .zip")
+        }
     }
     // Foldseek asset existence check
     def db_exists     = params.target_db   && file(params.target_db).exists() // Check existence of target_db
@@ -181,19 +194,9 @@ workflow {
         input_mapping_ch = Channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
     } else {
     // If not, create the ids and zip file channel directly from the zips in --input_zip_dir (mandatory runtime input).
-        input_mapping_ch = create_input_from_zip(params.input_zip_dir)
+        input_mapping_ch = create_input_from_zip(file(params.input_zip_dir), file(params.create_input_from_zip_script))
     }
-    // Check that the resultant file has the correct format
-    input_mapping_ch = input_mapping_ch.map { f ->
-        f.readLines().take(100).eachWithIndex { line, idx ->
-            def cols = line.split('\t')
-            if (cols.size() != 2)
-                error("Invalid input mapping: line ${idx+1} does not contain 2 tab-separated columns")
-            if (!cols[1].endsWith('.zip'))
-                error("Invalid input mapping: line ${idx+1} zip name must end with .zip") }
-        return f
-    }
-    // If so, it will be used to create a subset of the pdb/zip_name in the zip_file_dir directory for that run
+    // zip_id_ch splits the mapping file into [id, zip_name] tuples for downstream processing
     zip_id_ch = input_mapping_ch                                    // Create a channel from the input
         .splitCsv(sep: '\t')                                        // Split into individual values by row
         .map { row -> tuple(row[0].trim(), row[1].trim()) }         // Assign the id from col 1 and the zip file from col 2
@@ -219,7 +222,7 @@ workflow {
         )
     
     // chunk_ids_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips, assigning a 3-part tuple [chunk_id, chunk_file, zip_name].
-    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, 'chunks', file(params.chunk_by_zip_script))
+    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, file(params.chunk_by_zip_script))
 
     // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
     chunked_ids_mapping_ch = zip_chunks.chunk_mapping
@@ -282,7 +285,7 @@ workflow {
         )
 
     // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
-    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, 'heavy_chunks', file(params.chunk_by_zip_script))
+    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
     
     // Create heavy_chunk_ch as a channel from the process output
     heavy_chunk_ch = heavy_chunks.chunk_mapping
