@@ -1,0 +1,6 @@
+af_id	url	http_status	bytes	result	error
+AF-Q9BUN8-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q9BUN8-F1-model_v6.bcif	200	139205	downloaded	-
+AF-Q9BZM5-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q9BZM5-F1-model_v6.bcif	200	135260	downloaded	-
+AF-Q9NPI5-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q9NPI5-F1-model_v6.bcif	200	133144	downloaded	-
+AF-Q9NYW2-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q9NYW2-F1-model_v6.bcif	200	153312	downloaded	-
+AF-Q9Y576-F1-model_v6	https://alphafold.ebi.ac.uk/files/AF-Q9Y576-F1-model_v6.bcif	200	157894	downloaded	-
