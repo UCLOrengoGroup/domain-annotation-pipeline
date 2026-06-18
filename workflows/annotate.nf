@@ -178,8 +178,8 @@ workflow {
         if (!file(params.lookup_file).exists()) {
             error("Foldseek lookup_file not found: ${params.lookup_file}")
         }
-        ch_target_db = Channel.value(file(params.target_db))
-        ch_lookup_file = Channel.value(file(params.lookup_file))
+        ch_target_db = channel.value(file(params.target_db))
+        ch_lookup_file = channel.value(file(params.lookup_file))
     }
 
     // =========================================
@@ -191,7 +191,7 @@ workflow {
     
     // A TSV file (two columns: id <TAB> zip_name) may be specified at runtime with param --uniprot_tsv_file to list ids and zip names.
     if (params.uniprot_tsv_file) {
-        input_mapping_ch = Channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
+        input_mapping_ch = channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
     } else {
     // If not, create the ids and zip file channel directly from the zips in --input_zip_dir (mandatory runtime input).
         input_mapping_ch = create_input_from_zip(file(params.input_zip_dir), file(params.create_input_from_zip_script))
