@@ -1,5 +1,4 @@
 process create_md5 {
-    label 'sge_low'
     container 'domain-annotation-pipeline-cath-af-cli'
 
     input:

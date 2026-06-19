@@ -1,6 +1,5 @@
 // filter pdb files to only include those with > 25 residues. 10-Feb-26 added sort statement to for loop.
 process filter_pdb_from_zip {
-    label 'sge_low'
     container 'domain-annotation-pipeline-script'
 
     input:

@@ -1,5 +1,4 @@
 process transform_consensus {
-    label 'sge_low'
     container 'domain-annotation-pipeline-script'
     publishDir "${params.results_dir}" , mode: 'copy'
 
