@@ -2,6 +2,10 @@
 
 This file records major behavioural and configuration changes.
 
+## 2026-06-22 (Chris Wyatt)
+- Updated for Nextflow 25.10+/26 (see README). Fixed `--chunk_size` which broke under v26 (now coerced to an integer before validation).
+- Execution reports (timeline, report, trace, DAG) are now generated automatically into a timestamped `reports/` folder — no need to pass `-with-timeline`/`-with-report`/`-with-trace`.
+
 ## 2025-10-31 (Nick Edmunds)
 - Added this changelog to track key updates.
 - To run on the server must include a link to: -c /SAN/orengolab/bfvd/code/domain-annotation-pipeline/nextflow.config
