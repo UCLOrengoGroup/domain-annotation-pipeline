@@ -10,6 +10,12 @@ process run_ted_chainsaw {
 
     script:
     """
+    # Lever 1: cap math-library threads to the cores reserved for this task so PyTorch/BLAS
+    # don't oversubscribe shared CPU nodes (near no-op on GPU nodes, where inference is on the GPU).
+    export OMP_NUM_THREADS=${task.cpus}
+    export MKL_NUM_THREADS=${task.cpus}
+    export OPENBLAS_NUM_THREADS=${task.cpus}
+
     #-- Extract from zip into filtered_pdbs (batches of 200 to improve efficiency) --
     mkdir -p filtered_pdbs
     awk 'NF {print \$0 ".pdb"}' ${filtered_id_file} > pdb_list.txt
