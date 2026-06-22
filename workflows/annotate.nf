@@ -32,7 +32,11 @@ include { chunk_ids_by_zip as chunk_by_zip        } from '../modules/chunk_by_zi
 include { chunk_ids_by_zip as heavy_chunk_by_zip  } from '../modules/chunk_by_zipfile.nf'
 include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
 // Domain prediction modules
-include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
+// run_ted_segmentation has been split so Chainsaw runs concurrently with the Merizo->UniDoc chain,
+// then consensus joins the three choppings.
+include { run_ted_merizo_unidoc } from '../modules/run_ted_merizo_unidoc.nf'
+include { run_ted_chainsaw } from '../modules/run_ted_chainsaw.nf'
+include { run_ted_consensus } from '../modules/run_ted_consensus.nf'
 
 // Filtering and consensus modules - these are all unused as ted_segmentation takes care of all of this funtionality.
 //include { run_filter_domains } from '../modules/run_filter_domains.nf'
@@ -294,15 +298,24 @@ workflow {
         tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
     }
     
-    // Finally run the ted_segmentation which now includes the extract from zip code. Again removed pdb_zip_ch.
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
+    // Run Chainsaw concurrently with the Merizo->UniDoc chain (both consume the same chunk channel),
+    // then join the three choppings by chunk_id (plus the zip name) to compute consensus.
+    merizo_unidoc_ch = run_ted_merizo_unidoc(heavy_chunk_ch)
+    chainsaw_seg_ch  = run_ted_chainsaw(heavy_chunk_ch)
+
+    consensus_input_ch = merizo_unidoc_ch.merizo
+        .join(merizo_unidoc_ch.unidoc)
+        .join(chainsaw_seg_ch.chainsaw)
+        .join(heavy_chunk_ch.map { cid, id_file, zip -> tuple(cid, zip.name) })
+
+    consensus_ch = run_ted_consensus(consensus_input_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
     // collect the results for chainsaw, merizo and unidoc output - now added sorting to each to help cache performance.
-    collected_chainsaw_ch = segmentation_ch.chainsaw
+    collected_chainsaw_ch = chainsaw_seg_ch.chainsaw
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -311,7 +324,7 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
-    collected_merizo_ch = segmentation_ch.merizo
+    collected_merizo_ch = merizo_unidoc_ch.merizo
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -320,7 +333,7 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
-    collected_unidoc_ch = segmentation_ch.unidoc
+    collected_unidoc_ch = merizo_unidoc_ch.unidoc
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -331,7 +344,7 @@ workflow {
 
     // collect the results for the consensus output - note: this channel drives the rest of the workflow.
     // TODO: current behaviour (storeDir) writes to a permanent file in results. Enhancement: update to use a cached work directory.
-    collected_consensus_ch = segmentation_ch.consensus
+    collected_consensus_ch = consensus_ch.consensus
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -346,7 +359,7 @@ workflow {
     // TODO: chunks are written from the storeDir file created above. Changes may not be reflected in the consensus_chunks.
     // Accidental deletion of the consensus_chunks directory will result in pipeline failure.
     // Reassign light_chunk_size channel for lighter downstream processes using [consensus_file, zip_name]
-    consensus_chunks_ch = segmentation_ch.consensus
+    consensus_chunks_ch = consensus_ch.consensus
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .flatMap { chunk_id, consensus_file, zip_name ->
