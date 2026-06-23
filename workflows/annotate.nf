@@ -80,7 +80,7 @@ def validateParameters() {
         error("Project name must be specified in the parameters.")
     }
 
-    if (!params.chunk_size || params.chunk_size <= 0) {
+    if (!params.chunk_size || (params.chunk_size as Integer) <= 0 ) {
         error("Chunk size must be a positive integer.")
     }
 
