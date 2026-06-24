@@ -5,7 +5,9 @@ on:
   push:
     branches:
       - main
-      - add-docker-action
+  pull_request:
+    branches:
+      - main
 permissions:
   contents: read
   packages: write
