@@ -2,7 +2,7 @@
 tools/
 domain_assignments*.tsv
 results/
-reports
+reports/
 # nextflow
 .nextflow/
 work/
