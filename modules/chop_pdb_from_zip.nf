@@ -4,8 +4,7 @@ process chop_pdb_from_zip {
     publishDir "${params.results_dir}/chopped_pdbs" , mode: 'copy'
 
     input:
-    tuple val(id), path(consensus_chunk)
-    path pdb_zip
+    tuple val(id), path(consensus_chunk), path(pdb_zip)
 
     output:
     tuple val(id), path("${id}_chopped_pdbs.tar.gz")

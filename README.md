@@ -72,6 +72,7 @@ nextflow run workflows/annotate.nf \
     --pdb_zip_file pdb_files.zip \
     --uniprot_csv_file ids.txt \
     -profile debug,docker
+```
 
 ### Preparing data from AlphaFold DB (BinaryCIF -> PDB zip)
 
@@ -82,7 +83,7 @@ Your IDs file should contain full AlphaFold DB IDs like `AF-O15552-F1-model_v6` 
 ```bash
 nextflow run workflows/prepare_af_pdb_zip.nf \
     --project_name my_af_prep \
-    --af_ids_file fixtures/cbif/afdb_ids.txt \
+    --af_ids_file fixtures/bcif/afdb_ids.txt \
     -profile docker
 ```
 
@@ -102,8 +103,9 @@ nextflow run workflows/annotate.nf \
     --project_name my_annotation_run \
     -profile docker
 ```
-```
+
 Also useful to note:
+
 The output directory can be controlled with the ```--project_name``` parameter. 
 The three chunk size parameters control how many IDs are processed concurrently at different stages of the workflow:
 
@@ -112,6 +114,7 @@ The three chunk size parameters control how many IDs are processed concurrently 
 --light_chunk_size
 --heavy_chunk_size
 ```
+
 The parameter ```--heavy_chunk_size``` is used for the run_ted_segmentation process and should be set with maximum memory limits in mind.
 
 ## Inclusion of Foldseek
@@ -125,13 +128,18 @@ If the database URL is changed or the Foldseek assets are missing or deleted, pl
 ## Testing without annotating (stub run)
 
 The pipeline can be run in dummy (stub) mode, in which it will use synthetic chain ids to assign precomputed domain boundaries.
+
 The run_ted_segmentation and get_uniprot processes will run stub code rather than production code. This feature allows users to 
 test pipeline parameters without using excess compute time.
+
 To run this feature, suffix the normal run comman with 
+
 ```bash
 -stub_run
 ```
+
 For the stub run to work, check that the following files are located in ```../assets/stub_run```:
+
 ```bash
 chopping_chainsaw_sorted.txt
 chopping_merizo_sorted.txt
@@ -141,6 +149,7 @@ consensus.tsv.changed.txt
 ted_stub_chain_ids.csv
 ted_stub_chain_ids.zip 
 ```
+
 The default files are currently set up to run a test set of 50 chain ids, producing a final results output of 100 domains.
 
 ## Running on HPC
@@ -192,12 +201,12 @@ The latest containers are built and stored in GitHub Container Reposity (ghrc.io
 
 These can be downloaded as singularity images with `singularity pull`:
 
-Note: the following requires setting up a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic)
 
 ```bash
-singularity pull --docker-login domain-annotation-pipeline-script_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-script:main-latest
-singularity pull --docker-login domain-annotation-pipeline-cath-af-cli_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:main-latest
-singularity pull --docker-login domain-annotation-pipeline-ted-tools_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:main-latest
+singularity pull domain-annotation-pipeline-script_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-script:main-latest
+singularity pull domain-annotation-pipeline-cath-af-cli_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:main-latest
+singularity pull domain-annotation-pipeline-ted-tools_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:main-latest
+singularity pull domain-annotation-pipeline-foldseek_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:main-latest
 ```
 
 The directory containing these singularity images can be added to your config file, or passed directly to nextflow:
