@@ -1,6 +1,7 @@
 process chop_pdb_from_zip {
     label 'sge_low'
     container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
+    memory 8.GB
     publishDir "${params.results_dir}/chopped_pdbs" , mode: 'copy'
 
     input:
