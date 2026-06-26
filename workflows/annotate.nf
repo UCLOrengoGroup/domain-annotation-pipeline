@@ -150,9 +150,9 @@ def validateParameters() {
     Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
     Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
     ----------------------------------------------
-    Contrasted Configuration Information
+    contrasTED Configuration Information
     ----------------------------------------------
-    Reference database  : ${params.conted_db_url.tokenize('/')[-1]}
+    Reference database  : ${params.contrasted_db_url.tokenize('/')[-1]}
     ==============================================
     """.stripIndent()
     )
@@ -166,9 +166,11 @@ workflow {
     
     validateParameters()
     
-    // =========================================
-    // PHASE 0: Setup Foldseek Assets
-    // =========================================
+    // =============================================
+    // PHASE 0: Setup Foldseek and contrasTED Assets
+    // =============================================
+    // # 1. FoldSeek Assets
+    // ====================
     if (params.auto_fetch_foldseek_assets) {
         // Download foldseek assets: storeDir + fetch_foldseek_assets checks for missing files or change in URL and downloads if required
         fetch_foldseek_assets()
@@ -185,10 +187,25 @@ workflow {
         if (!file(params.lookup_file).exists()) {
             error("Foldseek lookup_file not found: ${params.lookup_file}")
         }
-        ch_target_db = Channel.value(file(params.target_db))
-        ch_lookup_file = Channel.value(file(params.lookup_file))
+        ch_target_db   = channel.value(file(params.target_db))
+        ch_lookup_file = channel.value(file(params.lookup_file))
     }
-
+    // #2. contrasTED Assets
+    // =====================
+    if (params.auto_fetch_contrasted_assets) {
+        fetch_contrasted_assets()
+        contrasted_db_ch   = fetch_contrasted_assets.out.reference_db
+        contrasted_list_ch = fetch_contrasted_assets.out.domain_list
+    } else {
+        if (!file(params.contrasted_db_path).exists()) {
+            error("Contrasted database file not found: ${params.contrasted_db_path}")
+        }
+        if (!file(params.contrasted_list_path).exists()) {
+            error("Contrasted domain list file not found: ${params.contrasted_list_path}")
+        }
+        contrasted_db_ch   = channel.value(file(params.contrasted_db_path))
+        contrasted_list_ch = channel.value(file(params.contrasted_list_path))
+    }
     // =========================================
     // PHASE 1: Data Preparation
     // =========================================
@@ -198,7 +215,7 @@ workflow {
     
     // A TSV file (two columns: id <TAB> zip_name) may be specified at runtime with param --uniprot_tsv_file to list ids and zip names.
     if (params.uniprot_tsv_file) {
-        input_mapping_ch = Channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
+        input_mapping_ch = channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
     } else {
     // If not, create the ids and zip file channel directly from the zips in --input_zip_dir (mandatory runtime input).
         input_mapping_ch = create_input_from_zip(file(params.input_zip_dir), file(params.create_input_from_zip_script))
@@ -474,7 +491,7 @@ workflow {
     fs_m8_ch = foldseek_run_convertalis(fs_search_ch, ch_target_db)
 
     // Parse output - first create a channel from the location of the python and look_up scripts
-    ch_parser_script = Channel.value(file(params.parser_script))
+    ch_parser_script = channel.value(file(params.parser_script))
     //ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
     
     // Now pass the convertalis .m8 and python script as intputs to the parsing process
@@ -494,12 +511,8 @@ workflow {
     // =========================================
     // PHASE 7: Run contrasted
     // =========================================
-    // Derive channels from the predefined parameters
-    conted_db_ch   = Channel.value(file(params.conted_db_path))
-    conted_list_ch = Channel.value(file(params.conted_list_path))
-
     // Run contrasted-annotate on the output of the crate_md5 process 
-    contrast_ch = contrasted_run_annotate(md5_chunks_ch, conted_db_ch, conted_list_ch)
+    contrast_ch = contrasted_run_annotate(md5_chunks_ch, contrasted_db_ch, contrasted_list_ch)
     
     // Combine results from each chunk together
     cont_collect_ch = contrast_ch
