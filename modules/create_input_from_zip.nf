@@ -1,6 +1,6 @@
 process create_input_from_zip {
     label 'sge_low'
-    container "${params.singularity_image_dir}/domain-annotation-pipeline-script_latest.sif"
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
     publishDir "${params.results_dir}/intermediate", mode: 'copy' //, enabled: params.debug // only publish if run in debug mode
     
     input:
