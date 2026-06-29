@@ -1,6 +1,6 @@
 process foldseek_run_foldseek {
     label 'sge_low'
-    container 'domain-annotation-pipeline-foldseek'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${params.container_tag_name}" 
     
     input:
     tuple val(id), path(query_db_dir)
