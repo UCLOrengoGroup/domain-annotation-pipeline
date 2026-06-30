@@ -16,6 +16,8 @@ pip install --upgrade pip
 pip install nextflow
 ```
 
+**Nextflow version:** use **25.10 or newer** (tested with 25.10.3 and 26.04.4). These releases use Nextflow's strict (v2) config parser, which `nextflow.config` is written for. If `pip install nextflow` gives you an older release, set the version explicitly, e.g. `NXF_VER=26.04.4 nextflow run ...`.
+
 Install Docker
 https://docs.docker.com/compose/install/
 
@@ -32,6 +34,17 @@ Note: either docker or singularity must be supplied as one the the profile argum
 
 ```
 nextflow run workflows/annotate.nf -profile debug,docker
+```
+
+### Execution reports
+
+Execution timeline, report, trace and DAG files are generated **automatically** on every run — you do **not** need to pass `-with-timeline`, `-with-report`, `-with-trace` or `-with-dag`. They are written to the `reports/` folder (or under `--results_dir` if you set it) and the filenames include a per-launch timestamp, so successive runs never overwrite each other:
+
+```
+reports/execution_timeline_<timestamp>.html
+reports/execution_report_<timestamp>.html
+reports/execution_trace_<timestamp>.txt
+reports/pipeline_dag_<timestamp>.html
 ```
 
 ## Preparing data
