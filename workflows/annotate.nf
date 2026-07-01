@@ -186,9 +186,6 @@ workflow {
     // PHASE 1: Data Preparation
     // =========================================
 
-    // Create a subfolder in the results directory for the light_chunk_size debugging files
-    file("${params.results_dir}/consensus_chunks").mkdirs()
-    
     // A TSV file (two columns: id <TAB> zip_name) may be specified at runtime with param --uniprot_tsv_file to list ids and zip names.
     if (params.uniprot_tsv_file) {
         input_mapping_ch = channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
@@ -343,33 +340,27 @@ workflow {
     // =========================================
     // PHASE 4: Post-Consensus Processing
     // =========================================
-    // TODO: chunks are written from the storeDir file created above. Changes may not be reflected in the consensus_chunks.
-    // Accidental deletion of the consensus_chunks directory will result in pipeline failure.
-    // Reassign light_chunk_size channel for lighter downstream processes using [consensus_file, zip_name]
-    consensus_chunks_ch = segmentation_ch.consensus
-        .toSortedList { it -> it[0] }
-        .flatMap { it }
-        .flatMap { chunk_id, consensus_file, zip_name ->
-            consensus_file.text
-                .readLines()
-                .findAll { it.trim() }
-                .collect { row -> "${row}\t${zip_name}" }
-        }
-    .collectFile(
-        name: 'consensus_with_zip.tsv',
-        newLine: true,
-        sort: false,
-        //storeDir: "${params.results_dir}/consensus_chunks"
-    )
-    // Call the process to make sure this file is chunked within zip.
-    light_chunks = light_chunk_consensus_by_zip(consensus_chunks_ch, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
-    
-    // Create light_chunk_ch as a channel from light_chunk_consensus_by_zip output
+    // Chunk consensus directly from cached segmentation outputs.
+    // Avoid workflow-level collectFile/storeDir here so strict resume is not invalidated by rewritten result files.
+    light_chunks = light_chunk_consensus_by_zip(segmentation_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
+
+    // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
+    // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
     light_chunk_ch = light_chunks.light_chunk_mapping
-    .splitCsv(header: true, sep: '\t')
-    .map { row ->
-        tuple(row.chunk_id, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
-    }
+        .flatMap { parent_chunk_id, mapping_file ->
+            mapping_file
+                .readLines()
+                .drop(1)
+                .findAll { line -> line.trim() }
+                .collect { line ->
+                    def cols = line.split('\t')
+                    tuple(
+                        "${parent_chunk_id}_${cols[0]}",
+                        file(cols[1]),
+                        file("${params.input_zip_dir}/${cols[2]}")
+                    )
+                }
+        }
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
     chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch)

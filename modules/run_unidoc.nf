@@ -1,6 +1,6 @@
 process run_unidoc {
     label 'sge_low'
-    container 'domain-annotation-pipeline-unidoc'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
     path '*'

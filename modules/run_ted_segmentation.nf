@@ -1,6 +1,6 @@
 process run_ted_segmentation {
     label 'sge_gpu_high'
-    container 'domain-annotation-pipeline-ted-tools'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
     tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip))

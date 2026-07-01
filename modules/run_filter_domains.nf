@@ -5,7 +5,7 @@
  */
 process run_filter_domains {
     label 'sge_low'
-    container 'domain-annotation-pipeline-ted-tools'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:

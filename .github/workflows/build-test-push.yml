@@ -5,7 +5,13 @@ on:
   push:
     branches:
       - main
-      - add-docker-action
+      - dev
+  pull_request:
+    branches:
+      - main
+  release:
+    types:
+      - published
 permissions:
   contents: read
   packages: write
@@ -35,6 +41,8 @@ jobs:
           GH_OWNER: ${{ github.repository_owner }}
           GIT_SHA: ${{ github.sha }}
           BRANCH_NAME: ${{ github.ref_name }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euxo pipefail
           DATE_TAG=$(date -u +%Y%m%d)
@@ -45,12 +53,22 @@ jobs:
           for service in "${services[@]}"; do
             echo "Building and pushing ${service} for linux/amd64..."
             IMAGE_BASE=ghcr.io/${OWNER_LOWER}/domain-annotation-pipeline-${service}
+
+            TAG_ARGS=(
+              --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8}
+              --tag ${IMAGE_BASE}:linux-amd64-${DATE_TAG}
+              --tag ${IMAGE_BASE}:${BRANCH_TAG}-latest
+              --tag ${IMAGE_BASE}:linux-amd64-latest
+            )
+
+            if [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG:-}" ]]; then
+              RELEASE_TAG_SANITIZED=$(echo "${RELEASE_TAG}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
+              TAG_ARGS+=(--tag ${IMAGE_BASE}:${RELEASE_TAG_SANITIZED})
+            fi
+
             docker buildx build \
               --platform linux/amd64 \
-              --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8} \
-              --tag ${IMAGE_BASE}:linux-amd64-${DATE_TAG} \
-              --tag ${IMAGE_BASE}:${BRANCH_TAG}-latest \
-              --tag ${IMAGE_BASE}:linux-amd64-latest \
+              "${TAG_ARGS[@]}" \
               --push \
               docker/${service}
             docker buildx rm || true
