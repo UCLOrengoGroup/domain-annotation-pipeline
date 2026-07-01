@@ -11,6 +11,7 @@ process collect_results_final {
     file 'domain_quality.csv'
     file 'all_taxonomy.tsv'
     file 'foldseek_parsed_results.tsv'
+    file 'contrasted_results.tsv'
 
     output:
     file 'final_results.tsv'
@@ -24,6 +25,7 @@ process collect_results_final {
         -q domain_quality.csv \
         -x all_taxonomy.tsv \
         -f foldseek_parsed_results.tsv \
+        -c contrasted_results.tsv \
         -o final_results.tsv
     """
 }

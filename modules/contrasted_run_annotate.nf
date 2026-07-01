@@ -1,6 +1,6 @@
 process contrasted_run_annotate {
     label 'sge_low'
-    // container 'domain-annotation-pipeline-contrasted'
+    container 'domain-annotation-pipeline-contrasted'
     
     input:
     tuple(val(id), path(md5_file)) // md5_chunks_ch
@@ -23,9 +23,14 @@ process contrasted_run_annotate {
         print \$4
     }' ${md5_file} > ${id}.fasta
 
-    /Users/nick/Documents/contrasted/.venv/bin/contrasted-annotate \
+    # use stored ProstT5 weights if available (run with e.g. --contrasted_hf_home=/SAN/orengolab/bfvd/cache/transformers)
+    if [ -n "${params.contrasted_hf_home}" ]; then
+	    export HF_HOME="${params.contrasted_hf_home}"
+	fi
+    
+    contrasted-annotate \
     input=${id}.fasta \
-    model_path=/Users/nick/Documents/contrasted/checkpoints/cath_s40_split.ckpt \
+    model_path=/opt/contrasted/checkpoints/cath_s40_split.ckpt \
     index=${vector_db}
     """
     }

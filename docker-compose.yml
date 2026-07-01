@@ -15,3 +15,7 @@ services:
   foldseek:
     image: domain-annotation-pipeline-foldseek
     build: docker/foldseek
+
+  contrasted:
+    image: domain-annotation-pipeline-contrasted
+    build: docker/contrasted

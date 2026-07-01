@@ -153,6 +153,7 @@ def validateParameters() {
     contrasTED Configuration Information
     ----------------------------------------------
     Reference database  : ${params.contrasted_db_url.tokenize('/')[-1]}
+    ProstT5 location    : ${params.contrasted_hf_home}
     ==============================================
     """.stripIndent()
     )
@@ -544,7 +545,7 @@ workflow {
     )
 
     // This hard codes combine_results_final.py as the input to the collect_results_final process. 
-    collect_results_script_ch = Channel.fromPath(
+    collect_results_script_ch = channel.fromPath(
         "${workflow.projectDir}/../docker/script/combine_results_final.py", // this becomes input:combine_script
         checkIfExists: true
     )
@@ -557,6 +558,7 @@ workflow {
         collected_domain_quality_ch,
         collected_taxonomy_ch,
         foldseek_ch,
+        cont_collect_ch,
     )
 
     // ==========================================

@@ -18,7 +18,7 @@ def strip_domain_suffix(series: pd.Series) -> pd.Series:
     """Removes a trailing domain suffix like _01 or _TED01 from IDs."""
     return series.str.replace(DOMAIN_SUFFIX_RE, '', regex=True)
 
-def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_path, taxonomy_path, output_path):
+def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_path, taxonomy_path, contrasted_path, output_path):
     # Read input files
     transform_df = pd.read_csv(transform_path, sep='\t', dtype=str)
     glob_df = pd.read_csv(globularity_path, sep='\t', dtype=str)
@@ -88,6 +88,15 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
         tax_df = pd.read_csv(taxonomy_path, sep='\t', dtype=str)
         tax_df = tax_df.rename(columns={'accession': 'chain_core_id'})
         merged = merged.merge(tax_df, on='chain_core_id', how='left')
+    
+    # Merge contrasted if provided.
+    if contrasted_path:
+        cont_df = pd.read_csv(contrasted_path, sep='\t', dtype=str)
+        cont_df = cont_df.rename(columns={
+        'query_id': 'uniprot_id',
+        'predicted_annotation': 'contrasted_annotation',
+        'distance': 'contrasted_distance',})
+        merged = merged.merge(cont_df, on='uniprot_id', how='left')
 
     # Drop internal join columns
     merged = merged.drop(columns=['chain_core_id', 'join_key'], errors='ignore')
@@ -138,7 +147,9 @@ def run(transform_path, globularity_path, plddt_path, quality_path, foldseek_pat
         'foldseek_match_type',
         'foldseek_query_cov',
         'foldseek_target_cov',
-        'Q_score'
+        'Q_score',
+        'contrasted_annotation',
+        'contrasted_distance'
     ]
     
     # Only keep columns that exist in the merged DataFrame
@@ -155,7 +166,8 @@ if __name__ == "__main__":
     parser.add_argument('-q', '--quality', required=True)
     parser.add_argument('-f', '--foldseek', required=False)
     parser.add_argument('-x', '--taxonomy', required=False)
+    parser.add_argument('-c', '--contrasted', required=False)
     parser.add_argument('-o', '--output', required=True)
     args = parser.parse_args()
 
-    run(args.transform, args.globularity, args.plddt, args.quality, args.foldseek, args.taxonomy, args.output)
+    run(args.transform, args.globularity, args.plddt, args.quality, args.foldseek, args.taxonomy, args.contrasted, args.output)
