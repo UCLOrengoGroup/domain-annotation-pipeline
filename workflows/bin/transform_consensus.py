@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Takes the information in filtered_consensus.tsv and transforms it from model-level to doamin level.
 # Input cols: target_id', 'MD5', 'nres', 'high', 'med', 'low', 'high_dom', 'med_dom', 'low_dom'
 # Output cols: ted_id', 'md5_domain', 'consensus_level', 'chopping', 'nres_domain', 'num_segments'

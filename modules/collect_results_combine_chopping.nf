@@ -12,7 +12,7 @@ process collect_results {
 
     script:
     """
-    ${params.combine_script} \
+    combine_results.py \
         -m domain_assignments.merizo.tsv \
         -u domain_assignments.unidoc.tsv \
         -c domain_assignments.chainsaw.tsv \

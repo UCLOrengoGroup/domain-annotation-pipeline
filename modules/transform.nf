@@ -13,7 +13,7 @@ process transform_consensus {
 
     script:
     """
-    ${params.transform_script} \
+    transform_consensus.py \
         -i 'consensus_file' \
         -o transformed_consensus.tsv \
         -m 'all_md5_file' \

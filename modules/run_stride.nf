@@ -5,7 +5,6 @@ process run_stride {
 
     input:
     tuple val(id), path(chopped_pdb_tar_file)
-    path stride_summary_script
 
     output:
     tuple val(id), path("stride_batch_${id}.summary") //path('*.stride')
@@ -24,7 +23,7 @@ process run_stride {
     done
     cd ..
     
-    python3 ${stride_summary_script} -o stride_batch_${id}.unsorted.summary -d . --suffix .stride
+    create_stride_summary.py -o stride_batch_${id}.unsorted.summary -d . --suffix .stride
 
     head -n 1 stride_batch_${id}.unsorted.summary > stride_batch_${id}.summary
     tail -n +2 stride_batch_${id}.unsorted.summary | sort >> stride_batch_${id}.summary

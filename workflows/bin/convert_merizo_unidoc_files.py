@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Standardise the output of merizo and unidoc results (adds corresponding md5s from chainsaw results)
 

@@ -13,7 +13,7 @@ process chop_pdb_from_zip {
     script:
     """
     mkdir -p chopped_pdbs
-    ${params.chop_pdb_script} --consensus ${consensus_chunk} --pdb-zip ${pdb_zip} --output chopped_pdbs
+    chop_pdbs.py --consensus ${consensus_chunk} --pdb-zip ${pdb_zip} --output chopped_pdbs
     tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf ${id}_chopped_pdbs.tar.gz -C chopped_pdbs .
     rm -rf chopped_pdbs
     """

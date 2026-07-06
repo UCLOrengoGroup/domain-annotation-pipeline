@@ -58,8 +58,6 @@ workflow {
     file("${params.results_dir}/prepared/chunks").mkdirs()
 
     af_ids_ch = normalise_af_ids(channel.value(file(params.af_ids_file)))
-    converter_script_ch = channel.value(file(params.bcif_zip_converter_script))
-    download_script_ch = channel.value(file(params.bcif_download_script))
 
     // Use either user-provided BCIF zip, or download from AlphaFold DB
     if (params.bcif_zip_file) {
@@ -72,7 +70,7 @@ workflow {
             .join(af_ids_for_conversion_ch)
             .map { chunk_id, bcif_zip, af_ids_for_conversion_file -> [chunk_id, bcif_zip, af_ids_for_conversion_file] }
 
-        prepare_pdb_from_af_bcif(prepare_input_ch, converter_script_ch)
+        prepare_pdb_from_af_bcif(prepare_input_ch)
     } else {
         chunked_af_ids_ch = af_ids_ch
             .splitText(by: prep_chunk_size, file: true)
@@ -83,13 +81,13 @@ workflow {
                 }
             }
         
-        downloads_ch = download_bcif_from_afdb(chunked_af_ids_ch, download_script_ch, params.af_base_url.replaceAll('/+$',''))
+        downloads_ch = download_bcif_from_afdb(chunked_af_ids_ch, params.af_base_url.replaceAll('/+$',''))
 
         prepare_input_ch = downloads_ch.map { chunk_id, bcif_zip, downloaded_ids, _failed_ids, _prep_summary, _download_log ->
             [chunk_id, bcif_zip, downloaded_ids]
         }
 
-        prepare_pdb_from_af_bcif(prepare_input_ch, converter_script_ch)
+        prepare_pdb_from_af_bcif(prepare_input_ch)
         download_rows_ch = downloads_ch.toSortedList { row -> row[0] }
 
         download_rows_ch

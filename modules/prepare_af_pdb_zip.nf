@@ -17,7 +17,6 @@ process download_bcif_from_afdb {
 
     input:
     tuple val(chunk_id), path(afdb_ids_file)
-    path download_script
     val base_url
 
     output:
@@ -38,7 +37,7 @@ process download_bcif_from_afdb {
     echo space:  `df -h .`
     echo inodes: `df -hi .`
 
-    python3 "${download_script}" \
+    download_bcif_from_afdb.py \
       --id-file "${afdb_ids_file}" \
       --base-url "${base_url}" \
       --out-bcif-zip bcif_files.zip
@@ -106,7 +105,6 @@ process prepare_pdb_from_af_bcif {
 
     input:
     tuple val(chunk_id), path(bcif_zip), path(afdb_ids_file)
-  path converter_script
 
     output:
     tuple val(chunk_id), path("${chunk_id}.cif_files.zip"), path("${chunk_id}.pdb_files.zip")
@@ -115,7 +113,7 @@ process prepare_pdb_from_af_bcif {
     """
     set -euo pipefail
 
-    python3 "${converter_script}" \
+    make_pdb_zip.py \
       --bcif-zip "${bcif_zip}" \
       --list-file "${afdb_ids_file}" \
       --out-cif-zip cif_files.zip \

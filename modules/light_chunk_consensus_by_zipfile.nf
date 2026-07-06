@@ -6,7 +6,6 @@ process light_chunk_consensus_by_zip {
     input:
     tuple val(parent_chunk_id), path(consensus_file), val(zip_name)
     val  light_chunk_size
-    path script
 
     output:
     tuple val(parent_chunk_id), path("light_chunk_mapping.tsv"), emit: light_chunk_mapping
@@ -18,7 +17,7 @@ process light_chunk_consensus_by_zip {
 
     mkdir -p light_chunks
 
-    python3 ${script} \
+    chunk_consensus_by_zip.py \
         --consensus_file consensus_with_zip.tsv \
         --chunk_size ${light_chunk_size} \
         --outdir \$PWD/light_chunks \

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Merges the transformed consensus with plDDT and globularity outputs
 # 2/6/25 Added a clause to merge on modified AF id and md5 columns and a warning if this fails.
 # 5/6/25 Added clauses to merge taxonomic data

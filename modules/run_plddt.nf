@@ -13,7 +13,7 @@ process run_plddt {
     """
     mkdir -p pdb
     tar -xzf ${chopped_pdb_tar_file} -C pdb
-    ${params.plddt_script} ./pdb -o domain_avg_plddt.unsorted.tsv
+    fetch_avg_plDDT.py ./pdb -o domain_avg_plddt.unsorted.tsv
     sort domain_avg_plddt.unsorted.tsv > domain_avg_plddt.tsv
     rm -rf pdb
     """

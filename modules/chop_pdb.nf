@@ -14,6 +14,6 @@ process chop_pdb {
     script:
     """
     mkdir chopped_pdbs 
-    ${params.chop_pdb_script} ${consensus_file} chopped_pdbs
+    chop_pdbs.py ${consensus_file} chopped_pdbs
     """
 }

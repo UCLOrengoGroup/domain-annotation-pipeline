@@ -120,10 +120,6 @@ def validateParameters() {
     def lookup_exists = params.lookup_file && file(params.lookup_file).exists() // Check existence of lookup_file
     params.fetch_foldseek_assets = !(db_exists && lookup_exists) // Decide whether assets must be fetched
 
-    // Foldseek-specific validation
-    if (!params.parser_script || !file(params.parser_script).exists()) {
-        error("Foldseek parser_script not found: ${params.parser_script}")
-    }
     log.info(
         """
     ==============================================
@@ -156,7 +152,7 @@ def validateParameters() {
 // ===============================================
 
 workflow {
-    
+
     validateParameters()
     
     // =========================================
@@ -191,7 +187,7 @@ workflow {
         input_mapping_ch = Channel.fromPath(params.uniprot_tsv_file, checkIfExists: true)
     } else {
     // If not, create the ids and zip file channel directly from the zips in --input_zip_dir (mandatory runtime input).
-        input_mapping_ch = create_input_from_zip(file(params.input_zip_dir), file(params.create_input_from_zip_script))
+        input_mapping_ch = create_input_from_zip(file(params.input_zip_dir))
     }
     // zip_id_ch splits the mapping file into [id, zip_name] tuples for downstream processing
     zip_id_ch = input_mapping_ch                                    // Create a channel from the input
@@ -219,7 +215,7 @@ workflow {
         )
     
     // chunk_ids_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips, assigning a 3-part tuple [chunk_id, chunk_file, zip_name].
-    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, file(params.chunk_by_zip_script))
+    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size)
 
     // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
     chunked_ids_mapping_ch = zip_chunks.chunk_mapping
@@ -282,7 +278,7 @@ workflow {
         )
 
     // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
-    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
+    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size)
     
     // Create heavy_chunk_ch as a channel from the process output
     heavy_chunk_ch = heavy_chunks.chunk_mapping
@@ -342,7 +338,7 @@ workflow {
     // =========================================
     // Chunk consensus directly from cached segmentation outputs.
     // Avoid workflow-level collectFile/storeDir here so strict resume is not invalidated by rewritten result files.
-    light_chunks = light_chunk_consensus_by_zip(segmentation_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
+    light_chunks = light_chunk_consensus_by_zip(segmentation_ch.consensus, params.light_chunk_size)
 
     // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
     // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
@@ -382,12 +378,8 @@ workflow {
     // PHASE 5: Structure Analysis
     // =========================================
 
-    // Run STRIDE analysis
-    stride_summary_script_ch = file(
-        "${workflow.projectDir}/../docker/script/create_stride_summary.py", // this becomes input:stride_summary_script
-        checkIfExists: true)
-    
-    stride_summaries_ch = run_stride(chopped_pdb_ch, stride_summary_script_ch)
+    // Run STRIDE analysis (create_stride_summary.py resolved from bin/ on PATH)
+    stride_summaries_ch = run_stride(chopped_pdb_ch)
 
     collected_stride_summaries_ch = stride_summaries_ch
         .toSortedList { it -> it[0] }
@@ -457,12 +449,8 @@ workflow {
     // Convert results with fs convertalis, pass query_db, CATH_db and output db from run_foldseek
     fs_m8_ch = foldseek_run_convertalis(fs_search_ch, ch_target_db)
 
-    // Parse output - first create a channel from the location of the python and look_up scripts
-    ch_parser_script = Channel.value(file(params.parser_script))
-    //ch_parser_script = Channel.fromPath(params.parser_script, checkIfExists: true)
-    
-    // Now pass the convertalis .m8 and python script as intputs to the parsing process
-    fs_parsed_ch = foldseek_process_results(fs_m8_ch, ch_lookup_file, ch_parser_script)
+    // Parse output (format_fs_output.py resolved from bin/ on PATH)
+    fs_parsed_ch = foldseek_process_results(fs_m8_ch, ch_lookup_file)
     
     // Finally combine results together with a similar collectFile statement as used above
     foldseek_ch = fs_parsed_ch
@@ -494,14 +482,8 @@ workflow {
         collected_unidoc_ch,    
     )
 
-    // This hard codes combine_results_final.py as the input to the collect_results_final process. 
-    collect_results_script_ch = Channel.fromPath(
-        "${workflow.projectDir}/../docker/script/combine_results_final.py", // this becomes input:combine_script
-        checkIfExists: true
-    )
-    // Now collect the final results
+    // Now collect the final results (combine_results_final.py resolved from bin/ on PATH)
     final_results_ch = collect_results_final(
-        collect_results_script_ch,
         transformed_consensus_ch,
         collected_globularity_ch,
         collected_plddt_with_md5_ch,

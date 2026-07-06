@@ -11,6 +11,6 @@ process prepare_pdb_file {
 
     script:
     """
-    ${params.cif_convert_script} "${cif_zip}" "pdb_zip.zip"
+    cif_to_pdb.py "${cif_zip}" "pdb_zip.zip"
     """
 }

@@ -6,7 +6,10 @@ services:
 
   script:
     image: domain-annotation-pipeline-script
-    build: docker/script
+    # Build context is the repo root so the image can COPY bin/*.py (pipeline scripts).
+    build:
+      context: .
+      dockerfile: docker/script/Dockerfile
 
   ted-tools:
     image: domain-annotation-pipeline-ted-tools

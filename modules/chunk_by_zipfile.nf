@@ -6,7 +6,6 @@ process chunk_ids_by_zip {
     input:
     path   ids_file
     val    chunk_size
-    path   script
 
     output:
     path "chunk_mapping.tsv", emit: chunk_mapping
@@ -15,7 +14,7 @@ process chunk_ids_by_zip {
     """
     mkdir -p chunks
 
-    python3 ${script} \
+    chunk_by_zip.py \
         --input_file ${ids_file} \
         --chunk_size ${chunk_size} \
         --outdir \$PWD/chunks \

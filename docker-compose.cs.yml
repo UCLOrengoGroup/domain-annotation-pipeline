@@ -5,7 +5,10 @@ services:
 
   script:
     platform: linux/amd64
-    build: docker/script
+    # Build context is the repo root so the image can COPY bin/*.py (pipeline scripts).
+    build:
+      context: .
+      dockerfile: docker/script/Dockerfile
 
   ted-tools:
     platform: linux/amd64

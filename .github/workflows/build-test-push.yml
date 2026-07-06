@@ -65,11 +65,23 @@ jobs:
               TAG_ARGS+=(--tag ${IMAGE_BASE}:${RELEASE_TAG_SANITIZED})
             fi
 
+            # The `script` image bakes bin/*.py (pipeline scripts), so it builds
+            # from the repo root with an explicit Dockerfile; the others use their
+            # own service directory as the build context.
+            if [[ "${service}" == "script" ]]; then
+              CONTEXT="."
+              DOCKERFILE_ARGS=(--file docker/script/Dockerfile)
+            else
+              CONTEXT="docker/${service}"
+              DOCKERFILE_ARGS=()
+            fi
+
             docker buildx build \
               --platform linux/amd64 \
               "${TAG_ARGS[@]}" \
+              "${DOCKERFILE_ARGS[@]}" \
               --push \
-              docker/${service}
+              "${CONTEXT}"
             docker buildx rm || true
           done
 

@@ -11,6 +11,6 @@ process convert_unidoc_results {
 
     script:
     """
-    ${params.convert_script} -u unidoc_results.tsv -c chainsaw_results.tsv -o unidoc_results_reformatted.tsv
+    convert_merizo_unidoc_files.py -u unidoc_results.tsv -c chainsaw_results.tsv -o unidoc_results_reformatted.tsv
     """
 }

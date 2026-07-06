@@ -10,7 +10,7 @@ process get_uniprot_data {
 
     script:
     """
-    ${params.fetch_uniprot_script} -i ${id_file} -o uniprot_data.tsv
+    fetch_uniprot_data.py -i ${id_file} -o uniprot_data.tsv
     """
     
     stub:
