@@ -1,6 +1,6 @@
 process extract_pdb_from_tar {
     label 'sge_gpu_high'
-    container 'domain-annotation-pipeline-pdb-tools'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
     publishDir './results/pdbs', mode: 'copy'
 
     input:

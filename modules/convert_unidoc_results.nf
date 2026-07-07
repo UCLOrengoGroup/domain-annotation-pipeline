@@ -1,6 +1,6 @@
 process convert_unidoc_results {
     label 'sge_low'
-    container 'domain-annotation-pipeline-script'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
 
     input:
     file 'chainsaw_results.tsv'

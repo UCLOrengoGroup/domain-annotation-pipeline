@@ -1,6 +1,6 @@
 process run_domain_quality_from_zip {
     label 'sge_gpu_high'
-    container 'domain-annotation-pipeline-ted-tools'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}" 
 
     input:
     tuple val(id), path(pdb_list)

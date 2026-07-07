@@ -1,6 +1,6 @@
 process foldseek_run_convertalis {
     label 'sge_low'
-    container 'domain-annotation-pipeline-foldseek'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${params.container_tag_name}" 
     publishDir "results/convertalis", mode: 'copy', enabled: params.debug
     
     input:

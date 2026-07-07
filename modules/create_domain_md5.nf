@@ -1,6 +1,6 @@
 process create_md5 {
     label 'sge_low'
-    container 'domain-annotation-pipeline-cath-af-cli'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:${params.container_tag_name}" 
 
     input:
     tuple val(id), path(chopped_pdb_tar_file)
