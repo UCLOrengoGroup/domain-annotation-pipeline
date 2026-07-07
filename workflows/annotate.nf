@@ -60,7 +60,7 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 // Final collection modules
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
-//include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+include { benchmark_compare_results } from '../modules/benchmark_compare_results.nf'
 
 // Foldseek modules
 include { fetch_foldseek_assets } from '../foldseek/modules/foldseek_fetch_foldseek_assets.nf'
@@ -510,6 +510,19 @@ workflow {
         foldseek_ch,
     )
 
+    // Compare the results to the benchmark set if the benchmark_154 profile is used
+    if (params.benchmark) {
+        expected_results_ch = channel.fromPath(
+            params.expected_results,
+            checkIfExists: true
+        )
+
+        benchmark_compare_results(
+            final_results_ch,
+            expected_results_ch
+        )
+    }
+    
     // ==========================================
     // PHASE 8: Completion and output Information
     // ==========================================
