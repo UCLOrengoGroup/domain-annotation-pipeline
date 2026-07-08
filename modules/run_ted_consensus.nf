@@ -1,6 +1,6 @@
 process run_ted_consensus {
     label 'sge_low'
-    container 'domain-annotation-pipeline-ted-tools'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
     tuple(val(chunk_id), path(merizo), path(unidoc), path(chainsaw), val(zip_name))
