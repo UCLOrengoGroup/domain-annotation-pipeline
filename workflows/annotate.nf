@@ -355,7 +355,7 @@ workflow {
     // =========================================
     // Chunk consensus directly from cached segmentation outputs.
     // Avoid workflow-level collectFile/storeDir here so strict resume is not invalidated by rewritten result files.
-    light_chunks = light_chunk_consensus_by_zip(segmentation_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
+    light_chunks = light_chunk_consensus_by_zip(consensus_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
 
     // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
     // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
