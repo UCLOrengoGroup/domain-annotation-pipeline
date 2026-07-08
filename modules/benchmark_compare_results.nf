@@ -1,7 +1,6 @@
 process benchmark_compare_results {
     label 'sge_low'
-    //container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}"
-    container "domain-annotation-pipeline-script"
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}"
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
