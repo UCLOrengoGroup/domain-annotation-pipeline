@@ -36,6 +36,32 @@ Note: either docker or singularity must be supplied as one the the profile argum
 nextflow run workflows/annotate.nf -profile debug,docker
 ```
 
+### Profiles
+
+Runs are configured by composing profiles with `-profile a,b,c`: pick **one container engine**, add a **cluster** profile on HPC, and a **data/mode** profile for the inputs.
+
+| Group | Profiles | Sets |
+|-------|----------|------|
+| Container engine *(pick one)* | `docker`, `singularity` | how containers run (also loads the `/app` script paths) |
+| Cluster *(optional, HPC/SGE)* | `cs_cluster`, `myriad_cluster`, `orengo` | executor + submit options (scratch, GPU, avx2) |
+| Data / mode | `debug`, `benchmark_test`, `stub_run`, … | test inputs / run parameters |
+
+Per-process CPU/memory/retry defaults live in `conf/base.config` and apply to **every** run automatically — you don't select them. (`container` is also available as a standalone profile: script paths only, for composing with a self-contained cluster profile such as `orengo`.)
+
+```bash
+# Local, Docker, bundled test data
+nextflow run workflows/annotate.nf -profile debug,docker
+
+# UCL CS cluster — Singularity, runs on shared /SAN (no node-local scratch)
+nextflow run workflows/annotate.nf -profile singularity,cs_cluster --input_zip_dir <dir>
+
+# UCL Myriad cluster
+nextflow run workflows/annotate.nf -profile singularity,myriad_cluster --input_zip_dir <dir>
+
+# Orengo-lab CS cluster — node-local scratch, project/avx2/GPU
+nextflow run workflows/annotate.nf -profile singularity,orengo --input_zip_dir <dir>
+```
+
 ### Execution reports
 
 Execution timeline, report, trace and DAG files are generated **automatically** on every run — you do **not** need to pass `-with-timeline`, `-with-report`, `-with-trace` or `-with-dag`. They are written to the `reports/` folder (or under `--results_dir` if you set it) and the filenames include a per-launch timestamp, so successive runs never overwrite each other:
