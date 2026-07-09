@@ -41,13 +41,22 @@ jobs:
           docker compose version
           docker compose build
 
+      - name: Tag local images for Nextflow test run
+        run: |
+          set -euxo pipefail
+          TEST_TAG=ci-local
+          docker tag domain-annotation-pipeline-cath-af-cli ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:${TEST_TAG}
+          docker tag domain-annotation-pipeline-script ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${TEST_TAG}
+          docker tag domain-annotation-pipeline-ted-tools ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${TEST_TAG}
+          docker tag domain-annotation-pipeline-foldseek ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${TEST_TAG}
+
       - name: Run pipeline (docker,git_actions_test)
         env:
           NXF_ANSI_LOG: "false"
         run: |
           set -euxo pipefail
           rm -rf work .nextflow* results/git_actions_test || true
-          nextflow run workflows/annotate.nf -profile docker,git_actions_test
+          nextflow run workflows/annotate.nf -profile docker,git_actions_test --container_tag_name ci-local
 
       - name: Compare final_results.tsv to expected
         run: |
