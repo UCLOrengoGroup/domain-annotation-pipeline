@@ -1,0 +1,30 @@
+nextflow_pipeline {
+
+    name "Test Workflow annotate.nf"
+    script "workflows/annotate.nf"
+    tag "workflow"
+
+    test("-profile test") {
+
+        when {
+            params {
+                project_name  = "nf_test_annotate"
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            // stable_path: all files/folders under the results dir with a stable path (incl. file name)
+            def stable_path = getAllFilesFromDir(params.results_dir, relative: true, includeDir: true)
+            // stable_content: all files under the results dir with stable content
+            def stable_content = getAllFilesFromDir(params.results_dir, ignoreFile: 'tests/.nftignore')
+
+            assertAll(
+                { assert snapshot(stable_path, stable_content).match() }
+            )
+        }
+
+    }
+
+}
