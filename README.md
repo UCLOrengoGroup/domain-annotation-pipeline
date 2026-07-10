@@ -248,9 +248,10 @@ singularity pull domain-annotation-pipeline-ted-tools_latest.sif docker://ghcr.i
 singularity pull domain-annotation-pipeline-foldseek_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:main-latest
 ```
 
-The directory containing these singularity images can be added to your config file, or passed directly to nextflow:
+You normally **don't** need to pull these manually — with `-profile singularity`, Nextflow pulls each image into its cache on first run. Control **where** they're stored (and share them across runs and users) with the `NXF_SINGULARITY_CACHEDIR` environment variable:
 
 ```bash
-nextflow run workflows/annotate -profile singularity \
-    --singularity_image_dir "/path/to/singularity_images"
+export NXF_SINGULARITY_CACHEDIR=/SAN/orengolab/bfvd/nextflow_singularity_cache
 ```
+
+The `cs_cluster` profile honours this variable, falling back to `$HOME/.apptainer/pull` when it is unset. (The old `--singularity_image_dir` flag is no longer wired up — set the cache via the environment variable instead.)
