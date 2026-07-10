@@ -7,7 +7,7 @@ This file records major behavioural and configuration changes.
 - Per-process HPC resource ladders / retries remain in `conf/singularity.config` (HPC runs use singularity).
 - Profiles are now composable: added a standalone `container` profile; `cs_cluster` is generic + label-aware (requests `gpu=true` for `sge_gpu_high`, `avx2=yes` for foldseek) and runs on shared `/SAN` (`scratch=false`); `orengo` restored as a composable profile for backward compatibility. Compose e.g. `-profile <data>,singularity,cs_cluster`.
 - `cs_cluster` Singularity image cache now honours `NXF_SINGULARITY_CACHEDIR` (falls back to `$HOME/.apptainer/pull`); removed the unused `singularity_image_dir` param.
-- Added `test_154` profile: 154-id TED test set read from a public S3 bucket `s3://excon/protein-domain-annotation/` using anonymous access (`aws.client.anonymous`) — no AWS login needed.
+- Added `test_154` profile: 154-id TED test set read from a public S3 bucket `s3://excon/protein-domain-annotation/zip/` using anonymous access (`aws.client.anonymous`) — no AWS login needed.
 
 ## 2026-06-22 (Chris Wyatt) — TED segmentation concurrency
 - Split `run_ted_segmentation` into three modules so Chainsaw runs concurrently with the Merizo→UniDoc chain (Chainsaw is independent; UniDoc inherits Merizo's chopping). New modules: `run_ted_merizo_unidoc` and `run_ted_chainsaw` (both GPU), and `run_ted_consensus` (CPU, `sge_low`) which joins the three choppings by `chunk_id` and computes consensus.
