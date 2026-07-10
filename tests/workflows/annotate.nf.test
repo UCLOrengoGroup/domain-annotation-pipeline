@@ -9,19 +9,37 @@ nextflow_pipeline {
         when {
             params {
                 project_name  = "nf_test_annotate"
+                results_dir   = "$outputDir"
             }
         }
 
         then {
             assert workflow.success
 
+            // Rounds floats to `decimals` places. Little groovy magic to avoid floating-point jitter in test comparisons
+            def roundFloats = { String path, int decimals = 3 ->
+                file(path).readLines().collect { line ->
+                    line.replaceAll(/-?\d+\.\d+/) { match ->
+                        new BigDecimal(match).setScale(decimals, java.math.RoundingMode.HALF_UP).toString()
+                    }
+                }
+            }
+
             // stable_path: all files/folders under the results dir with a stable path (incl. file name)
-            def stable_path = getAllFilesFromDir(params.results_dir, relative: true, includeDir: true)
-            // stable_content: all files under the results dir with stable content
+            def stable_path = getAllFilesFromDir(params.results_dir, relative: true, includeDir: true, ignore: ['*.html', 'WORKFLOW_COMPLETED'])
+            // stable_content: all files under the results dir with stable content (volatile files excluded via .nftignore)
             def stable_content = getAllFilesFromDir(params.results_dir, ignoreFile: 'tests/.nftignore')
 
+            // Files with known floating-point jitter: compare rounded content instead of raw bytes
+            def rounded_final_results  = roundFloats("${params.results_dir}/final_results.tsv")
+            def rounded_merizo         = roundFloats("${params.results_dir}/domain_assignments.merizo.tsv")
+            def rounded_domain_quality = roundFloats("${params.results_dir}/all_domain_quality.csv")
+
             assertAll(
-                { assert snapshot(stable_path, stable_content).match() }
+                { assert snapshot(
+                    stable_path, stable_content,
+                    rounded_final_results, rounded_merizo, rounded_domain_quality
+                ).match() }
             )
         }
 
