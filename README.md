@@ -44,7 +44,7 @@ Runs are configured by composing profiles with `-profile a,b,c`: pick **one cont
 |-------|----------|------|
 | Container engine *(pick one)* | `docker`, `singularity` | how containers run (also loads the `/app` script paths) |
 | Cluster *(optional, HPC/SGE)* | `cs_cluster`, `myriad_cluster`, `orengo` | executor + submit options (scratch, GPU, avx2) |
-| Data / mode | `debug`, `benchmark_test`, `stub_run`, … | test inputs / run parameters |
+| Data / mode | `debug`, `benchmark_test`, `stub_run`, `test_154`, … | test inputs / run parameters |
 
 A basic resource floor for every process lives in `conf/base.config` (always applied). The fuller per-process memory/retry ladders are HPC settings in `conf/singularity.config`, so they apply when you include the `singularity` profile — hence `-profile singularity,<cluster>` for real HPC jobs. (`container` is also available as a standalone profile: script paths only, for composing with a self-contained cluster profile such as `orengo`.)
 
@@ -60,6 +60,9 @@ nextflow run workflows/annotate.nf -profile singularity,myriad_cluster --input_z
 
 # Orengo-lab CS cluster — node-local scratch, project/avx2/GPU
 nextflow run workflows/annotate.nf -profile singularity,orengo --input_zip_dir <dir>
+
+# 154-id TED test set read from a public S3 bucket (no AWS login needed)
+nextflow run workflows/annotate.nf -profile test_154,singularity,cs_cluster
 ```
 
 ### Execution reports
