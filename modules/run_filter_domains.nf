@@ -16,6 +16,6 @@ process run_filter_domains {
 
     script:
     """
-    filter_domains.py ${chopping_file} -o filtered_${chopping_file.name}
+    ${params.prefilter_script} ${chopping_file} -o filtered_${chopping_file.name}
     """
 }
