@@ -12,7 +12,7 @@ process run_domain_quality_from_zip {
     script:
     """
     ${params.domain_quality_script_setup}
-    ${params.domain_quality_script} -z ${pdb_zip} --zip-list ${pdb_list} -o domain_quality.csv
+    run_domain_quality_checks.py -z ${pdb_zip} --zip-list ${pdb_list} -o domain_quality.csv
     perl -i.bak -pe 's/\\r\\n/\\n/g' domain_quality.csv
     """
 }

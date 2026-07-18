@@ -13,7 +13,7 @@ process run_domain_quality {
     mkdir -p pdb
     tar -xzf ${chopped_pdb_tar_file} -C pdb
     ${params.domain_quality_script_setup}
-    ${params.domain_quality_script} -d pdb/ -o domain_quality.unsorted.csv
+    run_domain_quality_checks.py -d pdb/ -o domain_quality.unsorted.csv
     perl -i.bak -pe 's/\\r\\n/\\n/g' domain_quality.unsorted.csv
 
     head -n 1 domain_quality.unsorted.csv > domain_quality.csv

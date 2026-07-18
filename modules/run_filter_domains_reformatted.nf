@@ -16,6 +16,6 @@ process run_filter_domains_reformatted {
 
     script:
     """
-    ${params.prefilter_script} ${reformatted_file} -o filtered_${reformatted_file.name}
+    filter_domains.py ${reformatted_file} -o filtered_${reformatted_file.name}
     """
 }

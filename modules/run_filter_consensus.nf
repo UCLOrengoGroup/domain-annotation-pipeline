@@ -16,6 +16,6 @@ process run_filter_consensus {
 
     script:
     """
-    ${params.postfilter_script} ${consensus_file} -o filtered_consensus.tsv
+    filter_domains_consensus.py ${consensus_file} -o filtered_consensus.tsv
     """
 }
