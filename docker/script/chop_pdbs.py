@@ -5,12 +5,17 @@ Supports both directory of PDB files and zip archives for efficient processing.
 """
 import os
 import sys
-import subprocess
 import argparse
 import zipfile
-import tempfile
 from pathlib import Path
 from typing import List, Tuple, Dict, Optional
+
+from pdbtools import pdb_selres
+
+# pdb-tools exposes the residue-selection generator as run() in modern releases
+# (and select_residues() in older ones); support both. Signature is identical:
+# (fhandle_line_iterator, residue_number_set) -> yields PDB line strings.
+_selres = getattr(pdb_selres, "run", None) or getattr(pdb_selres, "select_residues")
 
 
 def parse_domain_boundaries(boundary_str: str, level: str) -> List[Tuple[str, List[Tuple[int, int]]]]:
@@ -40,59 +45,31 @@ def parse_domain_boundaries(boundary_str: str, level: str) -> List[Tuple[str, Li
     return domains
 
 
-def run_pdb_selres(pdb_content: str, domain_ranges: List[Tuple[int, int]], output_file: str, 
-                   append: bool = False, is_file: bool = False) -> None:
+def _residue_set(domain_ranges: List[Tuple[int, int]]) -> set:
+    """Expand [(start, end), ...] inclusive ranges into a set of residue numbers."""
+    residues = set()
+    for start, end in domain_ranges:
+        residues.update(range(start, end + 1))
+    return residues
+
+
+def write_domain(pdb_lines: List[str], domain_ranges: List[Tuple[int, int]], output_file: str) -> None:
     """
-    Run pdb_selres on PDB content.
-    
+    Write a single chopped domain by selecting residues in-process.
+
+    Reuses pdb-tools' own residue-selection generator (pdb_selres) so the output is
+    identical to the previous `python -m pdbtools.pdb_selres` subprocess, but avoids
+    launching a Python interpreter per domain and re-writing a temp file per domain.
+
     Args:
-        pdb_content: PDB file path (if is_file=True) or content as string
-        domain_ranges: List of (start, end) residue ranges
-        output_file: Path to output file
-        append: Whether to append to existing file
-        is_file: Whether pdb_content is a file path or content string
+        pdb_lines: The structure's PDB lines (split once per structure; re-iterable list).
+        domain_ranges: List of (start, end) inclusive residue ranges for this domain.
+        output_file: Path to write the chopped domain PDB.
     """
-    mode = 'a' if append else 'w'
-    
-    chopping_string = ','.join([f"{start}:{end}" for start, end in domain_ranges])
-    
-    if is_file:
-        # Direct file path - use as-is
-        pdb_path = pdb_content
-        cleanup_temp = False
-    else:
-        # Content string - write to temp file
-        tmp_fd, pdb_path = tempfile.mkstemp(suffix='.pdb', text=True)
-        try:
-            with os.fdopen(tmp_fd, 'w') as tmp_file:
-                tmp_file.write(pdb_content)
-        except:
-            os.unlink(pdb_path)
-            raise
-        cleanup_temp = True
-    
-    try:
-        with open(output_file, mode) as out:
-            subprocess.run(
-                ['python', '-m', 'pdbtools.pdb_selres', f'-{chopping_string}', pdb_path],
-                stdout=out,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True,
-                timeout=30
-            )
-    except subprocess.TimeoutExpired:
-        print(f"⚠️  Timeout processing {output_file}", file=sys.stderr)
-        raise
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️  Error processing {output_file}: {e.stderr}", file=sys.stderr)
-        raise
-    finally:
-        if cleanup_temp:
-            try:
-                os.unlink(pdb_path)
-            except OSError:
-                pass
+    residues = _residue_set(domain_ranges)
+    # Pass a fresh iterator per call since the generator consumes it.
+    with open(output_file, 'w') as out:
+        out.writelines(_selres(iter(pdb_lines), residues))
 
 
 def process_from_directory(consensus_file: str, pdb_dir: str, output_dir: str) -> Tuple[int, int, int]:
@@ -134,10 +111,14 @@ def process_from_directory(consensus_file: str, pdb_dir: str, output_dir: str) -
                 continue
                 
             all_domains.sort(key=lambda x: x[1][0][0])
-            
+
+            # Read the structure once, then slice each domain from it in-process.
+            with open(pdb_path, 'r', encoding='utf-8') as pf:
+                pdb_lines = pf.readlines()
+
             for i, (level, domain_ranges) in enumerate(all_domains, start=1):
                 out_file = os.path.join(output_dir, f"{pdb_id}_{i:02d}.pdb")
-                run_pdb_selres(pdb_path, domain_ranges, out_file, is_file=True)
+                write_domain(pdb_lines, domain_ranges, out_file)
                 processed_count += 1
     
     return consensus_count, processed_count, missing_count
@@ -188,20 +169,21 @@ def process_from_zip(consensus_file: str, pdb_zip: str, output_dir: str) -> Tupl
                     continue
                 
                 try:
-                    # Extract PDB content from zip (in memory)
+                    # Extract PDB content from zip (in memory) and split once per structure.
                     pdb_bytes = zip_ref.read(zip_contents[pdb_id])
                     pdb_content = pdb_bytes.decode('utf-8', errors='replace')
-                    
+                    pdb_lines = pdb_content.splitlines(keepends=True)
+
                     # Combine and sort all domains
                     all_domains = high_domains + med_domains
                     if not all_domains:
                         continue
-                    
+
                     all_domains.sort(key=lambda x: x[1][0][0])
-                    
+
                     for i, (level, domain_ranges) in enumerate(all_domains, start=1):
                         out_file = os.path.join(output_dir, f"{pdb_id}_{i:02d}.pdb")
-                        run_pdb_selres(pdb_content, domain_ranges, out_file, is_file=False)
+                        write_domain(pdb_lines, domain_ranges, out_file)
                         processed_count += 1
                         
                 except (zipfile.BadZipFile, KeyError, UnicodeDecodeError) as e:
