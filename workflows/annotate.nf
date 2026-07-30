@@ -15,6 +15,8 @@ nextflow.enable.dsl = 2
 // ===============================================
 // Output directory
 params.publish_mode = 'copy'
+params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name ?: 'undefined_project'}"
+params.reports_dir = params.reports_dir ?: "${workflow.launchDir}/reports/${params.project_name ?: 'undefined_project'}"
 
 // ===============================================
 // MODULE IMPORTS
@@ -136,6 +138,10 @@ def validateParameters() {
     if (!file(params.results_dir).exists()) {
         file(params.results_dir).mkdirs()
     }
+    // Ensure reports directory exists
+    if (!file(params.reports_dir).exists()) {
+        file(params.reports_dir).mkdirs()
+    }
 
     // Validate required parameters
     if (!params.input_zip_dir || !file(params.input_zip_dir).exists()) {
@@ -200,10 +206,6 @@ workflow {
     
     validateParameters()
     
-    // make sure results and reports directories exist
-    file(params.results_dir).mkdirs()
-    file(params.reports_dir).mkdirs()
-
     // =========================================
     // PHASE 0: Setup Foldseek Assets
     // =========================================
