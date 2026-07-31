@@ -14,9 +14,8 @@ nextflow.enable.dsl = 2
 // PARAMETERS
 // ===============================================
 // Output directory
+params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
-params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name ?: 'undefined_project'}"
-params.reports_dir = params.reports_dir ?: "${workflow.launchDir}/reports/${params.project_name ?: 'undefined_project'}"
 
 // ===============================================
 // MODULE IMPORTS
