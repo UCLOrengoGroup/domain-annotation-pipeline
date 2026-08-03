@@ -2,7 +2,7 @@
 name: Pipeline test (30 TED test IDs)
 
 on:
-  push:
+  workflow_dispatch:
 
 jobs:
   test:

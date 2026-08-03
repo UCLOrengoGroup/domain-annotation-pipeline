@@ -14,7 +14,7 @@ nextflow.enable.dsl = 2
 // PARAMETERS
 // ===============================================
 // Output directory
-params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
+params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
 
 // ===============================================
@@ -64,7 +64,7 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 // Final collection modules
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
-//include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+include { benchmark_compare_results } from '../modules/benchmark_compare_results.nf'
 
 // Foldseek modules
 include { fetch_foldseek_assets } from '../foldseek/modules/foldseek_fetch_foldseek_assets.nf'
@@ -78,7 +78,44 @@ include { foldseek_process_results } from '../foldseek/modules/foldseek_process_
 // HELPER FUNCTIONS
 // ===============================================
 
+def warnOnArchitectureMismatch() {
+    def jvmArch = (System.getProperty('os.arch') ?: 'unknown').toLowerCase()
+    def hostArch = 'unknown'
+
+    try {
+        hostArch = 'uname -m'.execute().text.trim().toLowerCase()
+    } catch (Exception _ignored) {
+        // Keep hostArch as 'unknown' if uname is unavailable.
+    }
+
+    def hostIsArm = hostArch.contains('aarch64') || hostArch.contains('arm64')
+    def jvmIsX86 = jvmArch.contains('x86_64') || jvmArch.contains('amd64')
+
+    if (hostIsArm && jvmIsX86) {
+        log.warn(
+            """
+            =====================================================================
+            Architecture mismatch detected
+            ---------------------------------------------------------------------
+            Host architecture          : ${hostArch}
+            JVM architecture           : ${jvmArch}
+            Resolved container tag     : ${params.container_tag_name}
+
+            This often causes amd64 container selection on arm64 hosts and slower
+            emulated execution (notably in run_ted_segmentation).
+
+            Recommended actions:
+            - Use an arm64 JDK so Java reports arm64/aarch64
+            - Or override tags explicitly: --container_tag_name <existing-tag>
+            =====================================================================
+            """.stripIndent()
+        )
+    }
+}
+
 def validateParameters() {
+
+    warnOnArchitectureMismatch()
 
     if (!params.project_name) {
         error("Project name must be specified in the parameters.")
@@ -99,6 +136,10 @@ def validateParameters() {
     // Ensure results directory exists
     if (!file(params.results_dir).exists()) {
         file(params.results_dir).mkdirs()
+    }
+    // Ensure reports directory exists
+    if (!file(params.reports_dir).exists()) {
+        file(params.reports_dir).mkdirs()
     }
 
     // Validate required parameters
@@ -142,6 +183,7 @@ def validateParameters() {
     Min chain residues  : ${params.min_chain_residues}
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
+    Reports dir         : ${params.reports_dir}
     Debug mode          : ${params.debug}
     ----------------------------------------------
     Foldseek Configuration Information
@@ -523,6 +565,19 @@ workflow {
         foldseek_ch,
     )
 
+    // Compare the results to the benchmark set if the benchmark_154 profile is used
+    if (params.benchmark) {
+        expected_results_ch = channel.fromPath(
+            params.expected_results,
+            checkIfExists: true
+        )
+
+        benchmark_compare_results(
+            final_results_ch,
+            expected_results_ch
+        )
+    }
+    
     // ==========================================
     // PHASE 8: Completion and output Information
     // ==========================================
