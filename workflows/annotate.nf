@@ -14,7 +14,7 @@ nextflow.enable.dsl = 2
 // PARAMETERS
 // ===============================================
 // Output directory
-params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
+params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
 
 // ===============================================
@@ -137,6 +137,10 @@ def validateParameters() {
     if (!file(params.results_dir).exists()) {
         file(params.results_dir).mkdirs()
     }
+    // Ensure reports directory exists
+    if (!file(params.reports_dir).exists()) {
+        file(params.reports_dir).mkdirs()
+    }
 
     // Validate required parameters
     if (!params.input_zip_dir || !file(params.input_zip_dir).exists()) {
@@ -179,6 +183,7 @@ def validateParameters() {
     Min chain residues  : ${params.min_chain_residues}
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
+    Reports dir         : ${params.reports_dir}
     Debug mode          : ${params.debug}
     ----------------------------------------------
     Foldseek Configuration Information
