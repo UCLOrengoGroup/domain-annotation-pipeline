@@ -1,13 +1,14 @@
 # build docker images from docker compose and push to docker hub
-
 name: Build, Test, and Push Docker Compose Images
 on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
   release:
     types:
       - published
@@ -17,6 +18,7 @@ permissions:
   
 jobs:
   build:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
