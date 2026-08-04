@@ -35,6 +35,12 @@ jobs:
           sudo mv nextflow /usr/local/bin/nextflow
           nextflow -version
 
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/nf-test
+          nf-test -version
+
       - name: Build docker images for tests (amd64 only)
         run: |
           docker compose version
@@ -52,15 +58,10 @@ jobs:
       - name: Run pipeline (docker,git_actions_test)
         env:
           NXF_ANSI_LOG: "false"
+          CONTAINER_TAG_NAME: ci-local
         run: |
           set -euxo pipefail
-          rm -rf work .nextflow* results/git_actions_test || true
-          nextflow run workflows/annotate.nf -profile docker,git_actions_test --container_tag_name ci-local
-
-      - name: Compare final_results.tsv to expected
-        run: |
-          set -euxo pipefail
-          diff -U 0 <(sort assets/test_ids/final_results.tsv) <(sort results/git_actions_test/final_results.tsv)
+          nf-test test --profile +docker --ci
 
   push-images:
     needs: test
