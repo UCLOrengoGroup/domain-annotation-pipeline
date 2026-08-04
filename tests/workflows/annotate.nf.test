@@ -10,7 +10,7 @@ nextflow_pipeline {
             params {
                 project_name       = "nf_test_annotate"
                 results_dir        = "$outputDir"
-                container_tag_base = System.getenv('CONTAINER_TAG_NAME') ?: params.container_tag_base // For CI test build-test-push.yml we use a local image tag (CONTAINER_TAG_NAME), otherwise keep the arch-aware default from nextflow.config
+                container_tag_name = System.getenv('CONTAINER_TAG_NAME') ?: params.container_tag_name // For CI test build-test-push.yml we use a local image tag (CONTAINER_TAG_NAME), otherwise keep the arch-aware default from nextflow.config
             }
         }
 
