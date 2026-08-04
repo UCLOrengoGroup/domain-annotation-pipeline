@@ -12,6 +12,7 @@
                 "chopped_pdbs/0_0_chopped_pdbs.tar.gz",
                 "chopped_pdbs/1_0_chopped_pdbs.tar.gz",
                 "chopped_pdbs/2_0_chopped_pdbs.tar.gz",
+                "chopped_pdbs/3_0_chopped_pdbs.tar.gz",
                 "domain_assignments.chainsaw.tsv",
                 "domain_assignments.consensus.tsv",
                 "domain_assignments.merizo.tsv",
@@ -27,24 +28,25 @@
                 "transformed_consensus.tsv"
             ],
             [
-                "all_domain_globularity.tsv:md5,4339b6b3c6079478a967bffd7d2713b0",
-                "all_md5.tsv:md5,34dac68b947c2a3dbdfdc93722c5b6d4",
-                "all_plddt.tsv:md5,c53468ea11adf7da8f17fe45949eec68",
-                "all_stride_summaries.tsv:md5,0088e3fa45031f831863620e11751d84",
-                "all_taxonomy.tsv:md5,831f0cafa918a23b4867502dc0b2e373",
+                "all_domain_globularity.tsv:md5,f19f5016784cf66956b98b06e6706786",
+                "all_md5.tsv:md5,42b5e70ac7ca66506b0514972b2cd9b7",
+                "all_plddt.tsv:md5,587d1ee6f31c6dec54f9141e49cbdcce",
+                "all_stride_summaries.tsv:md5,669609f5f221d09637a51d931ede2962",
+                "all_taxonomy.tsv:md5,7f543df634e71be50e2a4312d4ca5d3c",
                 "0_0_chopped_pdbs.tar.gz:md5,b7d4798cff41ca5e40f42955e6d703d0",
                 "1_0_chopped_pdbs.tar.gz:md5,e27728c639dd9412d034ff33a51e0c0e",
                 "2_0_chopped_pdbs.tar.gz:md5,ddfe9fa3c316384a9bf3a18c38f707e5",
-                "domain_assignments.chainsaw.tsv:md5,a1b5d774c3ff54a545342c8f3fd1ae92",
-                "domain_assignments.consensus.tsv:md5,bece2961ce262f0c377fb45585835828",
-                "domain_assignments.tsv:md5,89841e085d5bd68dc9bf4f5a3a134928",
-                "domain_assignments.unidoc.tsv:md5,d45536e3ff23d7b10c32e0a2f3ee9d90",
-                "foldseek_parsed_results.tsv:md5,24ecbbf27a407bf8e79f50b50481c97b",
-                "all_ids_mapping.txt:md5,0124bfd81135ce3cdf82e31c97b3b304",
-                "filtered_af_ids.txt:md5,0124bfd81135ce3cdf82e31c97b3b304",
-                "input_mapping.tsv:md5,0124bfd81135ce3cdf82e31c97b3b304",
-                "plddt_with_md5.tsv:md5,413695bb23cde4d418a19a134a8d317a",
-                "transformed_consensus.tsv:md5,4318c1026b7c1506c7ec5c33fad43171"
+                "3_0_chopped_pdbs.tar.gz:md5,4d9b563c76448088d49b28f363b068cc",
+                "domain_assignments.chainsaw.tsv:md5,4b421cd32c88f5d4b6248bfcaa4f4bd9",
+                "domain_assignments.consensus.tsv:md5,fe7d89d1bc337140eefe40903735305e",
+                "domain_assignments.tsv:md5,48ab67b726ca553a74c873922855004a",
+                "domain_assignments.unidoc.tsv:md5,6baf9433ac20e5785bad1e6a9c4aff9f",
+                "foldseek_parsed_results.tsv:md5,8ac731602a2112bdf117aa16259cc70c",
+                "all_ids_mapping.txt:md5,b7a7fe480deb01af664a37fcd433a56b",
+                "filtered_af_ids.txt:md5,b7a7fe480deb01af664a37fcd433a56b",
+                "input_mapping.tsv:md5,b7a7fe480deb01af664a37fcd433a56b",
+                "plddt_with_md5.tsv:md5,f0ee5e6d81440609c8542946dd9be90b",
+                "transformed_consensus.tsv:md5,5919deec2d68a238853ec267635087ab"
             ],
             [
                 "uniprot_id\tmd5_domain\tconsensus_level\tchopping\tnres_domain\tnum_segments\tnum_helix_strand_turn\tnum_helix\tnum_strand\tnum_helix_strand\tnum_turn\tpacking_density\tnormed_radius_gyration\tavg_plddt\tproteome_id\ttax_common_name\ttax_scientific_name\ttax_lineage\tdomqual\tdom_single_domain\tfoldseek_match_id\tfoldseek_evalue\tfoldseek_tmscore\tcath_label\tfoldseek_match_type\tfoldseek_query_cov\tfoldseek_target_cov\tQ_score",
@@ -94,7 +96,14 @@
                 "A0A009DXY7_02\t1f2174f5fd300e915ad169553b054d74\tmed\t97-152\t56\t1\t7\t3\t0\t3\t4\t9.000\t0.358\t91.350\t\t\t\t\t0.183\tTrue\t\t\t\t\t\t\t\t23.920",
                 "A0A009DXY7_03\t877b3bea16277fa8069759ee203c3b16\tmed\t157-257\t101\t1\t20\t1\t9\t10\t10\t11.216\t0.308\t97.269\t\t\t\t\t0.165\tTrue\t5lwxA02\t5.397e-08\t0.837\t2.600.40.420\tH\t0.990\t0.613\t74.060",
                 "A0A009DY47_01\tbae1fc911c2f4ad04f44994be82a9475\thigh\t9-56\t48\t1\t3\t3\t0\t3\t0\t11.500\t0.291\t87.826\t\t\t\t\t0.707\tTrue\t2rn7A01\t7.221e-05\t0.877\t1.100.10.100\tH\t0.917\t0.667\t81.770",
-                "A0A009DYX5_01\ta433dac3c2a4ef5a6b266db404326565\thigh\t3-209\t207\t1\t26\t9\t7\t16\t10\t12.784\t0.312\t95.254\t\t\t\t\t0.865\tFalse\t4dzzA00\t3.990e-14\t0.851\t3.400.50.300\tH\t0.990\t0.971\t97.960"
+                "A0A009DYX5_01\ta433dac3c2a4ef5a6b266db404326565\thigh\t3-209\t207\t1\t26\t9\t7\t16\t10\t12.784\t0.312\t95.254\t\t\t\t\t0.865\tFalse\t4dzzA00\t3.990e-14\t0.851\t3.400.50.300\tH\t0.990\t0.971\t97.960",
+                "A0A009E3I5_01\ta99a762ce7240ff800352b0b7313200e\thigh\t6-30_38-70\t58\t2\t9\t1\t4\t5\t4\t9.808\t0.349\t81.742\t\t\t\t\t0.324\tTrue\t\t\t\t\t\t\t\t28.970",
+                "A0A009E8H7_01\t78df653bd15aaf1a1482d4d5dd2291a8\thigh\t9-56\t48\t1\t5\t3\t0\t3\t2\t10.292\t0.309\t59.727\t\t\t\t\t0.640\tTrue\t\t\t\t\t\t\t\t26.220",
+                "A0A009E8H8_01\taefdd5d66a782edd91eca69333dac6e1\thigh\t21-67\t47\t1\t3\t2\t0\t2\t1\t9.233\t0.397\t68.021\t\t\t\t\t0.081\tFalse\t\t\t\t\t\t\t\t27.250",
+                "A0A009E9Q4_01\tea2e0d063dcd92eda724f53107932ee0\thigh\t22-61\t40\t1\t4\t3\t0\t3\t1\t10.524\t0.275\t84.638\t\t\t\t\t0.368\tTrue\t2w25A01\t0.409\t0.662\t1.100.10\tT\t0.950\t0.750\t79.330",
+                "A0A009E9Q4_02\t295fcf62d6729ac7c2531e29752557cb\thigh\t93-127\t35\t1\t6\t2\t2\t4\t2\t9.100\t0.312\t73.090\t\t\t\t\t0.032\tTrue\t\t\t\t\t\t\t\t27.890",
+                "A0A009ECM9_01\t8609fefdf4edba2fef3cc4d3de0636c5\thigh\t8-66\t59\t1\t9\t2\t3\t5\t4\t11.552\t0.332\t90.079\t\t\t\t\t0.562\tTrue\t4py5A01\t0.221\t0.640\t3.300.310\tT\t0.898\t0.833\t84.160",
+                "A0A009ED70_01\t04f5a1c5b737ceab8de2af812661cf34\tmed\t2-47\t46\t1\t9\t1\t3\t4\t5\t9.067\t0.324\t81.298\t\t\t\t\t0.520\tTrue\t1twfI02\t0.351\t0.546\t\tN\t0.913\t0.618\t53.560"
             ],
             [
                 "A0A000\te8872c7a0261b9e88e6ff47eb34e4162\t394\t2\t10-52_289-394,53-288\t0.901",
@@ -126,7 +135,13 @@
                 "A0A009DXY7\tf9397f1d4a6368504cfc575c91e556f6\t292\t3\t1-69,70-94_154-260,95-153\t0.872",
                 "A0A009DY47\t7780ebd80f9f05bede0c0ac6c3387a61\t56\t1\t8-56\t0.117",
                 "A0A009DYA3\t17dca905fb38882e2fa5efc6914ff495\t50\t0\tNULL\t0.300",
-                "A0A009DYX5\t496a5235c262f29682481d515b033ad2\t209\t1\t1-209\t0.651"
+                "A0A009DYX5\t496a5235c262f29682481d515b033ad2\t209\t1\t1-209\t0.651",
+                "A0A009E3I5\tff8cf0c4a72ad9045bd286fc932a9053\t71\t1\t1-29_37-71\t0.666",
+                "A0A009E8H7\t08ad11df647ce2bee02b29b86de1ab71\t57\t1\t7-57\t0.543",
+                "A0A009E8H8\t6b6b5871ebe83f065ec1d858496aabe2\t73\t1\t20-66\t0.102",
+                "A0A009E9Q4\t406c520a6eaf210687b6f19dcebcf1f1\t127\t2\t19-65,90-127\t0.669",
+                "A0A009ECM9\t9b84ad04544311e43dfcad7c6b17a6a4\t67\t1\t1-67\t0.571",
+                "A0A009ED70\t3974be6564c3a53ce7c97ce052f25bad\t60\t1\t1-46\t0.127"
             ],
             [
                 "PDB_ID,Chain_ID,Sequence_MD5,Dom_Domain_Count,DomQual",
@@ -176,13 +191,20 @@
                 "A0A009DXY7_02,A,1f2174f5fd300e915ad169553b054d74,True,0.183",
                 "A0A009DXY7_03,A,877b3bea16277fa8069759ee203c3b16,True,0.165",
                 "A0A009DY47_01,A,bae1fc911c2f4ad04f44994be82a9475,True,0.707",
-                "A0A009DYX5_01,A,a433dac3c2a4ef5a6b266db404326565,False,0.865"
+                "A0A009DYX5_01,A,a433dac3c2a4ef5a6b266db404326565,False,0.865",
+                "A0A009E3I5_01,A,a99a762ce7240ff800352b0b7313200e,True,0.324",
+                "A0A009E8H7_01,A,78df653bd15aaf1a1482d4d5dd2291a8,True,0.640",
+                "A0A009E8H8_01,A,aefdd5d66a782edd91eca69333dac6e1,False,0.081",
+                "A0A009E9Q4_01,A,ea2e0d063dcd92eda724f53107932ee0,True,0.368",
+                "A0A009E9Q4_02,A,295fcf62d6729ac7c2531e29752557cb,True,0.032",
+                "A0A009ECM9_01,A,8609fefdf4edba2fef3cc4d3de0636c5,True,0.562",
+                "A0A009ED70_01,A,04f5a1c5b737ceab8de2af812661cf34,True,0.520"
             ]
         ],
         "meta": {
             "nf-test": "0.9.3",
-            "nextflow": "25.10.4"
+            "nextflow": "26.04.6"
         },
-        "timestamp": "2026-07-10T12:18:22.972061"
+        "timestamp": "2026-08-04T13:00:13.122071"
     }
 }
