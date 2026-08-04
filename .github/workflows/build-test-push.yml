@@ -39,7 +39,7 @@ jobs:
         run: |
           curl -fsSL https://get.nf-test.com | bash
           sudo mv nf-test /usr/local/bin/nf-test
-          nf-test -version
+          nf-test version
 
       - name: Build docker images for tests (amd64 only)
         run: |

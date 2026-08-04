@@ -22,7 +22,7 @@ jobs:
         run: |
           curl -s https://get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/nextflow
-          nextflow -version
+          nextflow version
       
       - name: Install nf-test
         run: |
