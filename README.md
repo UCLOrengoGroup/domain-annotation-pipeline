@@ -258,17 +258,3 @@ export NXF_SINGULARITY_CACHEDIR=/path/to/shared/singularity_cache
 ```
 
 The `cs_cluster` profile (see below) honours this variable, falling back to `$HOME/.apptainer/pull` when it is unset. (The old `--singularity_image_dir` flag is no longer wired up — set the cache via the environment variable instead.)
-
-Profiles have been added with specific cluster configs. To run the pipeline on the CS Cluster, do:
-
-```
-nextflow run workflows/annotate.nf -profile singularity,cs_cluster --input_zip_dir ../path/to/input/files.zip
-```
-
-This is a generic CS Cluster profile anyone with access can run. But there is also a profile specifically designed for the CATH project:
-
-```
-nextflow run workflows/annotate.nf -profile singularity,orengo --input_zip_dir ../path/to/input/files.zip
-```
-
-Only memebers of the `orengo` groups have access to this profile.
