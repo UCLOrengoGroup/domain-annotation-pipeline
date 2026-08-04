@@ -16,7 +16,8 @@ nextflow_pipeline {
         then {
             assert workflow.success
 
-            // Rounds floats to `decimals` places. Little groovy magic to avoid floating-point jitter in test comparisons
+            // Rounds floats to `decimals` places. Little groovy magic to avoid floating-point differences in test comparisons
+            // e.g. with decimals=3, "1.2345" -> "1.235" (HALF_UP rounds the .5 tie up)
             def roundFloats = { String path, int decimals = 3 ->
                 file(path).readLines().collect { line ->
                     line.replaceAll(/-?\d+\.\d+/) { match ->

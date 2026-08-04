@@ -165,6 +165,34 @@ ted_stub_chain_ids.zip
 
 The default files are currently set up to run a test set of 50 chain ids, producing a final results output of 100 domains.
 
+## Automated tests (nf-test)
+
+The pipeline has an [nf-test](https://www.nf-test.com/) (`tests/`) that runs the full `annotate.nf` workflow against the test data located in `./assets/test_ids` and checks the results against a pre-generated snapshot.
+
+Install nf-test:
+
+```bash
+curl -fsSL https://get.nf-test.com | bash
+```
+
+Move `nf-test` to the `bin` folder in you `$PATH`.
+
+Run the test locally:
+
+```bash
+nf-test test --profile +docker
+```
+
+If the outputs are consistent with the pre-existing snapshot, the test will succeed.
+
+If a change intentionally alters pipeline outputs, generate a new snapshot with:
+
+```bash
+nf-test test --update-snapshot
+```
+
+Note: nf-test isn't wired into CI yet — `test-pipeline.yml` and `build-test-push.yml` run the pipeline directly with `-profile docker,git_actions_test` rather than through nf-test. The idea is to replace it the nf-test at some point.
+
 ## Running on HPC
 
 ## Install (with singularity)
