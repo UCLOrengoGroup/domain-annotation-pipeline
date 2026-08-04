@@ -14,6 +14,10 @@ process benchmark_compare_results {
     """
     sort ${final_results} > final_results.sorted.tsv
     sort ${expected_results} > expected.sorted.tsv
-    diff -u final_results.sorted.tsv expected.sorted.tsv > benchmark_differences.tsv
+    
+    diff -u final_results.sorted.tsv expected.sorted.tsv > benchmark_differences.tsv || {
+        status=\$?
+        [ "\$status" -eq 1 ] || exit "\$status"
+    }
     """
 }
