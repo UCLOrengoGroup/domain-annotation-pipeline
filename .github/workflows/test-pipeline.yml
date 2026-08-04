@@ -35,7 +35,7 @@ jobs:
           docker compose version
           docker compose build
 
-      - name: Run pipeline (docker,git_actions_test)
+      - name: Run test
         env:
           NXF_ANSI_LOG: "false"
         run: |

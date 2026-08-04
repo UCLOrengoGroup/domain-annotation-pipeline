@@ -55,7 +55,7 @@ jobs:
           docker tag domain-annotation-pipeline-ted-tools ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${TEST_TAG}
           docker tag domain-annotation-pipeline-foldseek ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${TEST_TAG}
 
-      - name: Run pipeline (docker,git_actions_test)
+      - name: Run test
         env:
           NXF_ANSI_LOG: "false"
           CONTAINER_TAG_NAME: ci-local
