@@ -4,3 +4,4 @@ all_domain_quality.csv
 *.html
 **/*.html
 WORKFLOW_COMPLETED
+foldseek_parsed_results.tsv

@@ -33,15 +33,14 @@
                 "all_plddt.tsv:md5,587d1ee6f31c6dec54f9141e49cbdcce",
                 "all_stride_summaries.tsv:md5,669609f5f221d09637a51d931ede2962",
                 "all_taxonomy.tsv:md5,7f543df634e71be50e2a4312d4ca5d3c",
-                "0_0_chopped_pdbs.tar.gz:md5,e6d4cd297edcb7a9024fc3f5daa9dd98",
-                "1_0_chopped_pdbs.tar.gz:md5,eb3f83200cffc1921e252c785e77251d",
-                "2_0_chopped_pdbs.tar.gz:md5,2a47ab1b64b68094c6065678884c36cd",
-                "3_0_chopped_pdbs.tar.gz:md5,7d84aac6eeba347659c18a12e378792d",
+                "0_0_chopped_pdbs.tar.gz:md5,b7d4798cff41ca5e40f42955e6d703d0",
+                "1_0_chopped_pdbs.tar.gz:md5,e27728c639dd9412d034ff33a51e0c0e",
+                "2_0_chopped_pdbs.tar.gz:md5,ddfe9fa3c316384a9bf3a18c38f707e5",
+                "3_0_chopped_pdbs.tar.gz:md5,4d9b563c76448088d49b28f363b068cc",
                 "domain_assignments.chainsaw.tsv:md5,4b421cd32c88f5d4b6248bfcaa4f4bd9",
                 "domain_assignments.consensus.tsv:md5,fe7d89d1bc337140eefe40903735305e",
                 "domain_assignments.tsv:md5,48ab67b726ca553a74c873922855004a",
                 "domain_assignments.unidoc.tsv:md5,6baf9433ac20e5785bad1e6a9c4aff9f",
-                "foldseek_parsed_results.tsv:md5,eeb4624d355a0aeb2bb4fdadaf54cc54",
                 "all_ids_mapping.txt:md5,b7a7fe480deb01af664a37fcd433a56b",
                 "filtered_af_ids.txt:md5,b7a7fe480deb01af664a37fcd433a56b",
                 "input_mapping.tsv:md5,b7a7fe480deb01af664a37fcd433a56b",
@@ -58,7 +57,7 @@
                 "A0A002_01\tfa6ce13b0cef05776b985792f9b1b804\tmed\t325-410_462-563\t188\t2\t40\t7\t10\t17\t23\t11.387\t0.285\t89.964\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.652\tFalse\t2ff7A00\t4.1e-19\t0.890\t3.40.50.300\tH\t0.979\t0.971\t91.050",
                 "A0A003_01\t435ff9250e43b784a7449c3b6e2600d2\tmed\t90-324\t235\t1\t27\t9\t10\t19\t8\t11.283\t0.323\t93.965\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.073\tFalse\t6kv9A01\t3.036e-18\t0.644\t3.40.50.720\tH\t0.681\t0.651\t75.550",
                 "A0A004_01\t7a8fedbaeb851331b56f5e3047299eab\thigh\t5-80_112-216\t181\t2\t33\t5\t12\t17\t16\t10.680\t0.295\t75.245\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.411\tFalse\t7ylzA01\t2.073e-09\t0.799\t3.60.20.10\tH\t0.983\t0.982\t96.010",
-                "A0A004_02\tf9ca035470c019ce20a74306af810176\tmed\t234-372_496-557\t201\t2\t29\t13\t5\t18\t11\t11.708\t0.319\t92.159\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.905\tTrue\t6gq3A02\t2.459e-12\t0.852\t3.40.50.620\tH\t0.985\t0.770\t81.270",
+                "A0A004_02\tf9ca035470c019ce20a74306af810176\tmed\t234-372_496-557\t201\t2\t29\t13\t5\t18\t11\t11.708\t0.319\t92.159\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.905\tTrue\t6gq3A02\t2.459e-12\t0.862\t3.40.50.620\tH\t0.995\t0.776\t81.570",
                 "A0A004_03\ta0474f1b9e0916d29d02b7595ed6eab4\tmed\t566-638\t73\t1\t8\t5\t0\t5\t3\t10.571\t0.298\t88.323\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.604\tTrue\t\t\t\t\t\t\t\t36.040",
                 "A0A005_01\tf6c8c4063e1fd52e2b2150ce99616e72\thigh\t9-192\t184\t1\t27\t10\t6\t16\t11\t11.462\t0.300\t94.690\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.892\tFalse\t3hbmA01\t0.242\t0.519\t3.40.50\tT\t0.989\t0.957\t90.940",
                 "A0A005_02\t02a0217c3ffeeabd80f1169441444223\thigh\t227-383\t157\t1\t20\t8\t6\t14\t6\t12.034\t0.291\t92.527\tproteome-tax_id-67581-0_v4\t\tStreptomyces viridosporus\tcellular organisms (no rank), Bacteria (domain), Bacillati (kingdom), Actinomycetota (phylum), Actinomycetes (class), Kitasatosporales (order), Streptomycetaceae (family), Streptomyces (genus)\t0.349\tFalse\t7ec2A01\t1.983e-06\t0.672\t3.40.50.2000\tH\t0.949\t0.940\t96.060",
@@ -201,10 +200,10 @@
                 "A0A009ED70_01,A,04f5a1c5b737ceab8de2af812661cf34,True,0.520"
             ]
         ],
-        "timestamp": "2026-08-05T10:36:43.345412319",
         "meta": {
-            "nf-test": "0.9.5",
+            "nf-test": "0.9.3",
             "nextflow": "26.04.6"
-        }
+        },
+        "timestamp": "2026-08-05T13:20:41.478051"
     }
 }
