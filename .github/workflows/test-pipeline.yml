@@ -38,6 +38,7 @@ jobs:
       - name: Run test
         env:
           NXF_ANSI_LOG: "false"
+          NFT_DIFF_ARGS: "-u -U 5"
         run: |
           set -euxo pipefail
           nf-test test --profile +docker --ci
