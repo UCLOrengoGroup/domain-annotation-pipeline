@@ -1,5 +1,4 @@
 # build docker images from docker compose and push to docker hub
-
 name: Build, Test, and Push Docker Compose Images
 on:
   push:
@@ -36,6 +35,12 @@ jobs:
           sudo mv nextflow /usr/local/bin/nextflow
           nextflow -version
 
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/nf-test
+          nf-test version
+
       - name: Build docker images for tests (amd64 only)
         run: |
           docker compose version
@@ -50,18 +55,28 @@ jobs:
           docker tag domain-annotation-pipeline-ted-tools ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${TEST_TAG}
           docker tag domain-annotation-pipeline-foldseek ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${TEST_TAG}
 
-      - name: Run pipeline (docker,git_actions_test)
+      - name: Run test
         env:
           NXF_ANSI_LOG: "false"
+          CONTAINER_TAG_NAME: ci-local
+          NFT_DIFF_ARGS: "-u -U 5"
         run: |
           set -euxo pipefail
-          rm -rf work .nextflow* results/git_actions_test || true
-          nextflow run workflows/annotate.nf -profile docker,git_actions_test --container_tag_name ci-local
+          nf-test test --profile +docker --ci
 
-      - name: Compare final_results.tsv to expected
-        run: |
-          set -euxo pipefail
-          diff -U 0 <(sort assets/test_ids/final_results.tsv) <(sort results/git_actions_test/final_results.tsv)
+      - name: Upload nf-test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .nf-test/tests/*/output
+            .nf-test/tests/*/reports
+            .nf-test/tests/*/meta
+            .nextflow.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
 
   push-images:
     needs: test
