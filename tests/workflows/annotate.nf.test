@@ -10,7 +10,11 @@ nextflow_pipeline {
             params {
                 project_name       = "nf_test_annotate"
                 results_dir        = "$outputDir"
-                container_tag_name = System.getenv('CONTAINER_TAG_NAME') ?: params.container_tag_name // For CI test build-test-push.yml we use a local image tag (CONTAINER_TAG_NAME), otherwise keep the arch-aware default from nextflow.config
+                if (System.getenv('CONTAINER_TAG_NAME')) {
+                    container_tag_name = System.getenv('CONTAINER_TAG_NAME')
+                } else if (System.getenv('CONTAINER_TAG_BASE')) {
+                    container_tag_name = "${System.getenv('CONTAINER_TAG_BASE')}${params.container_arch == 'arm64' ? '-arm64-latest' : '-latest'}"
+                }
             }
         }
 
@@ -19,11 +23,14 @@ nextflow_pipeline {
 
             // Rounds floats to `decimals` places. Little groovy magic to avoid floating-point differences in test comparisons
             // e.g. with decimals=3, "1.2345" -> "1.235" (HALF_UP rounds the .5 tie up)
-            def roundFloats = { String path, int decimals = 3 ->
+            // Only whole fields matching the float pattern are rounded (via ==~, a full-string match) -
+            // multi-dot values like a cath_label "3.40.50.720" are left untouched instead of being
+            // mangled by matching "3.40" as a substring.
+            def roundFloats = { String path, String delimiter = '\t', int decimals = 3 ->
                 file(path).readLines().collect { line ->
-                    line.replaceAll(/-?\d+\.\d+/) { match ->
-                        new BigDecimal(match).setScale(decimals, java.math.RoundingMode.HALF_UP).toString()
-                    }
+                    line.split(delimiter, -1).collect { field ->
+                        field ==~ /-?\d+\.\d+/ ? new BigDecimal(field).setScale(decimals, java.math.RoundingMode.HALF_UP).toString() : field
+                    }.join(delimiter)
                 }
             }
 
@@ -35,7 +42,7 @@ nextflow_pipeline {
             // Files with known floating-point jitter: compare rounded content instead of raw bytes
             def rounded_final_results  = roundFloats("${params.results_dir}/final_results.tsv")
             def rounded_merizo         = roundFloats("${params.results_dir}/domain_assignments.merizo.tsv")
-            def rounded_domain_quality = roundFloats("${params.results_dir}/all_domain_quality.csv")
+            def rounded_domain_quality = roundFloats("${params.results_dir}/all_domain_quality.csv", ',')
 
             assertAll(
                 { assert snapshot(
