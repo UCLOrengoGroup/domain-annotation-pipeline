@@ -119,6 +119,7 @@ repo-key.pub
 work/
 .nextflow.log*
 .nf-test/
+nf-test
 
 # local build dir
 domain_assignments*.tsv
