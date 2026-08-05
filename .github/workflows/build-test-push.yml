@@ -70,7 +70,9 @@ jobs:
         with:
           name: nf-test-failure-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            .nf-test/**
+            .nf-test/tests/*/output
+            .nf-test/tests/*/reports
+            .nf-test/tests/*/meta
             .nextflow.log
           include-hidden-files: true
           if-no-files-found: warn
