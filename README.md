@@ -36,6 +36,35 @@ Note: either docker or singularity must be supplied as one the the profile argum
 nextflow run workflows/annotate.nf -profile debug,docker
 ```
 
+### Profiles
+
+Runs are configured by composing profiles with `-profile a,b,c`: pick **one container engine**, add a **cluster** profile on HPC, and a **data/mode** profile for the inputs.
+
+| Group | Profiles | Sets |
+|-------|----------|------|
+| Container engine *(pick one)* | `docker`, `singularity` | how containers run (also loads the `/app` script paths) |
+| Cluster *(optional, HPC/SGE)* | `cs_cluster`, `myriad_cluster`, `orengo` | executor + submit options (scratch, GPU, avx2) |
+| Data / mode | `debug`, `benchmark_test`, `stub_run`, `test_154`, … | test inputs / run parameters |
+
+A basic resource floor for every process lives in `conf/base.config` (always applied). The fuller per-process memory/retry ladders are HPC settings in `conf/singularity.config`, so they apply when you include the `singularity` profile — hence `-profile singularity,<cluster>` for real HPC jobs. (`container` is also available as a standalone profile: script paths only, for composing with a self-contained cluster profile such as `orengo`.)
+
+```bash
+# Local, Docker, bundled test data
+nextflow run workflows/annotate.nf -profile debug,docker
+
+# UCL CS cluster — Singularity, runs on shared /SAN (no node-local scratch)
+nextflow run workflows/annotate.nf -profile singularity,cs_cluster --input_zip_dir <dir>
+
+# UCL Myriad cluster
+nextflow run workflows/annotate.nf -profile singularity,myriad_cluster --input_zip_dir <dir>
+
+# Orengo-lab CS cluster — node-local scratch, project/avx2/GPU
+nextflow run workflows/annotate.nf -profile singularity,orengo --input_zip_dir <dir>
+
+# 154-id TED test set read from a public S3 bucket (no AWS login needed)
+nextflow run workflows/annotate.nf -profile test_154,singularity,cs_cluster
+```
+
 ### Execution reports
 
 Execution timeline, report, trace and DAG files are generated **automatically** on every run — you do **not** need to pass `-with-timeline`, `-with-report`, `-with-trace` or `-with-dag`. They are written to the `reports/` folder (or under `--results_dir` if you set it) and the filenames include a per-launch timestamp, so successive runs never overwrite each other:
@@ -222,9 +251,10 @@ singularity pull domain-annotation-pipeline-ted-tools_latest.sif docker://ghcr.i
 singularity pull domain-annotation-pipeline-foldseek_latest.sif docker://ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:main-latest
 ```
 
-The directory containing these singularity images can be added to your config file, or passed directly to nextflow:
+You normally **don't** need to pull these manually — with `-profile singularity`, Nextflow pulls each image into its cache on first run. Control **where** they're stored (and share them across runs and users) with the `NXF_SINGULARITY_CACHEDIR` environment variable:
 
 ```bash
-nextflow run workflows/annotate -profile singularity \
-    --singularity_image_dir "/path/to/singularity_images"
+export NXF_SINGULARITY_CACHEDIR=/path/to/shared/singularity_cache
 ```
+
+The `cs_cluster` profile (see below) honours this variable, falling back to `$HOME/.apptainer/pull` when it is unset. (The old `--singularity_image_dir` flag is no longer wired up — set the cache via the environment variable instead.)
