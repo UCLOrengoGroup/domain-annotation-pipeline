@@ -64,6 +64,17 @@ jobs:
           set -euxo pipefail
           nf-test test --profile +docker --ci
 
+      - name: Upload nf-test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .nf-test/**
+            .nextflow.log
+          if-no-files-found: warn
+          retention-days: 7
+
   push-images:
     needs: test
     if: github.event_name != 'pull_request'
