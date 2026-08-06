@@ -1,0 +1,57 @@
+nextflow_pipeline {
+
+    name "Test Workflow annotate.nf"
+    script "workflows/annotate.nf"
+    tag "workflow"
+
+    test("-profile test") {
+
+        when {
+            params {
+                project_name       = "nf_test_annotate"
+                results_dir        = "$outputDir"
+                if (System.getenv('CONTAINER_TAG_NAME')) {
+                    container_tag_name = System.getenv('CONTAINER_TAG_NAME')
+                } else if (System.getenv('CONTAINER_TAG_BASE')) {
+                    container_tag_name = "${System.getenv('CONTAINER_TAG_BASE')}${params.container_arch == 'arm64' ? '-arm64-latest' : '-latest'}"
+                }
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            // Rounds floats to `decimals` places. Little groovy magic to avoid floating-point differences in test comparisons
+            // e.g. with decimals=3, "1.2345" -> "1.235" (HALF_UP rounds the .5 tie up)
+            // Only whole fields matching the float pattern are rounded (via ==~, a full-string match) -
+            // multi-dot values like a cath_label "3.40.50.720" are left untouched instead of being
+            // mangled by matching "3.40" as a substring.
+            def roundFloats = { String path, String delimiter = '\t', int decimals = 3 ->
+                file(path).readLines().collect { line ->
+                    line.split(delimiter, -1).collect { field ->
+                        field ==~ /-?\d+\.\d+/ ? new BigDecimal(field).setScale(decimals, java.math.RoundingMode.HALF_UP).toString() : field
+                    }.join(delimiter)
+                }
+            }
+
+            // stable_path: all files/folders under the results dir with a stable path (incl. file name)
+            def stable_path = getAllFilesFromDir(params.results_dir, relative: true, includeDir: true, ignore: ['*.html', 'WORKFLOW_COMPLETED'])
+            // stable_content: all files under the results dir with stable content (volatile files excluded via .nftignore)
+            def stable_content = getAllFilesFromDir(params.results_dir, ignoreFile: 'tests/.nftignore')
+
+            // Files with known floating-point jitter: compare rounded content instead of raw bytes
+            def rounded_final_results  = roundFloats("${params.results_dir}/final_results.tsv")
+            def rounded_merizo         = roundFloats("${params.results_dir}/domain_assignments.merizo.tsv")
+            def rounded_domain_quality = roundFloats("${params.results_dir}/all_domain_quality.csv", ',')
+
+            assertAll(
+                { assert snapshot(
+                    stable_path, stable_content,
+                    rounded_final_results, rounded_merizo, rounded_domain_quality
+                ).match() }
+            )
+        }
+
+    }
+
+}

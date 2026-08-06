@@ -14,7 +14,7 @@ nextflow.enable.dsl = 2
 // PARAMETERS
 // ===============================================
 // Output directory
-params.results_dir = "${workflow.launchDir}/results/${params.project_name}"
+params.results_dir = params.results_dir ?: "${workflow.launchDir}/results/${params.project_name}"
 params.publish_mode = 'copy'
 
 // ===============================================
@@ -32,7 +32,11 @@ include { chunk_ids_by_zip as chunk_by_zip        } from '../modules/chunk_by_zi
 include { chunk_ids_by_zip as heavy_chunk_by_zip  } from '../modules/chunk_by_zipfile.nf'
 include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
 // Domain prediction modules
-include { run_ted_segmentation } from '../modules/run_ted_segmentation.nf'
+// run_ted_segmentation has been split so Chainsaw runs concurrently with the Merizo->UniDoc chain,
+// then consensus joins the three choppings.
+include { run_ted_merizo_unidoc } from '../modules/run_ted_merizo_unidoc.nf'
+include { run_ted_chainsaw } from '../modules/run_ted_chainsaw.nf'
+include { run_ted_consensus } from '../modules/run_ted_consensus.nf'
 
 // Filtering and consensus modules - these are all unused as ted_segmentation takes care of all of this funtionality.
 //include { run_filter_domains } from '../modules/run_filter_domains.nf'
@@ -60,7 +64,7 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 // Final collection modules
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
-//include { run_AF_domain_id } from '../modules/run_create_AF_domain_id.nf'
+include { benchmark_compare_results } from '../modules/benchmark_compare_results.nf'
 
 // Foldseek modules
 include { fetch_foldseek_assets } from '../foldseek/modules/foldseek_fetch_foldseek_assets.nf'
@@ -74,13 +78,50 @@ include { foldseek_process_results } from '../foldseek/modules/foldseek_process_
 // HELPER FUNCTIONS
 // ===============================================
 
+def warnOnArchitectureMismatch() {
+    def jvmArch = (System.getProperty('os.arch') ?: 'unknown').toLowerCase()
+    def hostArch = 'unknown'
+
+    try {
+        hostArch = 'uname -m'.execute().text.trim().toLowerCase()
+    } catch (Exception _ignored) {
+        // Keep hostArch as 'unknown' if uname is unavailable.
+    }
+
+    def hostIsArm = hostArch.contains('aarch64') || hostArch.contains('arm64')
+    def jvmIsX86 = jvmArch.contains('x86_64') || jvmArch.contains('amd64')
+
+    if (hostIsArm && jvmIsX86) {
+        log.warn(
+            """
+            =====================================================================
+            Architecture mismatch detected
+            ---------------------------------------------------------------------
+            Host architecture          : ${hostArch}
+            JVM architecture           : ${jvmArch}
+            Resolved container tag     : ${params.container_tag_name}
+
+            This often causes amd64 container selection on arm64 hosts and slower
+            emulated execution (notably in run_ted_segmentation).
+
+            Recommended actions:
+            - Use an arm64 JDK so Java reports arm64/aarch64
+            - Or override tags explicitly: --container_tag_name <existing-tag>
+            =====================================================================
+            """.stripIndent()
+        )
+    }
+}
+
 def validateParameters() {
+
+    warnOnArchitectureMismatch()
 
     if (!params.project_name) {
         error("Project name must be specified in the parameters.")
     }
 
-    if (!params.chunk_size || params.chunk_size <= 0) {
+    if (!params.chunk_size || (params.chunk_size as Integer) <= 0 ) {
         error("Chunk size must be a positive integer.")
     }
 
@@ -95,6 +136,10 @@ def validateParameters() {
     // Ensure results directory exists
     if (!file(params.results_dir).exists()) {
         file(params.results_dir).mkdirs()
+    }
+    // Ensure reports directory exists
+    if (!file(params.reports_dir).exists()) {
+        file(params.reports_dir).mkdirs()
     }
 
     // Validate required parameters
@@ -138,6 +183,7 @@ def validateParameters() {
     Min chain residues  : ${params.min_chain_residues}
     Max entries (debug) : ${params.max_entries ?: 'N/A'}
     Results dir         : ${params.results_dir}
+    Reports dir         : ${params.reports_dir}
     Debug mode          : ${params.debug}
     ----------------------------------------------
     Foldseek Configuration Information
@@ -291,15 +337,24 @@ workflow {
         tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
     }
     
-    // Finally run the ted_segmentation which now includes the extract from zip code. Again removed pdb_zip_ch.
-    segmentation_ch = run_ted_segmentation(heavy_chunk_ch)
+    // Run Chainsaw concurrently with the Merizo->UniDoc chain (both consume the same chunk channel),
+    // then join the three choppings by chunk_id (plus the zip name) to compute consensus.
+    merizo_unidoc_ch = run_ted_merizo_unidoc(heavy_chunk_ch)
+    chainsaw_seg_ch  = run_ted_chainsaw(heavy_chunk_ch)
+
+    consensus_input_ch = merizo_unidoc_ch.merizo
+        .join(merizo_unidoc_ch.unidoc)
+        .join(chainsaw_seg_ch.chainsaw)
+        .join(heavy_chunk_ch.map { cid, id_file, zip -> tuple(cid, zip.name) })
+
+    consensus_ch = run_ted_consensus(consensus_input_ch)
 
     // =========================================
     // PHASE 3: Results Collection & Filtering
     // =========================================
 
     // collect the results for chainsaw, merizo and unidoc output - now added sorting to each to help cache performance.
-    collected_chainsaw_ch = segmentation_ch.chainsaw
+    collected_chainsaw_ch = chainsaw_seg_ch.chainsaw
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -308,7 +363,7 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
-    collected_merizo_ch = segmentation_ch.merizo
+    collected_merizo_ch = merizo_unidoc_ch.merizo
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -317,7 +372,7 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
-    collected_unidoc_ch = segmentation_ch.unidoc
+    collected_unidoc_ch = merizo_unidoc_ch.unidoc
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -328,7 +383,7 @@ workflow {
 
     // collect the results for the consensus output - note: this channel drives the rest of the workflow.
     // TODO: current behaviour (storeDir) writes to a permanent file in results. Enhancement: update to use a cached work directory.
-    collected_consensus_ch = segmentation_ch.consensus
+    collected_consensus_ch = consensus_ch.consensus
         .toSortedList { it -> it[0] }
         .flatMap { it }
         .collectFile(
@@ -342,7 +397,7 @@ workflow {
     // =========================================
     // Chunk consensus directly from cached segmentation outputs.
     // Avoid workflow-level collectFile/storeDir here so strict resume is not invalidated by rewritten result files.
-    light_chunks = light_chunk_consensus_by_zip(segmentation_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
+    light_chunks = light_chunk_consensus_by_zip(consensus_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
 
     // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
     // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
@@ -510,6 +565,19 @@ workflow {
         foldseek_ch,
     )
 
+    // Compare the results to the benchmark set if the benchmark_154 profile is used
+    if (params.benchmark) {
+        expected_results_ch = channel.fromPath(
+            params.expected_results,
+            checkIfExists: true
+        )
+
+        benchmark_compare_results(
+            final_results_ch,
+            expected_results_ch
+        )
+    }
+    
     // ==========================================
     // PHASE 8: Completion and output Information
     // ==========================================

@@ -2,6 +2,7 @@
 tools/
 domain_assignments*.tsv
 results/
+reports/
 # nextflow
 .nextflow/
 work/
@@ -117,6 +118,8 @@ repo-key.pub
 .nextflow/
 work/
 .nextflow.log*
+.nf-test/
+nf-test
 
 # local build dir
 domain_assignments*.tsv
@@ -126,3 +129,5 @@ assets/uniprot_ids_100.csv
 assets/uniprot_1000.txt
 assets/bfvd.zip
 foldseek/assets/
+
+
