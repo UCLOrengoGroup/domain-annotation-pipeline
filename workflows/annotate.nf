@@ -31,6 +31,7 @@ include { create_input_from_zip } from '../modules/create_input_from_zip.nf'
 include { chunk_ids_by_zip as chunk_by_zip        } from '../modules/chunk_by_zipfile.nf'
 include { chunk_ids_by_zip as heavy_chunk_by_zip  } from '../modules/chunk_by_zipfile.nf'
 include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
+include { renumber_pdb_file } from '../modules/renumber_pdb_file.nf'
 // Domain prediction modules
 // run_ted_segmentation has been split so Chainsaw runs concurrently with the Merizo->UniDoc chain,
 // then consensus joins the three choppings.
@@ -50,6 +51,7 @@ include { run_ted_consensus } from '../modules/run_ted_consensus.nf'
 // Post-processing modules
 //include { chop_pdb } from '../modules/chop_pdb.nf'
 include { chop_pdb_from_zip } from '../modules/chop_pdb_from_zip.nf'
+include { restore_pdb_numbering } from '../modules/restore_pdb_numbering.nf'
 include { create_md5 } from '../modules/create_domain_md5.nf'
 include { run_stride } from '../modules/run_stride.nf'
 //include { summarise_stride } from '../modules/summarise_stride.nf'
@@ -59,6 +61,7 @@ include { transform_consensus } from '../modules/transform.nf'
 include { run_domain_quality } from '../modules/run_domain_quality.nf'
 include { run_measure_globularity } from '../modules/run_measure_globularity.nf'
 include { run_plddt } from '../modules/run_plddt.nf'
+include { no_plddt } from '../modules/no_plddt.nf'
 include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 
 // Final collection modules
@@ -305,8 +308,18 @@ workflow {
     //} else {
     //    pdb_zip_ch = input_zip_ch
     //}
-    // Run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists) - removed pdb_zip_ch.
-    filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues)
+
+    // =========================================
+    // Experimental PDB structures, set "--experimental true" in the run command
+    // =========================================
+    // For experimental models, run renumber_pdb_file first on the 3-part tuple chunked data channel, then filter_pdb_from_zip.
+    if (params.experimental == true) {
+        renumber_file_ch = renumber_pdb_file(chunked_ids_mapping_ch)
+        filter_input_ch = renumber_file_ch.normalised.map {chunk_id, id_file, normalised_zip, resmaps_zip ->
+        tuple(chunk_id, id_file, normalised_zip)}
+        filtered_ids_ch   = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues)} 
+    // For predicted models, run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists).
+    else {filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues)}
     
     // =========================================
     // PHASE 2: Domain Prediction
@@ -330,13 +343,32 @@ workflow {
     // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
     heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
     
-    // Create heavy_chunk_ch as a channel from the process output
-    heavy_chunk_ch = heavy_chunks.chunk_mapping
-    .splitCsv(header: true, sep: '\t')
-    .map { row ->
-        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))
+    // Create heavy_chunk_ch as a channel from the process output for both experimental and predicted models
+    // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
+    if (params.experimental == true) {
+        normalised_zip_ch = renumber_file_ch.normalised_zip
+            .map { chunk_id, zip_file ->
+                tuple(zip_file.name, zip_file)
+            }
+        heavy_mapping_ch = heavy_chunks.chunk_mapping
+            .splitCsv(header: true, sep: '\t')
+            .map { row ->
+                tuple(row.zip_name, row.chunk_id as int, file(row.chunk_file))
+            }
+        heavy_chunk_ch = heavy_mapping_ch
+            .combine(normalised_zip_ch, by: 0)
+            .map { zip_name, chunk_id, chunk_file, zip_file ->
+                tuple(chunk_id, chunk_file, zip_file)
+            }
+    } 
+    // For predicted models, keep the original ZIP file
+    else {
+        heavy_chunk_ch = heavy_chunks.chunk_mapping
+        .splitCsv(header: true, sep: '\t')
+        .map { row ->
+        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))}
     }
-    
+
     // Run Chainsaw concurrently with the Merizo->UniDoc chain (both consume the same chunk channel),
     // then join the three choppings by chunk_id (plus the zip name) to compute consensus.
     merizo_unidoc_ch = run_ted_merizo_unidoc(heavy_chunk_ch)
@@ -401,6 +433,28 @@ workflow {
 
     // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
     // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
+    // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
+    if (params.experimental == true) {
+        light_mapping_ch = light_chunks.light_chunk_mapping
+            .flatMap { parent_chunk_id, mapping_file ->
+            mapping_file
+                .readLines()
+                .drop(1)
+                .findAll { line -> line.trim() }
+                .collect { line ->
+                    def cols = line.split('\t')
+                    tuple(cols[2], "${parent_chunk_id}_${cols[0]}", file(cols[1])
+                    )
+                }
+            }
+        light_chunk_ch = light_mapping_ch
+            .combine(normalised_zip_ch, by: 0)
+            .map { zip_name, chunk_id, chunk_file, zip_file ->
+                tuple(chunk_id, chunk_file, zip_file)
+            }
+    } 
+    // For predicted models, keep the original ZIP file
+    else {
     light_chunk_ch = light_chunks.light_chunk_mapping
         .flatMap { parent_chunk_id, mapping_file ->
             mapping_file
@@ -416,7 +470,7 @@ workflow {
                     )
                 }
         }
-
+    }
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
     chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch)
         
@@ -433,6 +487,20 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
 
+    // For Experimental models only: regenerate the chopped pdbs with the original numbering
+    if (params.experimental == true) {
+        restoration_input_ch = chopped_pdb_ch
+        .map { light_chunk_id, chopped_pdb_file ->
+            def parent_chunk_id = light_chunk_id.toString().tokenize('_')[0] as int
+            tuple(parent_chunk_id, light_chunk_id, chopped_pdb_file)
+        }
+        .combine(renumber_file_ch.resmaps_zip, by: 0)
+        .map { parent_chunk_id, light_chunk_id, chopped_pdb_file, resmap_zip ->
+            tuple(light_chunk_id, chopped_pdb_file, resmap_zip)
+        }
+        
+        restore_pdb_numbering(restoration_input_ch, file("${baseDir}/../docker/script/restore_pdb_numbering.py"))
+    }
     // =========================================
     // PHASE 5: Structure Analysis
     // =========================================
@@ -484,10 +552,15 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] } // use file name to collect
 
-    // Run pLDDT analysis
+    // Run pLDDT analysis on Experimental and Predicted structures
+    if (params.experimental == true) {
+    // Run the dummy module (no_plddt) to ignore the Bfac column and set plddt to 100
+    plddt_ch = no_plddt(chopped_pdb_ch)
+    }
+    else {
+    // Run the regular avg_plddt calculation module
     plddt_ch = run_plddt(chopped_pdb_ch)
-    // plddt_ch.view { "plddt_ch: " + it }
-    // no flatten as only a single file per chunk
+    }
     collected_plddt_ch = plddt_ch
         .toSortedList { it -> it[0] }
         .flatMap{ it }
@@ -496,7 +569,7 @@ workflow {
             sort: false,
             storeDir: params.results_dir,
         ) { it[1] } // use file name to collect
-
+    
     collected_plddt_with_md5_ch = join_plddt_md5(collected_plddt_ch, collected_md5_ch)
 
     // =========================================
