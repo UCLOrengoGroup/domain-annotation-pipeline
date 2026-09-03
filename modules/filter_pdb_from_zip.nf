@@ -1,7 +1,7 @@
 // filter pdb files to only include those with > 25 residues. 10-Feb-26 added sort statement to for loop.
 process filter_pdb_from_zip {
     label 'sge_low'
-    container 'domain-annotation-pipeline-script'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}"
 
     input:
     tuple(val(chunk_id), path(id_file), path(pdb_zip))

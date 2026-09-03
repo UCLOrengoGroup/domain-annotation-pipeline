@@ -2,7 +2,7 @@
 name: Pipeline test (30 TED test IDs)
 
 on:
-  push:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -22,24 +22,40 @@ jobs:
         run: |
           curl -s https://get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/nextflow
-          nextflow -version
+          nextflow version
+      
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/nf-test
+          nf-test -version
 
       - name: Build docker images for tests (temporary until GHCR default)
         run: |
           docker compose version
           docker compose build
 
-      - name: Run pipeline (docker,git_actions_test)
+      - name: Run test
         env:
           NXF_ANSI_LOG: "false"
+          NFT_DIFF_ARGS: "-u -U 5"
         run: |
           set -euxo pipefail
-          rm -rf work .nextflow* results/git_actions_test || true
-          nextflow run workflows/annotate.nf -profile docker,git_actions_test
+          nf-test test --profile +docker --ci
 
-      - name: Compare final_results.tsv to expected
-        run: |
-          set -euxo pipefail
-          diff -U 0 <(sort assets/test_ids/final_results.tsv) <(sort results/git_actions_test/final_results.tsv)
+      - name: Upload nf-test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .nf-test/tests/*/output
+            .nf-test/tests/*/reports
+            .nf-test/tests/*/meta
+            .nextflow.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
 
 

@@ -1,6 +1,6 @@
 process run_merizo {
     label 'sge_gpu_high'
-    container 'domain-annotation-pipeline-merizo'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
     path '*'

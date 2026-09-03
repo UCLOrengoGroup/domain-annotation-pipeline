@@ -1,6 +1,6 @@
 process run_stride {
     label 'sge_low'
-    container 'domain-annotation-pipeline-cath-af-cli'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:${params.container_tag_name}"
     publishDir "${params.results_dir}" , mode: 'copy', enabled: params.debug // only publish if run in debug mode
 
     input:

@@ -1,6 +1,6 @@
 process get_uniprot_data {
     label 'sge_low'
-    container 'domain-annotation-pipeline-script'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
 
     input:
     tuple(val(id), path(id_file))

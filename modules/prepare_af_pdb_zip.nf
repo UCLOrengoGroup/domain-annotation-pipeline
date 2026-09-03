@@ -11,21 +11,23 @@ nextflow.enable.dsl = 2
 process download_bcif_from_afdb {
     label 'sge_low'
     tag "$chunk_id"
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
+
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
     tuple val(chunk_id), path(afdb_ids_file)
-  path download_script
+    path download_script
     val base_url
 
     output:
     tuple(
-    val(chunk_id),
-    path("${chunk_id}.bcif_files.zip"),
-    path("${chunk_id}.downloaded_ids.txt"),
-    path("${chunk_id}.failed_ids.txt"),
-    path("${chunk_id}.prep_summary.txt"),
-    path("${chunk_id}.download_log.tsv")
+      val(chunk_id),
+      path("${chunk_id}.bcif_files.zip"),
+      path("${chunk_id}.downloaded_ids.txt"),
+      path("${chunk_id}.failed_ids.txt"),
+      path("${chunk_id}.prep_summary.txt"),
+      path("${chunk_id}.download_log.tsv")
     )
 
     script:
@@ -55,6 +57,8 @@ process download_bcif_from_afdb {
 
 process normalise_af_ids {
     label 'sge_low'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
+
     publishDir "${params.results_dir}/prepared", mode: (params.publish_mode ?: 'copy')
 
     input:
@@ -72,6 +76,8 @@ process normalise_af_ids {
 process ids_from_bcif_zip {
     label 'sge_low'
     tag "$chunk_id"
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
+
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 
     input:
@@ -93,6 +99,8 @@ process ids_from_bcif_zip {
 
 process prepare_pdb_from_af_bcif {
     label 'sge_low'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}" 
+
     tag "$chunk_id"
     publishDir "${params.results_dir}/prepared/chunks", mode: (params.publish_mode ?: 'copy')
 

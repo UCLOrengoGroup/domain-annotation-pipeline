@@ -1,13 +1,14 @@
 # build docker images from docker compose and push to docker hub
-
 name: Build, Test, and Push Docker Compose Images
 on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
   release:
     types:
       - published
@@ -16,7 +17,70 @@ permissions:
   packages: write
   
 jobs:
-  build:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java (for Nextflow)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Nextflow
+        run: |
+          curl -s https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/nextflow
+          nextflow -version
+
+      - name: Install nf-test
+        run: |
+          curl -fsSL https://get.nf-test.com | bash
+          sudo mv nf-test /usr/local/bin/nf-test
+          nf-test version
+
+      - name: Build docker images for tests (amd64 only)
+        run: |
+          docker compose version
+          docker compose build
+
+      - name: Tag local images for Nextflow test run
+        run: |
+          set -euxo pipefail
+          TEST_TAG=ci-local
+          docker tag domain-annotation-pipeline-cath-af-cli ghcr.io/uclorengogroup/domain-annotation-pipeline-cath-af-cli:${TEST_TAG}
+          docker tag domain-annotation-pipeline-script ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${TEST_TAG}
+          docker tag domain-annotation-pipeline-ted-tools ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${TEST_TAG}
+          docker tag domain-annotation-pipeline-foldseek ghcr.io/uclorengogroup/domain-annotation-pipeline-foldseek:${TEST_TAG}
+
+      - name: Run test
+        env:
+          NXF_ANSI_LOG: "false"
+          CONTAINER_TAG_NAME: ci-local
+          NFT_DIFF_ARGS: "-u -U 5"
+        run: |
+          set -euxo pipefail
+          nf-test test --profile +docker --ci
+
+      - name: Upload nf-test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nf-test-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .nf-test/tests/*/output
+            .nf-test/tests/*/reports
+            .nf-test/tests/*/meta
+            .nextflow.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  push-images:
+    needs: test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,7 +99,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push SGE-compatible images to GHCR (linux/amd64)
+      - name: Build and push amd64 and arm64 images to GHCR
         env:
           GH_OWNER: ${{ github.repository_owner }}
           GIT_SHA: ${{ github.sha }}
@@ -53,23 +117,39 @@ jobs:
             echo "Building and pushing ${service} for linux/amd64..."
             IMAGE_BASE=ghcr.io/${OWNER_LOWER}/domain-annotation-pipeline-${service}
 
-            TAG_ARGS=(
+            AMD64_TAG_ARGS=(
               --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8}
               --tag ${IMAGE_BASE}:linux-amd64-${DATE_TAG}
               --tag ${IMAGE_BASE}:${BRANCH_TAG}-latest
               --tag ${IMAGE_BASE}:linux-amd64-latest
             )
 
+            ARM64_TAG_ARGS=(
+              --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8}-arm64
+              --tag ${IMAGE_BASE}:linux-arm64-${DATE_TAG}
+              --tag ${IMAGE_BASE}:${BRANCH_TAG}-arm64-latest
+              --tag ${IMAGE_BASE}:linux-arm64-latest
+            )
+
             if [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG:-}" ]]; then
               RELEASE_TAG_SANITIZED=$(echo "${RELEASE_TAG}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g')
-              TAG_ARGS+=(--tag ${IMAGE_BASE}:${RELEASE_TAG_SANITIZED})
+              AMD64_TAG_ARGS+=(--tag ${IMAGE_BASE}:${RELEASE_TAG_SANITIZED})
+              ARM64_TAG_ARGS+=(--tag ${IMAGE_BASE}:${RELEASE_TAG_SANITIZED}-arm64)
             fi
 
             docker buildx build \
               --platform linux/amd64 \
-              "${TAG_ARGS[@]}" \
+              "${AMD64_TAG_ARGS[@]}" \
               --push \
               docker/${service}
+
+            echo "Building and pushing ${service} for linux/arm64..."
+            docker buildx build \
+              --platform linux/arm64 \
+              "${ARM64_TAG_ARGS[@]}" \
+              --push \
+              docker/${service}
+
             docker buildx rm || true
           done
 
