@@ -73,10 +73,6 @@ include { foldseek_run_foldseek } from '../foldseek/modules/foldseek_run_foldsee
 include { foldseek_run_convertalis } from '../foldseek/modules/foldseek_run_convertalis.nf'
 include { foldseek_process_results } from '../foldseek/modules/foldseek_process_results.nf'
 
-// contrasted modules
-include { fetch_contrasted_assets } from '../modules/contrasted_fetch_db_assets.nf'
-include { contrasted_run_annotate } from '../modules/contrasted_run_annotate.nf'
-
 // ===============================================
 // HELPER FUNCTIONS
 // ===============================================
@@ -195,11 +191,6 @@ def validateParameters() {
     Lookup file         : ${params.foldseek_lookup_url.tokenize('/')[-1]}
     Foldseek assests dir: .../${params.cache_dir.tokenize('/')[-3]}/${params.cache_dir.tokenize('/')[-2]}/${params.cache_dir.tokenize('/')[-1]}
     Assets status       : ${params.fetch_foldseek_assets ? 'Fetching new assets' : 'Using existing assets'}
-    ----------------------------------------------
-    contrasTED Configuration Information
-    ----------------------------------------------
-    Reference database  : ${params.contrasted_db_url.tokenize('/')[-1]}
-    ProstT5 location    : ${params.contrasted_hf_home}
     ==============================================
     """.stripIndent()
     )
@@ -236,22 +227,6 @@ workflow {
         }
         ch_target_db   = channel.value(file(params.target_db))
         ch_lookup_file = channel.value(file(params.lookup_file))
-    }
-    // #2. contrasTED Assets
-    // =====================
-    if (params.auto_fetch_contrasted_assets) {
-        fetch_contrasted_assets()
-        contrasted_db_ch   = fetch_contrasted_assets.out.reference_db
-        contrasted_list_ch = fetch_contrasted_assets.out.domain_list
-    } else {
-        if (!file(params.contrasted_db_path).exists()) {
-            error("Contrasted database file not found: ${params.contrasted_db_path}")
-        }
-        if (!file(params.contrasted_list_path).exists()) {
-            error("Contrasted domain list file not found: ${params.contrasted_list_path}")
-        }
-        contrasted_db_ch   = channel.value(file(params.contrasted_db_path))
-        contrasted_list_ch = channel.value(file(params.contrasted_list_path))
     }
     // =========================================
     // PHASE 1: Data Preparation
@@ -556,24 +531,7 @@ workflow {
             storeDir: params.results_dir,
         ) { it[1] }
     // =========================================
-    // PHASE 7: Run contrasted
-    // =========================================
-    // Run contrasted-annotate on the output of the crate_md5 process 
-    contrast_ch = contrasted_run_annotate(md5_chunks_ch, contrasted_db_ch, contrasted_list_ch)
-    
-    // Combine results from each chunk together
-    cont_collect_ch = contrast_ch
-        .toSortedList { it -> it[0] }
-        .flatMap{ it }
-        .collectFile( 
-            name: 'contrasted_results.tsv',
-            keepHeader: true,
-            skip: 1,
-            sort: false,
-            storeDir: params.results_dir,
-        ) { it[1] }
-    // =========================================
-    // PHASE 8: Final Assembly
+    // PHASE 7: Final Assembly
     // =========================================
 
     // Transform consensus with structure data
@@ -604,7 +562,6 @@ workflow {
         collected_domain_quality_ch,
         collected_taxonomy_ch,
         foldseek_ch,
-        cont_collect_ch,
     )
 
     // Compare the results to the benchmark set if the benchmark_154 profile is used
@@ -621,7 +578,7 @@ workflow {
     }
     
     // ==========================================
-    // PHASE 9: Completion and output Information
+    // PHASE 8: Completion and output Information
     // ==========================================
 
     // Remove duplicate final output file and log the location of final_results.tsv to screen

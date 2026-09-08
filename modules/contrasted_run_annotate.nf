@@ -1,6 +1,7 @@
 process contrasted_run_annotate {
     label 'sge_low'
-    container 'domain-annotation-pipeline-contrasted'
+    // container 'domain-annotation-pipeline-contrasted'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-contrasted:${params.container_tag_name}"
     
     input:
     tuple(val(id), path(md5_file)) // md5_chunks_ch
@@ -28,7 +29,12 @@ process contrasted_run_annotate {
 	    export HF_HOME="${params.contrasted_hf_home}"
 	fi
     
+    contrasted-embed \
+    input=${id}.fasta \
+    output_dir=${id}_embeddings
+
     contrasted-annotate \
+    embedding_dir=${id}_embeddings \
     input=${id}.fasta \
     model_path=/opt/contrasted/checkpoints/cath_s40_split.ckpt \
     index=${vector_db}

@@ -17,5 +17,6 @@ services:
     build: docker/foldseek
 
   contrasted:
+    platform: linux/arm64
     image: domain-annotation-pipeline-contrasted
     build: docker/contrasted

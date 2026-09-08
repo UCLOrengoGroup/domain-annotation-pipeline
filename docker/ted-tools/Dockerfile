@@ -14,6 +14,17 @@ RUN git clone --depth 1 https://github.com/sillitoe/ted-tools.git --branch v0.1.
 
 WORKDIR /app/ted-tools/ted_consensus_1.0
 
+RUN python3 -m pip install --no-cache-dir \
+    einops \
+    matplotlib \
+    natsort \
+    networkx \
+    "numpy<2.0" \
+    rotary_embedding_torch \
+    scipy \
+    setuptools \
+    "torch==2.0.1"
+
 RUN bash setup.sh && python3 -m pip cache purge
 
 # If we want to use the old UniDoc executables
