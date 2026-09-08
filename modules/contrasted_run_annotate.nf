@@ -12,6 +12,8 @@ process contrasted_run_annotate {
     tuple val(id), path("outputs/annotations/${id}_annotations.tsv"), emit: contrasted_annotations
 
     script:
+    // Note: the embed and annotate commands have been updated to run the new version of contrasted 
+    // However they do NOT yet include the 3di data step which creates concatenated sequence/3di embeddings.
     """
     mkdir -p data
     cp -n ${domain_list} data/cath-domain-sf-list.txt
@@ -36,7 +38,7 @@ process contrasted_run_annotate {
     contrasted-annotate \
     embedding_dir=${id}_embeddings \
     input=${id}.fasta \
-    model_path=/opt/contrasted/checkpoints/cath_s40_split.ckpt \
+    model_path=/opt/contrasted/checkpoints/aa3di_s20_seed40_head.pt \
     index=${vector_db}
     """
     }
