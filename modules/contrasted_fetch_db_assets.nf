@@ -9,6 +9,8 @@ process fetch_contrasted_assets {
     path "cath-domain-sf-list.txt", emit: domain_list
 
     script:
+    // Note: This process currently loads S95-v4_4_0_contrasted.tar.gz which was created with the old contrasted checkpointed model.
+    // A new S95 database will need to be created using the latest head: aa3di_s20_seed40_head.pt
     """
     echo "Downloading contrasted database for URL: ${params.contrasted_db_url}"
     echo "Cache directory: ${params.contrasted_db_dir}"
