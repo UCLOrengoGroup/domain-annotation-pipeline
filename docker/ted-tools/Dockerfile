@@ -10,7 +10,10 @@ RUN apt-get update \
 
 # RUN git clone https://github.com/psipred/ted-tools.git /app/ted-tools
 ARG CACHE_BUST=3
-RUN git clone --depth 1 https://github.com/sillitoe/ted-tools.git --branch v0.1.2 /app/ted-tools
+COPY conf/dependencies.config /tmp/dependencies.config
+RUN TED_TOOLS_VERSION="$(sed -n "s/^[[:space:]]*ted_tools_version[[:space:]]*=[[:space:]]*['\"]\\([^'\"]*\\)['\"].*/\\1/p" /tmp/dependencies.config)" \
+  && test -n "${TED_TOOLS_VERSION}" \
+  && git clone --depth 1 https://github.com/sillitoe/ted-tools.git --branch "${TED_TOOLS_VERSION}" /app/ted-tools
 
 WORKDIR /app/ted-tools/ted_consensus_1.0
 
