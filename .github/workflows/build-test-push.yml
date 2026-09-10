@@ -116,6 +116,13 @@ jobs:
           for service in "${services[@]}"; do
             echo "Building and pushing ${service} for linux/amd64..."
             IMAGE_BASE=ghcr.io/${OWNER_LOWER}/domain-annotation-pipeline-${service}
+            BUILD_CONTEXT="docker/${service}"
+            DOCKERFILE_ARGS=()
+
+            if [[ "${service}" == "ted-tools" ]]; then
+              BUILD_CONTEXT="."
+              DOCKERFILE_ARGS=(--file docker/ted-tools/Dockerfile)
+            fi
 
             AMD64_TAG_ARGS=(
               --tag ${IMAGE_BASE}:sha-${GIT_SHA:0:8}
@@ -139,16 +146,18 @@ jobs:
 
             docker buildx build \
               --platform linux/amd64 \
+              "${DOCKERFILE_ARGS[@]}" \
               "${AMD64_TAG_ARGS[@]}" \
               --push \
-              docker/${service}
+              "${BUILD_CONTEXT}"
 
             echo "Building and pushing ${service} for linux/arm64..."
             docker buildx build \
               --platform linux/arm64 \
+              "${DOCKERFILE_ARGS[@]}" \
               "${ARM64_TAG_ARGS[@]}" \
               --push \
-              docker/${service}
+              "${BUILD_CONTEXT}"
 
             docker buildx rm || true
           done
