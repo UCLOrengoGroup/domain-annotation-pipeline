@@ -418,8 +418,15 @@ workflow {
         }
 
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
-    chopped_pdb_ch = chop_pdb_from_zip(light_chunk_ch)
-        
+    chop_pdb_from_zip(light_chunk_ch)
+    chopped_pdb_ch = chop_pdb_from_zip.out.chopped_pdbs
+    // Output failed chopping files to an errors directory
+    chop_pdb_from_zip.out.empty_error_pdbs.subscribe { id, archiveFile ->
+        def errorDir = file("${params.results_dir}/errors")
+        errorDir.mkdirs()
+        archiveFile.copyTo(errorDir.resolve(archiveFile.name))
+    }
+
     // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
     collected_md5_ch = md5_chunks_ch
