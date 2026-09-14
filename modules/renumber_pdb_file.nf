@@ -6,6 +6,7 @@ process renumber_pdb_file {
 
     input:
     tuple val(chunk_id), path(id_file), path(pdb_zip)
+    path(renumber_script)
 
     output:
     tuple val(chunk_id),
@@ -18,6 +19,10 @@ process renumber_pdb_file {
 
     script:
     """
-    ${params.renumber_pdb_script} "${pdb_zip}" "${id_file}" "normalised_${chunk_id}.zip" "resmaps_${chunk_id}.zip"
+    python3 ${renumber_script} \
+        --input_zip "${pdb_zip}" \
+        --id_file "${id_file}" \
+        --normalised_zip "normalised_${chunk_id}.zip" \
+        --resmaps_zip "resmaps_${chunk_id}.zip"
     """
 }

@@ -1,11 +1,19 @@
 import csv
 import gemmi
 import sys
+import argparse
 from pathlib import Path
 
 # Directories passed in from Nextflow
-pdb_dir = Path(sys.argv[1])
-resmap_dir = Path(sys.argv[2])
+parser = argparse.ArgumentParser(description="Restore original PDB residue numbering in chopped PDB files.")
+
+parser.add_argument("--pdb_dir", required=True)
+parser.add_argument("--resmap_dir", required=True)
+
+args = parser.parse_args()
+
+pdb_dir = Path(args.pdb_dir)
+resmap_dir = Path(args.resmap_dir)
 
 # Read each chopped PDB
 for pdb_file in pdb_dir.glob("*.pdb"):

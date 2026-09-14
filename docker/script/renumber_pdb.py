@@ -1,20 +1,32 @@
 import csv
 import gemmi
 import sys
+import argparse
 import tempfile
 import zipfile
 from pathlib import Path
 
 # Define a function to renumber the file.
 def renumber_pdb(input_file, output_file, mapping_file):
-    # Input the pdb into emmi
+    # Input the pdb into gemmi
     st = gemmi.read_structure(str(input_file))
-    # Keep only model 1 (just incase NMR files contain multiple)
+    # A PDB with no models cannot be processed
+    if len(st) == 0:
+        raise ValueError(f"Failed to find any models in PDB {input_file}")
+
+    # If multiple models are present, continue using only the first model
+    if len(st) > 1:
+        print(f"WARNING: Found {len(st)} models in PDB {input_file}; ""only the first model will be used.", flush=True)
+
+    # Keep only model 1
     while len(st) > 1:
         del st[1]
+
     model = st[0]
     # Remove non-polymer residues such as ions, waters and ligands
     model.remove_ligands_and_waters()
+    #model.remove_waters() # Replace the above line with this if we really want to keep ligands but later Gemmi logic may need updating.
+
     # Only single-chain structures are allowed
     if len(model) != 1:
         raise ValueError(
@@ -57,10 +69,19 @@ def renumber_pdb(input_file, output_file, mapping_file):
     st.write_pdb(str(output_file))
 
 # Values passed in/out from Nextflow
-input_zip = sys.argv[1]
-id_file = sys.argv[2]
-normalised_zip = sys.argv[3]
-resmaps_zip = sys.argv[4]
+parser = argparse.ArgumentParser(description="Normalise PDB residue numbering and create residue maps.")
+
+parser.add_argument("--input_zip", required=True)
+parser.add_argument("--id_file", required=True)
+parser.add_argument("--normalised_zip", required=True)
+parser.add_argument("--resmaps_zip", required=True)
+
+args = parser.parse_args()
+
+input_zip = args.input_zip
+id_file = args.id_file
+normalised_zip = args.normalised_zip
+resmaps_zip = args.resmaps_zip
 
 # Read the IDs required for this chunk
 ids = []
@@ -78,7 +99,10 @@ with tempfile.TemporaryDirectory() as temp_dir:
         normalised_zip, "w", zipfile.ZIP_DEFLATED)
     resmaps_zip_handle = zipfile.ZipFile(
         resmaps_zip, "w", zipfile.ZIP_DEFLATED)
-    for pdb_id in ids:
+    
+    for pdb_idx, pdb_id in enumerate(ids, start=1):
+        if pdb_idx == 1 or pdb_idx % 100 == 0:
+            print(f"Processing PDB {pdb_id} ({pdb_idx}/{len(ids)})", flush=True) # Add logging for pdb 1 and every 100
         pdb_name = pdb_id + ".pdb"
         # Extract the required PDB from the input ZIP
         input_pdb = temp_dir / pdb_name

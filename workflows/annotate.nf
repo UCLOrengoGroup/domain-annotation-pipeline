@@ -67,6 +67,7 @@ include { join_plddt_md5 } from '../modules/join_plddt_md5.nf'
 // Final collection modules
 include { collect_results } from '../modules/collect_results_combine_chopping.nf'
 include { collect_results_final } from '../modules/collect_results_add_metadata.nf'
+include { restore_final_results } from '../modules/restore_final_results.nf'
 include { benchmark_compare_results } from '../modules/benchmark_compare_results.nf'
 
 // Foldseek modules
@@ -314,7 +315,7 @@ workflow {
     // =========================================
     // For experimental models, run renumber_pdb_file first on the 3-part tuple chunked data channel, then filter_pdb_from_zip.
     if (params.experimental == true) {
-        renumber_file_ch = renumber_pdb_file(chunked_ids_mapping_ch)
+        renumber_file_ch = renumber_pdb_file(chunked_ids_mapping_ch,file("${baseDir}/../docker/script/renumber_pdb.py"))
         filter_input_ch = renumber_file_ch.normalised.map {chunk_id, id_file, normalised_zip, resmaps_zip ->
         tuple(chunk_id, id_file, normalised_zip)}
         filtered_ids_ch   = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues)} 
@@ -654,7 +655,14 @@ workflow {
     // ==========================================
     // PHASE 8: Completion and output Information
     // ==========================================
+    // If this is an experimental PDB run - create the restored_final_results listing as a copy of final_results with original residue numbers
+    if (params.experimental == true) {
+        all_resmaps_ch = renumber_file_ch.resmaps_zip
+            .map { chunk_id, resmap_zip -> resmap_zip }
+            .collect()
 
+        restored_final_results_ch = restore_final_results(final_results_ch, all_resmaps_ch,file("${baseDir}/../docker/script/restore_final_results.py"))
+    }
     // Remove duplicate final output file and log the location of final_results.tsv to screen
     final_results_ch
         .map { def output_path = "${params.results_dir}/final_results.tsv"
