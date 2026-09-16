@@ -4,6 +4,7 @@ process transform_consensus {
     publishDir "${params.results_dir}" , mode: 'copy'
 
     input:
+    path transform_script
     path 'consensus_file'
     path 'all_md5_file'
     path 'stride_files/*.stride.summary'
@@ -13,7 +14,7 @@ process transform_consensus {
 
     script:
     """
-    ${params.transform_script} \
+    python3 ${transform_script} \
         -i 'consensus_file' \
         -o transformed_consensus.tsv \
         -m 'all_md5_file' \
