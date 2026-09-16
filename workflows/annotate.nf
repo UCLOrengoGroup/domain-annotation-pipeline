@@ -537,7 +537,7 @@ workflow {
 
     // Transform consensus with structure data
 
-    // This hard codes combine_results_final.py as the input to the collect_results_final process. 
+    // This hard codes combine_results_final.py as the input to the collect_results_final process.
     transform_consensus_script_ch = Channel.fromPath(
         "${workflow.projectDir}/../docker/script/transform_consensus.py",
         checkIfExists: true
