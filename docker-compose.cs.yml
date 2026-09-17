@@ -9,7 +9,9 @@ services:
 
   ted-tools:
     platform: linux/amd64
-    build: docker/ted-tools
+    build:
+      context: .
+      dockerfile: docker/ted-tools/Dockerfile
 
   foldseek:
     platform: linux/arm64

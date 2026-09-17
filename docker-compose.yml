@@ -10,7 +10,9 @@ services:
 
   ted-tools:
     image: domain-annotation-pipeline-ted-tools
-    build: docker/ted-tools
+    build:
+      context: .
+      dockerfile: docker/ted-tools/Dockerfile
 
   foldseek:
     image: domain-annotation-pipeline-foldseek
