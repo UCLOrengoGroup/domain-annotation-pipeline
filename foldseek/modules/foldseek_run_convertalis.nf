@@ -12,12 +12,17 @@ process foldseek_run_convertalis {
 
     script:
     """
+    export OMP_NUM_THREADS=${task.cpus}
+    export MKL_NUM_THREADS=${task.cpus}
+    export OPENBLAS_NUM_THREADS=${task.cpus}
+
     ${params.foldseek_exec} convertalis \\
         ${query_db_dir}/query_db \\
         ${target_db}/${params.foldseek_db_name} \\
         ${result_db_dir}/foldseek_output_db \\
         foldseek_output.m8 \\
-        --format-output "query,target,fident,evalue,qlen,tlen,qtmscore,ttmscore,qcov,tcov"
+        --format-output "query,target,fident,evalue,qlen,tlen,qtmscore,ttmscore,qcov,tcov" \\
+        --threads ${task.cpus}
     
     """
 }

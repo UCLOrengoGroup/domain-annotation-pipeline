@@ -1,0 +1,23 @@
+process no_plddt {
+    label 'sge_low'
+    container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}"
+    publishDir "${params.results_dir}", mode: 'copy', enabled: params.debug
+
+    input:
+    tuple val(id), path(chopped_pdb_tar_file)
+
+    output:
+    tuple val(id), path("domain_avg_plddt.tsv")
+
+    script:
+    """
+    mkdir -p pdb
+    tar -xzf ${chopped_pdb_tar_file} -C pdb
+
+    for pdb_file in pdb/*.pdb; do
+        printf "%s\\t100.0000\\n" "\$(basename "\$pdb_file")"
+    done | sort > domain_avg_plddt.tsv
+
+    rm -rf pdb
+    """
+}
