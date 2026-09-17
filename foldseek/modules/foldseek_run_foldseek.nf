@@ -11,6 +11,10 @@ process foldseek_run_foldseek {
 
     script:
     """
+    export OMP_NUM_THREADS=${task.cpus}
+    export MKL_NUM_THREADS=${task.cpus}
+    export OPENBLAS_NUM_THREADS=${task.cpus}
+
     mkdir -p tmp_foldseek
     mkdir -p result_db_dir
     ${params.foldseek_exec} search \\
@@ -23,7 +27,8 @@ process foldseek_run_foldseek {
         -e ${params.T_EVALUE_THRESHOLD} \\
         -s 10 \\
         -c ${params.H_COVERAGE_THRESHOLD} \\
-        -a
+        -a \\
+        --threads ${task.cpus}
     
     rm -rf tmp_foldseek
     
