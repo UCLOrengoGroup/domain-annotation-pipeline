@@ -16,7 +16,7 @@ def renumber_pdb(input_file, output_file, mapping_file):
 
     # If multiple models are present, continue using only the first model
     if len(st) > 1:
-        print(f"WARNING: Found {len(st)} models in PDB {input_file}; ""only the first model will be used.", flush=True)
+        print(f"WARNING: Found {len(st)} models in PDB {input_file}, only the first model will be used.", flush=True)
 
     # Keep only model 1
     while len(st) > 1:
@@ -75,6 +75,7 @@ parser.add_argument("--input_zip", required=True)
 parser.add_argument("--id_file", required=True)
 parser.add_argument("--normalised_zip", required=True)
 parser.add_argument("--resmaps_zip", required=True)
+parser.add_argument("--error_file", required=True)
 
 args = parser.parse_args()
 
@@ -82,6 +83,7 @@ input_zip = args.input_zip
 id_file = args.id_file
 normalised_zip = args.normalised_zip
 resmaps_zip = args.resmaps_zip
+error_file = args.error_file
 
 # Read the IDs required for this chunk
 ids = []
@@ -99,7 +101,8 @@ with tempfile.TemporaryDirectory() as temp_dir:
         normalised_zip, "w", zipfile.ZIP_DEFLATED)
     resmaps_zip_handle = zipfile.ZipFile(
         resmaps_zip, "w", zipfile.ZIP_DEFLATED)
-    
+
+    errors = []
     for pdb_idx, pdb_id in enumerate(ids, start=1):
         if pdb_idx == 1 or pdb_idx % 100 == 0:
             print(f"Processing PDB {pdb_id} ({pdb_idx}/{len(ids)})", flush=True) # Add logging for pdb 1 and every 100
@@ -113,11 +116,17 @@ with tempfile.TemporaryDirectory() as temp_dir:
         normalised_pdb = temp_dir / f"{pdb_id}.pdb"
         mapping_file = temp_dir / f"{pdb_id}_resmap.tsv"
 
-        # Call the renumber_pdb function and create its mapping file
-        renumber_pdb(
-            input_pdb,
-            normalised_pdb,
-            mapping_file)
+        # Call the renumber_pdb function and create its mapping file.
+        # If this PDB cannot be processed, record the error and skip it.
+        try:
+            renumber_pdb(
+                input_pdb,
+                normalised_pdb,
+                mapping_file)
+        except Exception as e:
+            print(f"WARNING: Failed to process {pdb_name}: {e} (skipping)", flush=True)
+            errors.append((pdb_name, str(e)))
+            continue
         # Add outputs to their ZIP files
         normalised_zip_handle.write(
             normalised_pdb,
@@ -126,6 +135,13 @@ with tempfile.TemporaryDirectory() as temp_dir:
         resmaps_zip_handle.write(
             mapping_file,
             mapping_file.name)
+
+    # Write a report of any PDBs that could not be processed
+    with open(error_file, "w", newline="") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["pdb_file", "error"])
+        writer.writerows(errors)
+
     # Close all files
     input_zip_handle.close()
     normalised_zip_handle.close()
