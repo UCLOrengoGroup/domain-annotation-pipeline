@@ -23,9 +23,15 @@ def renumber_pdb(input_file, output_file, mapping_file):
         del st[1]
 
     model = st[0]
-    # Remove non-polymer residues such as ions, waters and ligands
-    model.remove_ligands_and_waters()
-    #model.remove_waters() # Replace the above line with this if we really want to keep ligands but later Gemmi logic may need updating.
+    # Keep modified amino acids such as MSE, but remove waters, ions and ligands.
+    for chain_index in reversed(range(len(model))):
+        chain = model[chain_index]
+        for residue_index in reversed(range(len(chain))):
+            residue = chain[residue_index]
+            if not gemmi.find_tabulated_residue(residue.name).is_amino_acid():
+                del chain[residue_index]
+        if len(chain) == 0:
+            del model[chain_index]
 
     # Only single-chain structures are allowed
     if len(model) != 1:
