@@ -10,6 +10,8 @@ from pathlib import Path
 def renumber_pdb(input_file, output_file, mapping_file):
     # Input the pdb into gemmi
     st = gemmi.read_structure(str(input_file))
+    st.add_entity_types(overwrite=True)
+    st.setup_entities()
     # A PDB with no models cannot be processed
     if len(st) == 0:
         raise ValueError(f"Failed to find any models in PDB {input_file}")
@@ -129,7 +131,7 @@ with tempfile.TemporaryDirectory() as temp_dir:
                 input_pdb,
                 normalised_pdb,
                 mapping_file)
-        except Exception as e:
+        except ValueError as e:
             print(f"WARNING: Failed to process {pdb_name}: {e} (skipping)", flush=True)
             errors.append((pdb_name, str(e)))
             continue
