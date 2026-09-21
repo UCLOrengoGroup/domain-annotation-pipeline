@@ -1,4 +1,4 @@
-// filter pdb files to only include those with > 25 residues. 10-Feb-26 added sort statement to for loop.
+// Retain single-model, single-chain PDBs with min_residues < length < max_residues.
 process filter_pdb_from_zip {
     label 'sge_low'
     container "ghcr.io/uclorengogroup/domain-annotation-pipeline-script:${params.container_tag_name}"
