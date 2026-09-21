@@ -318,9 +318,9 @@ workflow {
         renumber_file_ch = renumber_pdb_file(chunked_ids_mapping_ch,file("${baseDir}/../docker/script/renumber_pdb.py"))
         filter_input_ch = renumber_file_ch.normalised.map {chunk_id, id_file, normalised_zip, resmaps_zip ->
         tuple(chunk_id, id_file, normalised_zip)}
-        filtered_ids_ch   = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues)} 
+        filtered_ids_ch   = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues, params.max_chain_residues)} 
     // For predicted models, run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists).
-    else {filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues)}
+    else {filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues, params.max_chain_residues)}
     
     // =========================================
     // PHASE 2: Domain Prediction
