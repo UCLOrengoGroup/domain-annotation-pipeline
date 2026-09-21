@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import argparse
 from collections import defaultdict
 
@@ -39,13 +40,31 @@ with open(input_file) as f:
         pdb_id, zip_name = line.split("\t")
         ids_by_zip[zip_name].append(pdb_id)
 
+# If all ZIPs are normalised_<number>.zip files, sort them by that number so the heavy chunk IDs remain aligned with the original
+# chunk IDs. Otherwise retain the normal filename sort.
+normalised_pattern = re.compile(r"normalised_(\d+)\.zip$")
+
+all_normalised = all(
+    normalised_pattern.fullmatch(os.path.basename(zip_name))
+    for zip_name in ids_by_zip)
+
+if all_normalised:
+    zip_names = sorted(
+        ids_by_zip,
+        key=lambda zip_name: int(
+            normalised_pattern.fullmatch(
+                os.path.basename(zip_name)
+            ).group(1)))
+else:
+    zip_names = sorted(ids_by_zip)
+
 # Write chunk files and file_list
 chunk_id = 0
 
 with open(file_list, "w") as mapping:
     mapping.write("chunk_id\tchunk_file\tzip_name\n")
 
-    for zip_name in sorted(ids_by_zip):
+    for zip_name in zip_names:
         ids = sorted(set(ids_by_zip[zip_name]))
 
         for start in range(0, len(ids), chunk_size):

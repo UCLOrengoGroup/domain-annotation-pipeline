@@ -8,7 +8,7 @@ process restore_pdb_numbering {
     path restore_script
 
     output:
-    path("${chunk_id}_chopped_pdbs.tar.gz")
+    path("${chunk_id}_restored_chopped_pdbs.tar.gz")
 
     script:
     """
@@ -21,7 +21,7 @@ process restore_pdb_numbering {
         --pdb_dir restored_chopped_pdbs \
         --resmap_dir resmaps
 
-    tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf ${chunk_id}_chopped_pdbs.tar.gz -C restored_chopped_pdbs .
+    tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -czf ${chunk_id}_restored_chopped_pdbs.tar.gz -C restored_chopped_pdbs .
     rm -rf restored_chopped_pdbs resmaps
     """
 }
