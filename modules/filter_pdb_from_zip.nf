@@ -6,6 +6,7 @@ process filter_pdb_from_zip {
     input:
     tuple(val(chunk_id), path(id_file), path(pdb_zip))
     val min_residues
+    val max_residues
 
     output:
     tuple(val(chunk_id), path('filtered_ids.txt'), val(pdb_zip.name))
@@ -37,11 +38,14 @@ process filter_pdb_from_zip {
             continue
         fi
 
-        if [ "\$residue_count" -gt ${min_residues} ]; then
-            echo "\$chain_id" >> filtered_ids.txt
+        if [ "\$residue_count" -le ${min_residues} ]; then
+            echo "WARNING: Skipping \$fname, not more than ${min_residues} residues."
+        elif [ "\$residue_count" -ge ${max_residues} ]; then
+            echo "WARNING: Skipping \$fname, at least ${max_residues} residues."
         else
-            echo "WARNING: Skipping \$fname, less than ${min_residues} residues."
+            echo "\$chain_id" >> filtered_ids.txt
         fi
+
     done < ${id_file}
     """
 }
