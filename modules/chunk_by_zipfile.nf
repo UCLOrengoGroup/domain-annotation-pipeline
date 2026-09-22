@@ -10,6 +10,7 @@ process chunk_ids_by_zip {
 
     output:
     path "chunk_mapping.tsv", emit: chunk_mapping
+    path "chunks/*.txt", emit: chunk_files
 
     script:
     """
@@ -22,4 +23,3 @@ process chunk_ids_by_zip {
         --file_list chunk_mapping.tsv
     """
 }
-

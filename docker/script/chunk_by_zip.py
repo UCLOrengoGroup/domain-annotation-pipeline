@@ -49,7 +49,7 @@ with open(file_list, "w") as mapping:
         ids = sorted(set(ids_by_zip[zip_name]))
 
         for start in range(0, len(ids), chunk_size):
-            chunk_ids = ids[start:start + chunk_size]
+            chunk_ids = ids[start : start + chunk_size]
 
             zip_stem = os.path.basename(zip_name).replace(".zip", "")
             chunk_file = f"{outdir}/{zip_stem}_ids_mapping.{chunk_id}.txt"
@@ -58,5 +58,5 @@ with open(file_list, "w") as mapping:
                 for pdb_id in chunk_ids:
                     out.write(pdb_id + "\n")
 
-            mapping.write(f"{chunk_id}\t{chunk_file}\t{zip_name}\n")
+            mapping.write(f"{chunk_id}\t{os.path.basename(chunk_file)}\t{zip_name}\n")
             chunk_id += 1

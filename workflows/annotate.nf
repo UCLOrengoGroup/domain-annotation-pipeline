@@ -271,16 +271,25 @@ workflow {
     // chunk_ids_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips, assigning a 3-part tuple [chunk_id, chunk_file, zip_name].
     zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, file(params.chunk_by_zip_script))
 
-    // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
-    chunked_ids_mapping_ch = zip_chunks.chunk_mapping
-    .splitCsv(header: true, sep: '\t')
-    .map { row ->
-        tuple(
-            row.chunk_id as int,
-            file(row.chunk_file),
-            file("${params.input_zip_dir}/${row.zip_name}")
-        )
-    }
+    // Join chunk metadata to the declared files by basename so downstream task hashes
+    // do not depend on the hash-specific work directory that created each chunk.
+    chunk_metadata_ch = zip_chunks.chunk_mapping
+        .splitCsv(header: true, sep: '\t')
+        .map { row ->
+            tuple(row.chunk_file, row.chunk_id as int, row.zip_name)
+        }
+    chunk_files_by_name_ch = zip_chunks.chunk_files
+        .flatten()
+        .map { chunk_file -> tuple(chunk_file.name, chunk_file) }
+    chunked_ids_mapping_ch = chunk_metadata_ch
+        .join(chunk_files_by_name_ch)
+        .map { chunk_name, chunk_id, zip_name, chunk_file ->
+            tuple(
+                chunk_id,
+                chunk_file,
+                file("${params.input_zip_dir}/${zip_name}")
+            )
+        }
     // As a branch channel, create a 2-part tuple channel [chunk_id, chunk_file] just for get_uniprot_data
     chunked_tax_ids_ch = chunked_ids_mapping_ch
         .map { chunk_id, id_file, zip_name ->
@@ -346,15 +355,24 @@ workflow {
     
     // Create heavy_chunk_ch as a channel from the process output for both experimental and predicted models
     // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
+    heavy_chunk_metadata_ch = heavy_chunks.chunk_mapping
+        .splitCsv(header: true, sep: '\t')
+        .map { row ->
+            tuple(row.chunk_file, row.zip_name, row.chunk_id as int)
+        }
+    heavy_chunk_files_by_name_ch = heavy_chunks.chunk_files
+        .flatten()
+        .map { chunk_file -> tuple(chunk_file.name, chunk_file) }
+    heavy_mapping_ch = heavy_chunk_metadata_ch
+        .join(heavy_chunk_files_by_name_ch)
+        .map { chunk_name, zip_name, chunk_id, chunk_file ->
+            tuple(zip_name, chunk_id, chunk_file)
+        }
+
     if (params.experimental == true) {
         normalised_zip_ch = renumber_file_ch.normalised_zip
             .map { chunk_id, zip_file ->
                 tuple(zip_file.name, zip_file)
-            }
-        heavy_mapping_ch = heavy_chunks.chunk_mapping
-            .splitCsv(header: true, sep: '\t')
-            .map { row ->
-                tuple(row.zip_name, row.chunk_id as int, file(row.chunk_file))
             }
         heavy_chunk_ch = heavy_mapping_ch
             .combine(normalised_zip_ch, by: 0)
@@ -364,10 +382,10 @@ workflow {
     } 
     // For predicted models, keep the original ZIP file
     else {
-        heavy_chunk_ch = heavy_chunks.chunk_mapping
-        .splitCsv(header: true, sep: '\t')
-        .map { row ->
-        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))}
+        heavy_chunk_ch = heavy_mapping_ch
+            .map { zip_name, chunk_id, chunk_file ->
+                tuple(chunk_id, chunk_file, file("${params.input_zip_dir}/${zip_name}"))
+            }
     }
 
     // Run Chainsaw concurrently with the Merizo->UniDoc chain (both consume the same chunk channel),
