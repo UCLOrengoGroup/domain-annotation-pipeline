@@ -189,6 +189,8 @@ def validateParameters() {
     Results dir         : ${params.results_dir}
     Reports dir         : ${params.reports_dir}
     Debug mode          : ${params.debug}
+    TED tools version   : ${params.ted_tools_version}
+    cath-alphaflow ver. : ${params.cath_alphaflow_version}
     ----------------------------------------------
     Foldseek Configuration Information
     ----------------------------------------------

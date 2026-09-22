@@ -119,9 +119,9 @@ jobs:
             BUILD_CONTEXT="docker/${service}"
             DOCKERFILE_ARGS=()
 
-            if [[ "${service}" == "ted-tools" ]]; then
+            if [[ "${service}" == "ted-tools" || "${service}" == "cath-af-cli" ]]; then
               BUILD_CONTEXT="."
-              DOCKERFILE_ARGS=(--file docker/ted-tools/Dockerfile)
+              DOCKERFILE_ARGS=(--file docker/${service}/Dockerfile)
             fi
 
             AMD64_TAG_ARGS=(
