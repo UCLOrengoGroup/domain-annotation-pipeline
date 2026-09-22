@@ -340,6 +340,8 @@ workflow {
     // =========================================
 
     // Rechunk for TED segmentation using ID, ZIP name and protein length.
+    // Metadata columns 0, 2 and 7 are pdb_id, status and residue_count;
+    // for example, an accepted row is emitted as: A0A000\tinput.zip\t394
     filtered_three_part_ch = filtered_pdb_ch.metadata
         .flatMap { chunk_id, metadata_file, zip_name ->
             metadata_file.text
