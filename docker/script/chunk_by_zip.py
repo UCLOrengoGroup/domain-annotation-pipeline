@@ -28,8 +28,9 @@ file_list = args.file_list
 
 os.makedirs(outdir, exist_ok=True)
 
-# Read all IDs and group them by zip file
-ids_by_zip = defaultdict(list)
+# Read all IDs and group them by zip file. A third column is optional; when
+# present it is the residue count emitted by filter_pdb_zip.py.
+ids_by_zip = defaultdict(dict)
 
 with open(input_file) as f:
     for line in f:
@@ -37,8 +38,15 @@ with open(input_file) as f:
         if not line:
             continue
 
-        pdb_id, zip_name = line.split("\t")
-        ids_by_zip[zip_name].append(pdb_id)
+        fields = line.split("\t")
+        if len(fields) not in (2, 3):
+            raise ValueError(
+                f"Expected 2 or 3 tab-separated fields, found {len(fields)}: {line}"
+            )
+
+        pdb_id, zip_name = fields[:2]
+        residue_count = int(fields[2]) if len(fields) == 3 else None
+        ids_by_zip[zip_name][pdb_id] = residue_count
 
 # If all ZIPs are normalised_<number>.zip files, sort them by that number so the heavy chunk IDs remain aligned with the original
 # chunk IDs. Otherwise retain the normal filename sort.
@@ -65,7 +73,14 @@ with open(file_list, "w") as mapping:
     mapping.write("chunk_id\tchunk_file\tzip_name\n")
 
     for zip_name in zip_names:
-        ids = sorted(set(ids_by_zip[zip_name]))
+        ids_with_lengths = ids_by_zip[zip_name]
+        if all(length is not None for length in ids_with_lengths.values()):
+            ids = sorted(
+                ids_with_lengths,
+                key=lambda pdb_id: (ids_with_lengths[pdb_id], pdb_id),
+            )
+        else:
+            ids = sorted(ids_with_lengths)
 
         for start in range(0, len(ids), chunk_size):
             chunk_ids = ids[start:start + chunk_size]

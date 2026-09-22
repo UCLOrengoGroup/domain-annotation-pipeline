@@ -320,21 +320,40 @@ workflow {
         renumber_file_ch = renumber_pdb_file(chunked_ids_mapping_ch,file("${baseDir}/../docker/script/renumber_pdb.py"))
         filter_input_ch = renumber_file_ch.normalised.map {chunk_id, id_file, normalised_zip, resmaps_zip ->
         tuple(chunk_id, id_file, normalised_zip)}
-        filtered_ids_ch   = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues, params.max_chain_residues)} 
+        filtered_pdb_ch = filter_pdb_from_zip(filter_input_ch, params.min_chain_residues, params.max_chain_residues, file(params.filter_pdb_zip_script))}
     // For predicted models, run filter_pdb_from_zip on the 3-part tuple chunked data channel (creates filtered lists).
-    else {filtered_ids_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues, params.max_chain_residues)}
+    else {filtered_pdb_ch = filter_pdb_from_zip(chunked_ids_mapping_ch, params.min_chain_residues, params.max_chain_residues, file(params.filter_pdb_zip_script))}
+
+    // Keep validation results for auditing and carry accepted residue counts
+    // forward so segmentation chunks can be ordered from shortest to longest.
+    filtered_pdb_ch.metadata
+        .toSortedList { it -> it[0] }
+        .flatMap { it }
+        .collectFile(
+            name: 'pdb_filter_metadata.tsv',
+            keepHeader: true,
+            skip: 1,
+            sort: false,
+            storeDir: "${params.results_dir}/intermediate"
+        ) { it[1] }
     
     // =========================================
     // PHASE 2: Domain Prediction
     // =========================================
 
-    // Rechunk for ted_segmentation using heavy_chunk_size. First, take the filtered output and return to 2-part tuple [chunk_id <tab> zip_name]
-    filtered_two_part_ch = filtered_ids_ch
-        .flatMap { chunk_id, filtered_file, zip_name ->
-            filtered_file.text
+    // Rechunk for TED segmentation using ID, ZIP name and protein length.
+    // Metadata columns 0, 2 and 7 are pdb_id, status and residue_count;
+    // for example, an accepted row is emitted as: A0A000\tinput.zip\t394
+    filtered_three_part_ch = filtered_pdb_ch.metadata
+        .flatMap { chunk_id, metadata_file, zip_name ->
+            metadata_file.text
                 .readLines()
-                .findAll { it.trim() }
-                .collect { id -> "${id.trim()}\t${zip_name}" }
+                .drop(1)
+                .findAll { line -> line.split('\t', -1)[2] == 'accepted' }
+                .collect { line ->
+                    def fields = line.split('\t', -1)
+                    "${fields[0]}\t${zip_name}\t${fields[7]}"
+                }
         }
         .collectFile(
             name: 'filtered_af_ids.txt', // Write the chunks to an output file
@@ -344,7 +363,7 @@ workflow {
         )
 
     // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
-    heavy_chunks = heavy_chunk_by_zip(filtered_two_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
+    heavy_chunks = heavy_chunk_by_zip(filtered_three_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
     
     // Create heavy_chunk_ch as a channel from the process output for both experimental and predicted models
     // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
