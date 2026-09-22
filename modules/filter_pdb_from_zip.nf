@@ -10,8 +10,8 @@ process filter_pdb_from_zip {
     path filter_script
 
     output:
-    tuple(val(chunk_id), path('filtered_ids.txt'), val(pdb_zip.name)), emit: filtered_ids
-    tuple(val(chunk_id), path('filter_metadata.tsv'), val(pdb_zip.name)), emit: metadata
+    tuple val(chunk_id), path('filtered_ids.txt'), val(pdb_zip.name), emit: filtered_ids
+    tuple val(chunk_id), path('filter_metadata.tsv'), val(pdb_zip.name), emit: metadata
 
     script:
     """
