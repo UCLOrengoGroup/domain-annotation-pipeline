@@ -12,7 +12,6 @@
 import argparse
 import csv
 import os
-import sys
 
 parser = argparse.ArgumentParser(
     description="Transforms the consensus data.",
@@ -47,13 +46,8 @@ parser.add_argument(
     help="Path to STRIDE summary file",
 )
 
-parser.add_argument(
-    "--warn-missing-stride-id",
-    action="store_true",
-    default=False,
-    help="Warn if STRIDE ids in summary files are missing (default: throw error)",
-)
-
+# parser argument --warn-missing-stride-id is removed as there is no mechanism to set this and the
+# problem it attempts to solve is already addressed in create_stride_summary.py
 
 def read_md5_file(md5_file):
     md5_lookup = {}
@@ -78,7 +72,7 @@ def parse_domain(domain):
     return total, len(fragments), min_start
 
 
-def read_stride_summary(file_path, warn_missing_stride_id: bool=False):
+def read_stride_summary(file_path):
     """
     Reads a STRIDE summary file (TSV) and returns tuples of required fields indexed by 'id'.
     """
@@ -118,12 +112,7 @@ def read_stride_summary(file_path, warn_missing_stride_id: bool=False):
 
             stride_id = parts[header_index["id"]]
             if not stride_id:
-                if warn_missing_stride_id:
-                    print(f"WARNING: Missing 'id' in stride file: {file_path}, line {line_count}: {line.rstrip()} (ignoring)", file=sys.stderr)
-                    continue
-                else:
-                    raise ValueError(f"Missing 'id' in stride file: {file_path}, line {line_count}: {line.rstrip()}")
-
+                raise ValueError(f"Missing 'id' in stride file: {file_path}, line {line_count}: {line.rstrip()}")
             stride_data_by_id[stride_id] = (
                 parts[header_index["num_helix_strand_turn"]],
                 parts[header_index["num_helix"]],
@@ -205,11 +194,7 @@ def transform_consensus(
 
                 stride_values = all_stride_data_by_id.get(pdb_filename)
                 if stride_values is None:
-                    if warn_missing_stride_id:
-                        print(f"WARNING: Stride summary data not found for ID '{pdb_filename}' (ignoring)", file=sys.stderr)
-                        stride_values = ("NA", "NA", "NA", "NA", "NA")
-                    else:
-                        raise ValueError(f"Stride summary data not found for ID '{pdb_filename}'")
+                    raise ValueError(f"Stride summary data not found for ID '{pdb_filename}'")
 
                 md5 = md5_lookup.get(pdb_filename)
                 if md5 is None:
