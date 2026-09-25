@@ -14,8 +14,6 @@ import csv
 import os
 import sys
 
-DEFAULT_STRIDE_SUMMARY_SUFFIX = ".stride.summary"
-
 parser = argparse.ArgumentParser(
     description="Transforms the consensus data.",
 )
@@ -42,18 +40,11 @@ parser.add_argument(
     help="Path to the MD5 file for PDB files",
 )
 parser.add_argument(
-    "--stride_dir",
+    "--stride_file",
     "-s",
     type=str,
     required=True,
-    help="Path to STRIDE summary file directory",
-)
-
-parser.add_argument(
-    "--stride_summary_suffix",
-    type=str,
-    default=DEFAULT_STRIDE_SUMMARY_SUFFIX,
-    help="Suffix for STRIDE summary files (default: .stride.summary)",
+    help="Path to STRIDE summary file",
 )
 
 parser.add_argument(
@@ -151,8 +142,7 @@ def transform_consensus(
     input_file,
     output_file,
     md5_file,
-    stride_dir,
-    stride_summary_suffix=DEFAULT_STRIDE_SUMMARY_SUFFIX,
+    stride_file,
     warn_missing_stride_id=False,
 ):
     headers = [
@@ -169,16 +159,8 @@ def transform_consensus(
 
     md5_lookup = read_md5_file(md5_file)
 
-    # Read all stride summary files and combine their data
-    all_stride_data_by_id = {}
-    stride_files = [
-        os.path.join(stride_dir, f)
-        for f in os.listdir(stride_dir)
-        if f.endswith(stride_summary_suffix)
-    ]
-    for stride_file in stride_files:
-        _stride_data = read_stride_summary(stride_file, warn_missing_stride_id=warn_missing_stride_id)
-        all_stride_data_by_id.update(_stride_data)
+    # Read the stride summary file
+    all_stride_data_by_id = read_stride_summary(stride_file)
 
     stride_keys = [
         "num_helix_strand_turn",
@@ -253,8 +235,7 @@ if __name__ == "__main__":
     input_file = args.input_file
     output_file = args.output_file
     md5_file = args.md5_file
-    stride_dir = args.stride_dir
-    stride_summary_suffix = args.stride_summary_suffix
+    stride_file = args.stride_file
 
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input file '{input_file}' does not exist.")
@@ -262,14 +243,8 @@ if __name__ == "__main__":
     if not os.path.exists(md5_file):
         raise FileNotFoundError(f"MD5 file '{md5_file}' does not exist.")
 
-    if not os.path.exists(stride_dir):
-        raise ValueError("Stride directory does not exist or is invalid.")
+    if not os.path.exists(stride_file):
+        raise FileNotFoundError(f"Stride file '{stride_file}' does not exist.")
 
-    transform_consensus(
-        input_file,
-        output_file,
-        md5_file,
-        stride_dir,
-        stride_summary_suffix,
-        warn_missing_stride_id=args.warn_missing_stride_id,
-    )
+    transform_consensus(input_file, output_file, md5_file, stride_file,
+    warn_missing_stride_id=args.warn_missing_stride_id,)
