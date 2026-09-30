@@ -132,7 +132,6 @@ def transform_consensus(
     output_file,
     md5_file,
     stride_file,
-    warn_missing_stride_id=False,
 ):
     headers = [
         "target_id",
@@ -231,5 +230,4 @@ if __name__ == "__main__":
     if not os.path.exists(stride_file):
         raise FileNotFoundError(f"Stride file '{stride_file}' does not exist.")
 
-    transform_consensus(input_file, output_file, md5_file, stride_file,
-    warn_missing_stride_id=args.warn_missing_stride_id,)
+    transform_consensus(input_file, output_file, md5_file, stride_file)

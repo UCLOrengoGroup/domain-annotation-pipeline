@@ -477,8 +477,6 @@ workflow {
         archiveFile.copyTo(errorDir.resolve(archiveFile.name))
     }
 
-    chopped_pdb_ch = chop_pdb_from_zip(chop_input_ch)
-
     // Generate MD5 hashes for domains added a new file and script_ch - NEW CODE
     md5_chunks_ch = create_md5(chopped_pdb_ch)
     collected_md5_ch = md5_chunks_ch
