@@ -30,7 +30,6 @@ include { filter_pdb_from_zip } from '../modules/filter_pdb_from_zip.nf'
 include { create_input_from_zip } from '../modules/create_input_from_zip.nf'
 include { chunk_ids_by_zip as chunk_by_zip        } from '../modules/chunk_by_zipfile.nf'
 include { chunk_ids_by_zip as heavy_chunk_by_zip  } from '../modules/chunk_by_zipfile.nf'
-include { light_chunk_consensus_by_zip } from '../modules/light_chunk_consensus_by_zipfile.nf'
 include { renumber_pdb_file } from '../modules/renumber_pdb_file.nf'
 // Domain prediction modules
 // run_ted_segmentation has been split so Chainsaw runs concurrently with the Merizo->UniDoc chain,
@@ -178,19 +177,19 @@ def validateParameters() {
     ==============================================
     Domain Annotation Pipeline
     ==============================================
-    Project name        : ${params.project_name}
-    UniProt TSV file    : ${params.uniprot_tsv_file ?: 'N/A'}
-    Input ZIP folder    : ${params.input_zip_dir}
-    Main chunk size     : ${params.chunk_size}
-    Light chunk size    : ${params.light_chunk_size}
-    Heavy chunk size    : ${params.heavy_chunk_size}
-    Min chain residues  : ${params.min_chain_residues}
-    Max entries (debug) : ${params.max_entries ?: 'N/A'}
-    Results dir         : ${params.results_dir}
-    Reports dir         : ${params.reports_dir}
-    Debug mode          : ${params.debug}
-    TED tools version   : ${params.ted_tools_version}
-    cath-alphaflow ver. : ${params.cath_alphaflow_version}
+    Project name         : ${params.project_name}
+    UniProt TSV file     : ${params.uniprot_tsv_file ?: 'N/A'}
+    Input ZIP folder     : ${params.input_zip_dir}
+    Main chunk size      : ${params.chunk_size}
+    Heavy chunk size     : ${params.heavy_chunk_size}
+    Foldseek_scale_factor: ${params.fs_scale_factor}
+    Min chain residues   : ${params.min_chain_residues}
+    Max entries (debug)  : ${params.max_entries ?: 'N/A'}
+    Results dir          : ${params.results_dir}
+    Reports dir          : ${params.reports_dir}
+    Debug mode           : ${params.debug}
+    TED tools version    : ${params.ted_tools_version}
+    cath-alphaflow ver.  : ${params.cath_alphaflow_version}
     ----------------------------------------------
     Foldseek Configuration Information
     ----------------------------------------------
@@ -449,52 +448,27 @@ workflow {
     // =========================================
     // PHASE 4: Post-Consensus Processing
     // =========================================
-    // Chunk consensus directly from cached segmentation outputs.
-    // Avoid workflow-level collectFile/storeDir here so strict resume is not invalidated by rewritten result files.
-    light_chunks = light_chunk_consensus_by_zip(consensus_ch.consensus, params.light_chunk_size, file(params.light_chunk_consensus_by_zip_script))
-
-    // Rebuild the 3-part tuple [chunk_id, chunk_file, zip_file] from per-parent mapping files.
-    // Prefix child chunk_id with parent chunk_id to keep IDs globally unique downstream.
+    // Build the 3-part tuple [chunk_id, consensus_file, zip_file] for downstream processing.
     // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
     if (params.experimental == true) {
-        light_mapping_ch = light_chunks.light_chunk_mapping
-            .flatMap { parent_chunk_id, mapping_file ->
-            mapping_file
-                .readLines()
-                .drop(1)
-                .findAll { line -> line.trim() }
-                .collect { line ->
-                    def cols = line.split('\t')
-                    tuple(cols[2], "${parent_chunk_id}_${cols[0]}", file(cols[1])
-                    )
-                }
-            }
-        light_chunk_ch = light_mapping_ch
-            .combine(normalised_zip_ch, by: 0)
-            .map { zip_name, chunk_id, chunk_file, zip_file ->
-                tuple(chunk_id, chunk_file, zip_file)
-            }
+    chop_input_ch = consensus_ch.consensus
+        .map { chunk_id, consensus_file, zip_name ->
+            tuple(zip_name, chunk_id, consensus_file)
+        }
+        .combine(normalised_zip_ch, by: 0)
+        .map { zip_name, chunk_id, consensus_file, zip_file ->
+            tuple(chunk_id, consensus_file, zip_file)
+        }
     } 
     // For predicted models, keep the original ZIP file
     else {
-    light_chunk_ch = light_chunks.light_chunk_mapping
-        .flatMap { parent_chunk_id, mapping_file ->
-            mapping_file
-                .readLines()
-                .drop(1)
-                .findAll { line -> line.trim() }
-                .collect { line ->
-                    def cols = line.split('\t')
-                    tuple(
-                        "${parent_chunk_id}_${cols[0]}",
-                        file(cols[1]),
-                        file("${params.input_zip_dir}/${cols[2]}")
-                    )
-                }
+    chop_input_ch = consensus_ch.consensus
+        .map { chunk_id, consensus_file, zip_name ->
+            tuple(chunk_id, consensus_file, file("${params.input_zip_dir}/${zip_name}"))
         }
     }
     // Chop pdbs in parallel using chunks and extracting from zip on-the-fly. Removed pdb_zip_ch and replaced with the 3-part tuple
-    chop_pdb_from_zip(light_chunk_ch)
+    chop_pdb_from_zip(chop_input_ch)
     chopped_pdb_ch = chop_pdb_from_zip.out.chopped_pdbs
     // Output failed chopping files to an errors directory
     chop_pdb_from_zip.out.empty_error_pdbs.subscribe { id, archiveFile ->
@@ -518,16 +492,24 @@ workflow {
 
     // For Experimental models only: regenerate the chopped pdbs with the original numbering
     if (params.experimental == true) {
+        resmap_mapping_ch = consensus_ch.consensus
+            .map { chunk_id, consensus_file, zip_name ->
+                def original_chunk_id = zip_name
+                    .replace('normalised_', '')
+                    .replace('.zip', '') as int
+                tuple(chunk_id, original_chunk_id)
+            }
+
         restoration_input_ch = chopped_pdb_ch
-        .map { light_chunk_id, chopped_pdb_file ->
-            def parent_chunk_id = light_chunk_id.toString().tokenize('_')[0] as int
-            tuple(parent_chunk_id, light_chunk_id, chopped_pdb_file)
-        }
-        .combine(renumber_file_ch.resmaps_zip, by: 0)
-        .map { parent_chunk_id, light_chunk_id, chopped_pdb_file, resmap_zip ->
-            tuple(light_chunk_id, chopped_pdb_file, resmap_zip)
-        }
-        
+            .combine(resmap_mapping_ch, by: 0)
+            .map { chunk_id, chopped_pdb_file, original_chunk_id ->
+                tuple(original_chunk_id, chunk_id, chopped_pdb_file)
+            }
+            .combine(renumber_file_ch.resmaps_zip, by: 0)
+            .map { original_chunk_id, chunk_id, chopped_pdb_file, resmap_zip ->
+                tuple(chunk_id, chopped_pdb_file, resmap_zip)
+            }
+
         restore_pdb_numbering(restoration_input_ch, file("${baseDir}/../docker/script/restore_pdb_numbering.py"))
     }
     // =========================================
@@ -604,9 +586,15 @@ workflow {
     // =========================================
     // PHASE 6: Run foldseek
     // =========================================
+    // Introduce a new channel to create foldseek_batch_ch from chopped_pdb_ch using fs_scale_factor
+    foldseek_batch_ch = chopped_pdb_ch
+        .map { chunk_id, tar_file ->
+            tuple((chunk_id / params.fs_scale_factor) as int, tar_file)
+        } // this part is dividing by the scale factor and then dropping the decimal so <scale factor = 0 for example.
+        .groupTuple()
 
-    // Create the query DB from the chopped pdbs channel
-    foldseek_create_db(chopped_pdb_ch) // New - run stright off chopped_pdb chunked output
+    // Create the query DB from the combined foldseek_batch_ch channel
+    foldseek_create_db(foldseek_batch_ch) // New - run from the new foldseek_batch_ch
 
     // Run foldseek search on the output of process create_foldseek_db and the CATH database
     fs_search_ch = foldseek_run_foldseek(foldseek_create_db.out.query_db_dir, ch_target_db)
