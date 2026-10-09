@@ -3,7 +3,7 @@ process run_ted_chainsaw {
     container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
-    tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip))
+    tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip), val(max_residues))
 
     output:
     tuple val(chunk_id), path('output/chopping_chainsaw_sorted.txt'), emit: chainsaw

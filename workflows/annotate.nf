@@ -368,18 +368,18 @@ workflow {
     // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
     if (params.experimental == true) {
         normalised_zip_ch = renumber_file_ch.normalised_zip
-            .map { chunk_id, zip_file ->
-                tuple(zip_file.name, zip_file)
+            .map { chunk_id, zip_file ->         // accept chunk_id, zip_file (full path) from the tuple
+                tuple(zip_file.name, zip_file)   // only keep the zip_file name and zip_file path (drop chunk_id)
             }
-        heavy_mapping_ch = heavy_chunks.chunk_mapping
+        heavy_mapping_ch = heavy_chunks.chunk_mapping // define a channel from the chunk_mapping.tsv file
             .splitCsv(header: true, sep: '\t')
             .map { row ->
-                tuple(row.zip_name, row.chunk_id as int, file(row.chunk_file))
+                tuple(row.zip_name, row.chunk_id as int, file(row.chunk_file), row.max_residues as int) // 4 part tuple
             }
         heavy_chunk_ch = heavy_mapping_ch
-            .combine(normalised_zip_ch, by: 0)
-            .map { zip_name, chunk_id, chunk_file, zip_file ->
-                tuple(chunk_id, chunk_file, zip_file)
+            .combine(normalised_zip_ch, by: 0) // join the two channels above on zip name
+            .map { zip_name, chunk_id, chunk_file, max_residues, zip_file -> // input is now a 5-part tuple (zip_file from normailised_zip_ch)
+                tuple(chunk_id, chunk_file, zip_file, max_residues) // keep only these 4 for the heavy_chunk_ch
             }
     } 
     // For predicted models, keep the original ZIP file
@@ -387,7 +387,7 @@ workflow {
         heavy_chunk_ch = heavy_chunks.chunk_mapping
         .splitCsv(header: true, sep: '\t')
         .map { row ->
-        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"))}
+        tuple(row.chunk_id as int, file(row.chunk_file), file("${params.input_zip_dir}/${row.zip_name}"), row.max_residues as int)}
     }
 
     // Run Chainsaw concurrently with the Merizo->UniDoc chain (both consume the same chunk channel),
@@ -398,7 +398,7 @@ workflow {
     consensus_input_ch = merizo_unidoc_ch.merizo
         .join(merizo_unidoc_ch.unidoc)
         .join(chainsaw_seg_ch.chainsaw)
-        .join(heavy_chunk_ch.map { cid, id_file, zip -> tuple(cid, zip.name) })
+        .join(heavy_chunk_ch.map { cid, id_file, zip, max_residues -> tuple(cid, zip.name) })
 
     consensus_ch = run_ted_consensus(consensus_input_ch)
 
