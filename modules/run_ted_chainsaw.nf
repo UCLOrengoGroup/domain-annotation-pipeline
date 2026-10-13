@@ -1,5 +1,5 @@
 process run_ted_chainsaw {
-    label 'sge_gpu_high'
+    label 'sge_dynamic'
     container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
