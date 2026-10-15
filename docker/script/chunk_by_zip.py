@@ -97,7 +97,7 @@ else:
 chunk_id = 0                                # First chunk will always be numbered 0
 
 with open(file_list, "w") as mapping:
-    mapping.write("chunk_id\tchunk_file\tzip_name\n")
+    mapping.write("chunk_id\tchunk_file\tzip_name\tmax_residues\n")
 
     for zip_name in zip_names:
         ids_with_lengths = ids_by_zip[zip_name]
@@ -113,10 +113,12 @@ with open(file_list, "w") as mapping:
 
         for start in range(0, len(ids), chunk_size):
             chunk_ids = ids[start:start + chunk_size]
+            max_residues = ""
             # use has_lengths to order pdb ids in reverse numerical order within chunks
             if has_lengths:
                 chunk_ids = sorted(chunk_ids, key=lambda pdb_id: (-ids_with_lengths[pdb_id], pdb_id))
-            
+                max_residues = max(ids_with_lengths[pdb_id] for pdb_id in chunk_ids)
+
             zip_stem = os.path.basename(zip_name).replace(".zip", "")
             chunk_file = f"{outdir}/{zip_stem}_ids_mapping.{chunk_id}.txt"
 
@@ -124,5 +126,5 @@ with open(file_list, "w") as mapping:
                 for pdb_id in chunk_ids:
                     out.write(pdb_id + "\n")
 
-            mapping.write(f"{chunk_id}\t{chunk_file}\t{zip_name}\n")
+            mapping.write(f"{chunk_id}\t{chunk_file}\t{zip_name}\t{max_residues}\n")
             chunk_id += 1
