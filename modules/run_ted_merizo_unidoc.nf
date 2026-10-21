@@ -1,13 +1,15 @@
 process run_ted_merizo_unidoc {
-    label 'sge_gpu_high'
+    label 'sge_dynamic'
     container "ghcr.io/uclorengogroup/domain-annotation-pipeline-ted-tools:${params.container_tag_name}"
 
     input:
-    tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip))
+    tuple(val(chunk_id), path(filtered_id_file), path(pdb_zip), val(max_residues))
 
     output:
     tuple val(chunk_id), path('output/chopping_merizo_sorted.txt'), emit: merizo
     tuple val(chunk_id), path('output/chopping_unidoc_sorted.txt'), emit: unidoc
+    tuple val(chunk_id), path('output/chopping_merizo.log'), emit: merizo_log
+    tuple val(chunk_id), path('output/chopping_unidoc.log'), emit: unidoc_log
 
     script:
     """
@@ -53,6 +55,7 @@ process run_ted_merizo_unidoc {
 
     cp "${workflow.projectDir}/../assets/stub_run/chopping_merizo_sorted.txt" output/
     cp "${workflow.projectDir}/../assets/stub_run/chopping_unidoc_sorted.txt" output/
+    touch output/chopping_merizo.log output/chopping_unidoc.log
 
     # Expand each template file so every synthetic ID in filtered_id_file gets the row
     # of its base/template ID, with column 1 replaced by the synthetic ID.

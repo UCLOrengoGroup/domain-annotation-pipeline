@@ -36,14 +36,15 @@ def parse_stride_file(file_path):
         raise FileNotFoundError(f"STRIDE file '{file_path}' does not exist.")
 
     summary = {
-        "id": None,
-        "chain_id": None,
+        "id": os.path.basename(file_path).removesuffix(".stride") + ".pdb",
+        "chain_id": "A",
         "num_helix_strand_turn": 0,
         "num_helix": 0,
         "num_strand": 0,
         "num_helix_strand": 0,
         "num_turn": 0,
     }
+    found_chain_record = False
 
     try:
         with open(file_path, "r") as f:
@@ -53,6 +54,7 @@ def parse_stride_file(file_path):
                     parts = line.split()
                     summary["id"] = parts[1]
                     summary["chain_id"] = parts[2]
+                    found_chain_record = True
                 elif line.startswith("LOC"):
                     structure_type = line.split()[1]
                     if "HELIX" in structure_type.upper():
@@ -66,6 +68,13 @@ def parse_stride_file(file_path):
                 summary["num_helix"] + summary["num_strand"] + summary["num_turn"]
             )
             summary["num_helix_strand"] = summary["num_helix"] + summary["num_strand"]
+
+        if not found_chain_record:
+            print(
+                f"WARNING: STRIDE produced no CHN record for '{file_path}'; "
+                f"using id '{summary['id']}' and assuming chain_id 'A'",
+                file=sys.stderr,
+            )
     except Exception as e:
         raise ValueError(f"Error parsing STRIDE file '{file_path}': {e}")
 

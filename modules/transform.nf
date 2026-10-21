@@ -7,7 +7,7 @@ process transform_consensus {
     path transform_script
     path 'consensus_file'
     path 'all_md5_file'
-    path 'stride_files/*.stride.summary'
+    path 'all_stride_file'
 
     output:
     path "transformed_consensus.tsv"
@@ -18,7 +18,6 @@ process transform_consensus {
         -i 'consensus_file' \
         -o transformed_consensus.tsv \
         -m 'all_md5_file' \
-        -s 'stride_files/' \
-        --stride_summary_suffix .stride.summary
+        -s 'all_stride_file'
     """
 }

@@ -25,8 +25,12 @@ RUN mkdir -p /opt/stride && \
 # Set up app directory
 WORKDIR /app
 
-# Clone cath-alphaflow repository
-RUN git clone https://github.com/UCLOrengoGroup/cath-alphaflow.git
+# Install the centrally pinned cath-alphaflow release.
+COPY conf/dependencies.config /tmp/dependencies.config
+RUN CATH_ALPHAFLOW_VERSION="$(sed -n "s/^[[:space:]]*cath_alphaflow_version[[:space:]]*=[[:space:]]*['\"]\\([^'\"]*\\)['\"].*/\\1/p" /tmp/dependencies.config)" \
+    && test -n "${CATH_ALPHAFLOW_VERSION}" \
+    && git clone --depth 1 https://github.com/UCLOrengoGroup/cath-alphaflow.git \
+        --branch "${CATH_ALPHAFLOW_VERSION}" /app/cath-alphaflow
 
 # Install Python dependencies and cath-alphaflow
 RUN pip install --upgrade pip wheel && \

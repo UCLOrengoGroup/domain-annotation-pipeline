@@ -2,7 +2,9 @@ services:
 
   cath-af-cli:
     image: domain-annotation-pipeline-cath-af-cli
-    build: docker/cath-af-cli
+    build:
+      context: .
+      dockerfile: docker/cath-af-cli/Dockerfile
 
   script:
     image: domain-annotation-pipeline-script
