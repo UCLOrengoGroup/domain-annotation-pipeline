@@ -30,6 +30,24 @@ import os
 import re
 import argparse
 from collections import defaultdict
+from itertools import groupby
+
+
+def iter_chunks(ids, lengths, chunk_size, adaptive):
+    """Split sorted IDs, optionally separating length bands and scaling capacity."""
+    def length_band(pdb_id):
+        length = lengths[pdb_id]
+        for upper, divisor in ((200, 1), (501, 1), (700, 1), (900, 2), (1100, 4)):
+            if length < upper:
+                return upper, divisor
+        return float("inf"), 8
+
+    groups = groupby(ids, key=length_band) if adaptive else [((None, 1), ids)]
+    for (_, divisor), band_ids in groups:
+        band_ids = list(band_ids)
+        capacity = max(1, chunk_size // divisor)
+        for start in range(0, len(band_ids), capacity):
+            yield band_ids[start:start + capacity], capacity
 
 # Usage:
 # python3 chunk_by_zip.py \
@@ -44,8 +62,13 @@ parser.add_argument("--input_file", required=True)            # file containing 
 parser.add_argument("--chunk_size", type=int, required=True)  # numeric chunk size (params.chunk_size or heavy_chunk_size)
 parser.add_argument("--outdir", required=True)                # output directory (PWD/chunks)
 parser.add_argument("--file_list", required=True)             # ouput filename (chunk_mapping.tsv)
+parser.add_argument("--adaptive", action="store_true",
+                    help="Scale chunk sizes by length and separate resource bands; requires residue counts")
 
 args = parser.parse_args()
+
+if args.chunk_size <= 0:
+    parser.error("--chunk_size must be positive")
 
 input_file = args.input_file
 chunk_size = args.chunk_size
@@ -73,6 +96,11 @@ with open(input_file) as f:
         pdb_id, zip_name = fields[:2]
         residue_count = int(fields[2]) if len(fields) == 3 else None
         ids_by_zip[zip_name][pdb_id] = residue_count
+
+if args.adaptive and any(
+    length is None for lengths in ids_by_zip.values() for length in lengths.values()
+):
+    parser.error("--adaptive requires a residue count for every input row")
 
 # If ZIP files are named normalised_XX.zip, sort them by the number (XX) to maintain provenance between the heavy chunk number 
 # and the original chunk number (this is vital for experimental PDBs). Otherwise, retain alphabetic sorting for predicted models.
@@ -111,13 +139,17 @@ with open(file_list, "w") as mapping:
         else:
             ids = sorted(ids_with_lengths)
 
-        for start in range(0, len(ids), chunk_size):
-            chunk_ids = ids[start:start + chunk_size]
+        for chunk_ids, capacity in iter_chunks(ids, ids_with_lengths, chunk_size, args.adaptive):
             max_residues = ""
             # use has_lengths to order pdb ids in reverse numerical order within chunks
             if has_lengths:
                 chunk_ids = sorted(chunk_ids, key=lambda pdb_id: (-ids_with_lengths[pdb_id], pdb_id))
                 max_residues = max(ids_with_lengths[pdb_id] for pdb_id in chunk_ids)
+
+            if args.adaptive:
+                min_residues = min(ids_with_lengths[pdb_id] for pdb_id in chunk_ids)
+                print(f"chunk_id={chunk_id}\tzip_name={zip_name}\tmodels={len(chunk_ids)}"
+                      f"\tmin_residues={min_residues}\tmax_residues={max_residues}\tcapacity={capacity}")
 
             zip_stem = os.path.basename(zip_name).replace(".zip", "")
             chunk_file = f"{outdir}/{zip_stem}_ids_mapping.{chunk_id}.txt"

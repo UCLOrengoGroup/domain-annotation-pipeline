@@ -1,4 +1,10 @@
 {
   "editor.formatOnSave": false,
-  "editor.formatOnSaveMode": "modifications"
+  "editor.formatOnSaveMode": "modifications",
+  "chat.tools.terminal.autoApprove": {
+    "printf": true,
+    "read": true,
+    "awk": true,
+    "git blame": true
+  }
 }

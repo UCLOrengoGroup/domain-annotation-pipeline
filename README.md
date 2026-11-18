@@ -157,7 +157,26 @@ The three chunk size parameters control how many IDs are processed concurrently 
 --heavy_chunk_size
 ```
 
-The parameter ```--heavy_chunk_size``` is used for the run_ted_segmentation process and should be set with maximum memory limits in mind.
+The parameter `--heavy_chunk_size` sets the maximum models per segmentation chunk for Chainsaw and Merizo/UniDoc.
+
+Add `--adaptive_heavy_chunking` to reduce chunk sizes for longer chains. Fixed-size chunking remains the default.
+The supplied `--heavy_chunk_size` is the baseline:
+
+| Chain length (residues) | Maximum models per chunk | With baseline 1000 |
+| --- | --- | --- |
+| Below 700 | baseline | 1000 |
+| 700–899 | baseline / 2 | 500 |
+| 900–1099 | baseline / 4 | 250 |
+| 1100 and above | baseline / 8 | 125 |
+
+Capacities are rounded down, with a minimum of one model. Adaptive chunks stay within a single ZIP and
+do not cross the CPU/GPU boundary at 200 or the memory boundary between 500 and 501 residues.
+Models remain ordered longest-first within each chunk. Chunk counts, length ranges and capacities are
+logged in the chunking task's `.command.out`; the mapping file format is unchanged.
+
+For example: `--heavy_chunk_size 1000 --adaptive_heavy_chunking`.
+This changes task boundaries and increases downstream job counts; validate with a separate pilot run/results
+directory before adopting it for production. It does not change segmentation algorithm settings.
 
 ## Inclusion of Foldseek
 
