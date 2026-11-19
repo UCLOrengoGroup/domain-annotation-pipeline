@@ -182,6 +182,7 @@ def validateParameters() {
     Input ZIP folder     : ${params.input_zip_dir}
     Main chunk size      : ${params.chunk_size}
     Heavy chunk size     : ${params.heavy_chunk_size}
+    Adaptive heavy chunks: ${params.adaptive_heavy_chunking}
     Foldseek_scale_factor: ${params.fs_scale_factor}
     Min chain residues   : ${params.min_chain_residues}
     Max entries (debug)  : ${params.max_entries ?: 'N/A'}
@@ -270,7 +271,7 @@ workflow {
         )
     
     // chunk_ids_by_zip splits all_ids_mapping.txt into chunk_size chunks within zips, assigning a 3-part tuple [chunk_id, chunk_file, zip_name].
-    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, file(params.chunk_by_zip_script))
+    zip_chunks = chunk_by_zip(all_ids_mapping_ch, params.chunk_size, file(params.chunk_by_zip_script), false)
 
     // Recreate the original chunked_ids_mapping_ch from the 3-part tuple output of chunk_by_zip. This feeds filter_pdb_from_zip.
     chunked_ids_mapping_ch = zip_chunks.chunk_mapping
@@ -362,7 +363,7 @@ workflow {
         )
 
     // Use process chunk_ids_by_zip to split filtered_af_ids.txt into heavy_chunk_size chunks within zips, assigning the 3-part tuple [chunk_id, chunk_file, zip_name].
-    heavy_chunks = heavy_chunk_by_zip(filtered_three_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script))
+    heavy_chunks = heavy_chunk_by_zip(filtered_three_part_ch, params.heavy_chunk_size, file(params.chunk_by_zip_script), params.adaptive_heavy_chunking)
     
     // Create heavy_chunk_ch as a channel from the process output for both experimental and predicted models
     // For experimental models replace the original ZIP with the path to each normalised_X.zip file.
